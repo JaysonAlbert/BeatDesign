@@ -36,7 +36,7 @@ export type GenerationModelDescriptor = {
   id: string;
   name: string;
   providerId: string;
-  kind: 'image' | 'video' | 'analysis';
+  kind: 'image' | 'video' | 'audio' | 'analysis';
   available: boolean;
   parameterSchema: unknown;
   defaultParameters: Record<string, unknown>;
@@ -48,6 +48,7 @@ export function listGenerationModelDescriptors(): GenerationModelDescriptor[] {
   return provider.modelBindings.flatMap<GenerationModelDescriptor>((binding) => {
     const effect = getRegisteredEffectById(binding.effectId);
     if (!effect) return [];
+    if (effect.type === 4) return [{ id: binding.modelId, name: effect.name, providerId: provider.id, kind: 'audio', available: true, parameterSchema: effect.inputSchema, defaultParameters: {}, referenceSchema: { image: { min: 0, max: 0 }, video: { min: 0, max: 0 }, audio: { min: 0, max: 0 } } }];
     if (binding.modelId === VIDEO_ANALYSIS_MODEL_ID) {
       return [
         {

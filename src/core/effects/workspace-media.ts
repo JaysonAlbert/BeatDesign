@@ -90,6 +90,7 @@ const firstLastFrameSection = createSection(2, [
 ]);
 
 export const WORKSPACE_MEDIA_SCHEMAS = {
+  'local-h3': { image: createSection(1, [{ kind: 'first-frame' }]), video: emptySection, audio: emptySection },
   'nano-banana': {
     image: createGenericSection(
       'reference-image',

@@ -878,7 +878,7 @@ export function createBeatDesignMcpServer() {
     'bdesign_generation_models',
     {
       description: 'List logical generation models and their current parameter/reference capabilities.',
-      inputSchema: z.object({ kind: z.enum(['image', 'video', 'analysis']).optional() }),
+      inputSchema: z.object({ kind: z.enum(['image', 'video', 'audio', 'analysis']).optional() }),
       annotations: { readOnlyHint: true },
     },
     withToolErrors(({ kind }) =>
@@ -899,6 +899,15 @@ export function createBeatDesignMcpServer() {
       return model;
     })
   );
+
+  server.registerTool('bdesign_audio_generate', {
+    description: 'Generate short local Drama 3 narration into the current project Assets and generation history. Does not change the Canvas or Timeline. Text only; maximum 200 characters.',
+    inputSchema: z.object({ projectId: idSchema.optional(), text: z.string().min(1).max(200) }),
+    annotations: { destructiveHint: false, idempotentHint: false },
+  }, withToolErrors(async input => {
+    const project = await resolveScopedProject(input.projectId);
+    return submitAssetFirstGeneration({ origin: 'mcp', generation: { version: 2, projectId: project.id, mode: 'audio', modelId: 'local-drama3', prompt: input.text, references: [], parameters: {} } });
+  }));
 
   server.registerTool(
     'bdesign_generation_submit',

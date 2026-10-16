@@ -35,8 +35,8 @@ const readJsonLine = async (
 
 test('MCP stdio handshake lists the catalogued tools and can list projects', async () => {
   const child = spawn(
-    resolve('node_modules/.bin/tsx'),
-    ['scripts/mcp-server.ts'],
+    process.execPath,
+    [resolve('node_modules/tsx/dist/cli.mjs'), 'scripts/mcp-server.ts'],
     {
       cwd: resolve('.'),
       env: { ...process.env, NODE_ENV: 'development' },

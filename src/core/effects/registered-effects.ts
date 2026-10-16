@@ -8,6 +8,7 @@ import {
 } from '@/core/generation-providers';
 
 import {
+  LOCAL_AUDIO_MODEL,
   type WorkspaceEffectRegistryEntry,
   WORKSPACE_EFFECT_REGISTRY,
   getWorkspaceEffectRegistryEntryByEffectId,
@@ -47,6 +48,8 @@ const buildVideoAnalysisEffect = (
     },
   };
 };
+
+const buildLocalAudioEffect = (binding: GenerationProviderModelBinding, providerId = getActiveGenerationProviderId()): RegisteredEffect => ({ id: binding.effectId, name: LOCAL_AUDIO_MODEL.name, type: 4, model: binding.modelId, version: null, linkName: binding.modelId, description: 'Local short narration', platform: providerId, api: null, provider: providerId, inputSchema: { prompt: { type: 'string', required: true, maxLength: 200 } } });
 
 const optionalAnyField = { type: 'any', required: false } as const;
 
@@ -159,6 +162,7 @@ export const toRegisteredEffect = (
 
 export const listRegisteredEffects = (): RegisteredEffect[] =>
   getActiveGenerationProvider().modelBindings.flatMap((binding) => {
+    if (binding.modelId === LOCAL_AUDIO_MODEL.id) return [buildLocalAudioEffect(binding)];
     if (binding.modelId === VIDEO_ANALYSIS_MODEL_ID) {
       return [buildVideoAnalysisEffect(binding)];
     }
@@ -174,6 +178,7 @@ export const getRegisteredEffectById = (
 ): RegisteredEffect | null => {
   const binding = getGenerationModelBindingByEffectId({ effectId: id, providerId });
   if (!binding) return null;
+  if (binding.modelId === LOCAL_AUDIO_MODEL.id) return buildLocalAudioEffect(binding, providerId);
   if (binding.modelId === VIDEO_ANALYSIS_MODEL_ID) {
     return buildVideoAnalysisEffect(binding, providerId);
   }

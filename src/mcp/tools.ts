@@ -17,6 +17,7 @@ export const BEATDESIGN_MCP_TOOL_NAMES = [
   'bdesign_canvas_continue_from_tail',
   'bdesign_generation_models',
   'bdesign_generation_model_get',
+  'bdesign_audio_generate',
   'bdesign_generation_submit',
   'bdesign_generation_status',
   'bdesign_generation_history',

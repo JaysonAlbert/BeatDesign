@@ -330,8 +330,8 @@
           "status": {
             "queued": "Queued",
             "generating": "Generating",
-        "ready": "Success",
-        "success": "Success",
+            "ready": "Success",
+            "success": "Success",
             "failed": "Failed"
           },
           "fromCanvas": "From canvas",
@@ -409,7 +409,8 @@
         "video": "Video",
         "analysis": "Analysis",
         "analysisResult": "Analysis result",
-        "references": "References"
+        "references": "References",
+        "audio": "Audio"
       },
       "textNote": {
         "template": "Text note\n\nCapture composition ideas, shot notes, or production reminders here."
@@ -753,5 +754,15 @@
   },
   "Common": {
     "loading": "Loading"
+  },
+  "LocalRuntime": {
+    "title": "Local voice · Drama 3 INT4",
+    "description": "Short narration preview (up to 200 characters). GPU jobs run in model batches. Audio returns to this project; voice consistency and long narration are not included yet.",
+    "text": "English narration text",
+    "generate": "Generate local voice",
+    "pending": "Queued — waiting for the GPU",
+    "processing": "Generating locally",
+    "succeeded": "Audio saved to this project",
+    "failed": "Generation failed"
   }
 }

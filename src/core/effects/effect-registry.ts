@@ -103,6 +103,8 @@ export type WorkspaceEffectRegistryEntry = {
   aliasDefaults?: Record<string, WorkspaceEffectRegistryAliasDefaults>;
 };
 
+export const LOCAL_AUDIO_MODEL = { id: 'local-drama3', name: 'Local Drama 3 INT4', effectId: 9002 };
+
 const durationRange = (from: number, to: number): WorkspaceRegistryDuration[] =>
   Array.from(
     { length: to - from + 1 },
@@ -121,6 +123,7 @@ const SEEDANCE_ASPECT_RATIOS = [
 
 export const WORKSPACE_EFFECT_REGISTRY: readonly WorkspaceEffectRegistryEntry[] =
   [
+    { id: 'local-h3', name: 'Local H3 · Turbo 4 · 1024×576', workspaceType: 'ai-video', routeSlug: null, requiresImageInput: true, supportsSeed: true, defaultDuration: '6.583s', supportedDurations: ['6.583s'], defaultAspectRatio: '16:9', supportedAspectRatios: ['16:9'] },
     {
       id: 'nano-banana-pro',
       name: 'Nano Banana Pro',

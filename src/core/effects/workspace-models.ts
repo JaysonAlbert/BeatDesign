@@ -199,7 +199,7 @@ const DEFAULT_WORKSPACE_MODEL_ID_BY_TYPE: Partial<
   Record<WorkspaceType, string>
 > = {
   'ai-image': 'nano-banana-pro',
-  'ai-video': 'seedance-2',
+  'ai-video': getActiveGenerationProviderId() === 'workstation' ? 'local-h3' : 'seedance-2',
 };
 
 export const getWorkspaceModelsByType = (

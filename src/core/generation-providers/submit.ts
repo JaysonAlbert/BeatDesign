@@ -1,3 +1,5 @@
+import { LOCAL_MODELS } from './local-provider';
+import { getRegisteredEffectById } from '@/core/effects/registered-effects';
 import { readFile, stat } from 'node:fs/promises';
 
 import {
@@ -71,6 +73,13 @@ async function prepareGenerationReferences({
     assets.set(reference.assetId, asset);
   }
 
+  if (LOCAL_MODELS.includes(generation.modelId)) {
+    for (const asset of assets.values()) {
+      if (asset.storageProvider !== 'local') throw new Error('Import the reference into local project storage first.');
+      await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
+    }
+    return { generation: { ...generation, references: generation.references.map(ref => ({ ...ref, deliveryUrl: assets.get(ref.assetId)!.publicUrl })) }, authorizedDeliveryUrls: [...assets.values()].map(asset => asset.publicUrl) };
+  }
   const localAssets = [...assets.values()].filter(
     needsManagedGenerationReferenceUpload
   );
@@ -184,7 +193,7 @@ export async function preflightAssetFirstGeneration(source: unknown) {
       );
     }
   }
-  const expectedUploadCount = [...uniqueAssets.values()].filter(
+  const expectedUploadCount = LOCAL_MODELS.includes(generation.modelId) ? 0 : [...uniqueAssets.values()].filter(
     (asset) => asset && needsManagedGenerationReferenceUpload(asset)
   ).length;
   const validationUrls: string[] = [];
@@ -209,7 +218,7 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   };
   const input = await compileAssetFirstGenerationInput({ generation: validationRequest, generationIntentId: '', authorizedDeliveryUrls: validationUrls });
   validateGenerationModelInput({ modelId: generation.modelId, input });
-  await provider.assertConfigured?.();
+  await provider.assertConfigured?.(getRegisteredEffectById(binding.effectId) ?? undefined);
   return { generation, binding, expectedUploadCount };
 }
 
@@ -250,6 +259,15 @@ export async function submitAssetFirstGeneration({
       generationIntentId: intentId,
       authorizedDeliveryUrls: prepared.authorizedDeliveryUrls,
     });
+    if (LOCAL_MODELS.includes(generation.modelId)) {
+      const paths = [];
+      for (const ref of generation.references) {
+        const asset = await getProjectAssetById({ projectId: generation.projectId, assetId: ref.assetId });
+        if (!asset || asset.storageProvider !== 'local') throw new Error('Local reference unavailable');
+        paths.push(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
+      }
+      Object.assign(input, { _localReferencePaths: paths });
+    }
     validateGenerationModelInput({ modelId: generation.modelId, input });
     const result = await submitEffectGeneration({
       effectId: binding.effectId,

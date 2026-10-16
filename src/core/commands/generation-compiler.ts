@@ -4,6 +4,7 @@ import { getProjectAssetById } from '@/core/workspace-lib/assets/user-assets';
 import type { AssetFirstGenerationRequest } from './generation-contract';
 
 const MEDIA_PARAMETER_KEYS = new Set([
+  '_localReferencePaths',
   'prompt',
   'placement',
   'image_url',

@@ -147,11 +147,11 @@ export async function submitEffectGeneration({
     !effect ||
     !binding ||
     (!getWorkspaceEffectRegistryEntryByEffectId(effectId, effect.provider) &&
-      binding.modelId !== VIDEO_ANALYSIS_MODEL_ID)
+      binding.modelId !== VIDEO_ANALYSIS_MODEL_ID && binding.modelId !== 'local-drama3')
   ) {
     return { status: 404, body: { error: 'Model not found' } };
   }
-  if (effect.type !== 1 && effect.type !== 2 && effect.type !== 3) {
+  if (effect.type !== 1 && effect.type !== 2 && effect.type !== 3 && effect.type !== 4) {
     return { status: 400, body: { error: 'Unsupported task type.' } };
   }
 

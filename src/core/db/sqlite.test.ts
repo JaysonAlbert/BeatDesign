@@ -20,6 +20,6 @@ test('local SQLite uses WAL and a busy timeout on each connection', async () => 
     assert.equal((await clients[1].execute('SELECT id FROM test')).rows[0].id, 1);
   } finally {
     clients.forEach((client) => client.close());
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 });
