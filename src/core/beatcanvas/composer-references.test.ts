@@ -88,7 +88,19 @@ test('Ref2VA offers audio references and stops all media choices at the aggregat
   const full = {...draft, referenceCardIds: Object.keys(cards)};
   assert.deepEqual(getDraftReferencePickerOptions({draftCard: full, cards, model}), []);
   assert.deepEqual(listCompatibleCanvasReferenceCards({draftCard: full, cards: {...cards, voice: audio}, model}), []);
-  assert.equal(canUseCanvasCardAsGenerationReference({sourceCard: makeCard(), targetType: 'image', targetModel: makeModel({id: 'local-flux3-klein'})}), false);
+});
+
+test('FLUX 3 offers images only and stops adding references at ten', () => {
+  const model = makeModel({ id: 'local-flux3-klein', maxReferenceImages: 10 });
+  const draft = {...makeDraft(), modelId: model.id};
+  assert.equal(canUseCanvasCardAsGenerationReference({sourceCard: makeCard(), targetType: 'image', targetModel: model}), true);
+  for (const type of ['audio', 'video'] as const)
+    assert.equal(canUseCanvasCardAsGenerationReference({sourceCard: makeCard({type}), targetType: 'image', targetModel: model}), false);
+  assert.deepEqual(getDraftReferencePickerOptions({draftCard: draft, cards: {}, model}).map(option => option.intent), ['image']);
+  const cards = Object.fromEntries(Array.from({length: 10}, (_, i) => [`ref-${i}`, makeCard({id: `ref-${i}`})]));
+  const full = {...draft, referenceCardIds: Object.keys(cards)};
+  assert.deepEqual(getDraftReferencePickerOptions({draftCard: full, cards, model}), []);
+  assert.deepEqual(listCompatibleCanvasReferenceCards({draftCard: full, cards: {...cards, extra: makeCard({id: 'extra'})}, model}), []);
 });
 
 test('Motion Control stops offering references after one image and one video', () => {

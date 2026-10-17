@@ -110,7 +110,7 @@ Codex / Claude Code / Other Agent
 ### 本地 Fork：Ref2VA 和 FLUX 3（2026-10-17）
 
 - 视频模型新增本地 Ref2VA，支持图片、视频和独立音频参考，Canvas 补齐音频上传、引用和 `@AudioN` 编号；UI/MCP 共用项目素材解析、参数校验、队列和结果入库。
-- 图片模型新增本地 FLUX 3 Image Klein 文生图，复用既有权重，使用提示词扩写和 16 步蒸馏采样；五种画幅由共享尺寸表定义。
+- 图片模型新增本地 FLUX 3 Image Klein 文生图、单图编辑和最多 10 张图片参考合成；UI/MCP 共用有序项目素材、数量校验与本地提交。复用既有权重，使用可看参考图的提示词扩写和 16 步蒸馏采样；五种画幅由共享尺寸表定义。
 - FLUX 3 使用独立 ComfyUI 0.41 实例，与 H3 0.40 共用 GPU 锁并在模型切换前释放显存；保留原 H3 实例和工作流。
 - 逐任务保存素材类型、顺序、哈希、工作流及输入指纹、提交 ID；不确定提交先查原任务，拒绝自动重复生成。
 - 验证与使用边界见 [LOCAL_MODELS.md](./LOCAL_MODELS.md) 和 [LOCAL_MODELS_VALIDATION.md](./LOCAL_MODELS_VALIDATION.md)。属于自有 Fork 的本机集成，不代表上游已支持。

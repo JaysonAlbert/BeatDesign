@@ -1,5 +1,6 @@
 import { getWorkspaceEffectRegistryEntry } from './effect-registry';
 import localRefLimits from '@/core/generation-providers/local-h3-ref2va.json';
+import localFlux3 from '@/core/generation-providers/local-flux3.json';
 import {
   getBeatApiImageReferenceLimit,
   getBeatApiVideoReferenceContract,
@@ -91,7 +92,7 @@ const firstLastFrameSection = createSection(2, [
 ]);
 
 export const WORKSPACE_MEDIA_SCHEMAS = {
-  'local-flux3-klein': { image: emptySection, video: emptySection, audio: emptySection },
+  'local-flux3-klein': { image: createGenericSection('reference-image', localFlux3.maxReferenceImages), video: emptySection, audio: emptySection },
   'local-h3': { image: createSection(1, [{ kind: 'first-frame' }]), video: emptySection, audio: emptySection },
   'local-h3-ref2va': {
     image: createGenericSection('reference-image', localRefLimits.image),
