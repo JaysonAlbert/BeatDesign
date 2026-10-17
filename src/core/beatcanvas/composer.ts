@@ -303,7 +303,7 @@ export const canUseCanvasCardAsGenerationReference = ({
   }
 
   if (sourceCard.type === 'image') {
-    return targetModel?.id !== 'local-flux3-klein';
+    return true;
   }
   if (sourceCard.type === 'audio') return targetModel?.supportsReferenceAudio === true;
 

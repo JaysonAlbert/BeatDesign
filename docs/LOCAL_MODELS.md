@@ -74,16 +74,41 @@ reach the worker. Duplicate asset IDs do not create extra reference ordinals.
 ### FLUX 3 — `local-flux3-klein`
 
 Select **Local FLUX 3 Image Klein · BF16 · 16 steps** in the image model picker.
-This integration exposes text-to-image with the installed distilled BF16
+This integration exposes text-to-image, single-image editing and composition
+from up to 10 ordered image references with the installed distilled BF16
 transformer, BF16 Qwen3-VL 4B encoder, INT8 Qwen3.5 9B prompt upsampler and
-FLUX.2 VAE. The upsampler runs before image generation (official workflow prompt,
+FLUX.2 VAE. The upsampler runs before image generation (official task instructions,
 greedy generation, up to 1024 tokens); sampling uses 16 steps / Euler / simple /
-CFG 1. Image editing/reference inputs and bounding-box UI are outside this entry.
+CFG 1. Bounding-box UI is outside this entry.
+
+In Canvas / Studio, upload reference images or attach existing project images.
+Use `@Image1` through `@Image10` in the prompt to identify them. Removing or
+reordering references uses the existing alias handling. The server resolves
+ordered project assets locally; video/audio references and foreign-project
+assets are rejected. Duplicate assets consume one ordinal. The model picker
+entry stays the same for all three image-generation modes.
+
+For editing, the Qwen3.5 upsampler sees all reference images in order and uses
+the official image-editing instruction, converting the user's request into an
+edit/composition prompt. The native `ReferenceMultiLatent` node attaches each
+image to both positive and negative conditioning at approximately 1 MP. The
+selected output ratio remains independent of the first reference. Job-local
+RGB PNG copies preserve aspect ratio; only the vision batch is letterboxed to
+768×768 so different image shapes are never cropped to match the first image.
+Original project assets are retained. Source/prepared/vision hashes and ordered
+asset IDs, UI aliases and native `<ref_image_0>` ordinals are saved per take.
 
 Accepted ratios and exact dimensions share `local-flux3.json`: 1:1 = 1024×1024,
 16:9 = 1344×768, 9:16 = 768×1344, 4:3 = 1152×864, 3:4 = 864×1152.
-MCP uses `modelId: "local-flux3-klein"`, `mode: "image"`, `references: []` and
+MCP uses `modelId: "local-flux3-klein"`, `mode: "image"` and
 `parameters: {"aspect_ratio":"1:1"}` on a matching Canvas generation card.
+Its discovered `referenceSchema.image.max` is 10. Import with
+`bdesign_asset_import`, attach image asset cards using `bdesign_canvas_apply`
+and set the generation card's ordered `referenceCardIds`. Then use
+`bdesign_generation_submit`; omit `references` to derive the reviewed card's
+images, or explicitly supply matching `{assetId, role:"reference"}` entries.
+An empty reference list retains text-to-image. UI and MCP share preflight,
+reference ordering, local queue, recovery and output ingestion.
 The PNG is persisted as a normal project Asset and appears in Canvas/Studio/history.
 
 FLUX requires ComfyUI >=0.41 with native `flux3` CLIP/model support. This machine
@@ -134,9 +159,12 @@ validation boundaries. See `LOCAL_MODELS_VALIDATION.md` for dated receipts.
 
 Workflow sources: [ComfyUI native H3 node](https://github.com/Comfy-Org/ComfyUI/blob/v0.40.0/comfy_extras/nodes_minimax_h3.py),
 [official FLUX model card](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy),
-[official distilled T2I template](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_flux3_klein_distilled_t2i.json).
-The FLUX prompt-upsample instruction is retained from that template as workflow
-data. Weights remain subject to their existing model licenses.
+[official distilled T2I template](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_flux3_klein_distilled_t2i.json),
+[official editing template](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/blob/main/workflows/image_flux3_klein_distilled_image_edit.json).
+`scripts/workflows/local-flux3-prompts.json` retains the `t2i` and `i2i`
+instructions from Black Forest Labs' Apache-2.0
+[prompt upsampler](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup/blob/main/system_prompts.json)
+as workflow data (retrieved 2026-10-17). Weights retain their existing licenses.
 
 ## Reuse the configured standalone runtime
 

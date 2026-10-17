@@ -6,7 +6,8 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 from local_ref2va import describe_inputs, build_workflow, resolve_prompt, validate_reference, recover_submission
-from local_flux3 import build_flux3_workflow, RATIOS
+from local_flux3 import build_flux3_workflow, describe_flux3_inputs, RATIOS
+from local_ref2va import input_fingerprint
 
 
 class LocalModelTests(unittest.TestCase):
@@ -55,6 +56,41 @@ class LocalModelTests(unittest.TestCase):
             self.assertIn('A blue cup', graph['11']['inputs']['prompt'])
             self.assertTrue(graph['10']['inputs']['clip_name'].endswith('_int8_convrot.safetensors'))
         self.assertEqual(resolve_prompt('@Image2 @Audio3 and <Video 1>'), '<Picture 2> <Audio 3> and <Video 1>')
+
+    def test_flux_single_and_multi_reference_conditioning_and_vision_order(self):
+        for count in [1, 2, 10]:
+            staged = [('ref-{}.png'.format(i), 'vision-{}.png'.format(i)) for i in range(count)]
+            graph = build_flux3_workflow({'prompt': 'Edit reference image 1', 'aspect_ratio': '4:3'}, 17, 'test', staged)
+            self.assertEqual(graph['7']['inputs']['positive'], ['13', 0])
+            self.assertEqual(graph['7']['inputs']['negative'], ['13', 1])
+            self.assertEqual(graph['7']['inputs']['latent_image'], ['6', 0])
+            self.assertEqual(graph['11']['inputs']['image'], ['14', 0])
+            self.assertIn('image-editing', graph['11']['inputs']['system_prompt'])
+            for i in range(count):
+                source = graph['13']['inputs']['images.image{}'.format(i)][0]
+                vision = graph['14']['inputs']['images.image{}'.format(i)][0]
+                self.assertEqual(graph[source]['inputs']['image'], staged[i][0])
+                self.assertEqual(graph[vision]['inputs']['image'], staged[i][1])
+
+    def test_flux_fingerprint_tracks_reference_content_order_and_aliases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = [Path(directory) / str(i) for i in range(2)]
+            for i, path in enumerate(paths):
+                path.write_bytes(str(i).encode())
+            refs = [{'type': 'image', 'assetId': str(i), 'path': str(p)} for i, p in enumerate(paths)]
+            inputs = {'prompt': 'Combine @Image1 and <ref_image_1>', '_localReferences': refs}
+            spec = describe_flux3_inputs(inputs)
+            self.assertEqual(spec['resolvedPrompt'], 'Combine reference image 1 and reference image 2')
+            self.assertEqual([r['modelLabel'] for r in spec['references']], ['<ref_image_0>', '<ref_image_1>'])
+            original = input_fingerprint(spec)
+            self.assertNotEqual(original, input_fingerprint(describe_flux3_inputs({**inputs, '_localReferences': refs[::-1]})))
+            paths[0].write_bytes(b'changed')
+            self.assertNotEqual(original, input_fingerprint(describe_flux3_inputs(inputs)))
+            for invalid in [refs * 6, [{**refs[0], 'type': 'video'}]]:
+                with self.assertRaises(ValueError):
+                    describe_flux3_inputs({**inputs, '_localReferences': invalid})
+            with self.assertRaisesRegex(ValueError, 'unattached'):
+                describe_flux3_inputs({**inputs, 'prompt': '@Image3'})
 
 
 if __name__ == '__main__':

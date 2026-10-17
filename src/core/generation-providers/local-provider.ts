@@ -64,7 +64,11 @@ export const localGenerationProvider: GenerationProviderDefinition = {
     }
     if (effect.model === 'local-flux3-klein' && !Object.hasOwn(flux3.ratios, String(input.aspect_ratio ?? '1:1')))
       throw new Error('Unsupported local FLUX 3 aspect ratio.');
-    const allowed = new Set(['prompt', '_localReferencePaths', '_localReferences', ...(isH3 ? ['image_urls', 'seed', 'aspect_ratio', 'wmDuration'] : []), ...(effect.model === 'local-h3-ref2va' ? ['video_urls', 'audio_urls'] : []), ...(effect.model === 'local-flux3-klein' ? ['seed', 'aspect_ratio'] : [])]);
+    if (effect.model === 'local-flux3-klein' && input.image_urls !== undefined &&
+        (!Array.isArray(input.image_urls) || input.image_urls.length > flux3.maxReferenceImages ||
+          input.image_urls.some(url => typeof url !== 'string' || !url.trim())))
+      throw new Error(`Local FLUX 3 accepts at most ${flux3.maxReferenceImages} image references.`);
+    const allowed = new Set(['prompt', '_localReferencePaths', '_localReferences', ...(isH3 ? ['image_urls', 'seed', 'aspect_ratio', 'wmDuration'] : []), ...(effect.model === 'local-h3-ref2va' ? ['video_urls', 'audio_urls'] : []), ...(effect.model === 'local-flux3-klein' ? ['image_urls', 'seed', 'aspect_ratio'] : [])]);
     if (Object.keys(input).some(key => !allowed.has(key))) throw new Error('Unsupported local model parameter.');
     if (effect.model === 'local-drama3' && (String(input.prompt).length > 200 || input.image_urls || input.audio_urls || input.video_urls))
       throw new Error('Drama 3 preview accepts text only, up to 200 characters.');

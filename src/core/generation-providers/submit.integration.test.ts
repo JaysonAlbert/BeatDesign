@@ -349,7 +349,7 @@ test('local Ref2VA delivers ordered typed project references identically from UI
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('local model discovery and shared validation expose Ref2VA limits and FLUX text-to-image', async () => {
+test('local model discovery and shared validation expose Ref2VA and FLUX reference limits', async () => {
   const { getGenerationModelDescriptor, validateGenerationModelInput } = await import('./model-catalog');
   const { LOCAL_H3_DURATIONS } = await import('./local-h3-duration');
   const ref = getGenerationModelDescriptor('local-h3-ref2va')!;
@@ -370,7 +370,48 @@ test('local model discovery and shared validation expose Ref2VA limits and FLUX 
   await submitAssetFirstGeneration({ generation, origin: 'mcp' });
   assert.deepEqual(inputs.at(-1), ui);
   assert.throws(() => validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', aspect_ratio: '21:9' } }), /aspect ratio/);
-  assert.throws(() => validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', image_urls: ['x'] } }), /Unsupported/);
+  assert.equal((flux.referenceSchema as {image: {max: number}}).image.max, 10);
+  validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', image_urls: Array(10).fill('x') } });
+  for (const image_urls of [Array(11).fill('x'), [''], [42], 'x'])
+    assert.throws(() => validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', image_urls } }), /at most 10/);
+  for (const field of ['video_urls', 'audio_urls'])
+    assert.throws(() => validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', [field]: ['x'] } }), /Unsupported/);
+});
+
+test('FLUX image references preserve UI/MCP order, local ownership and deduplication without upload', async () => {
+  const { importLocalProjectAsset } = await import('@/core/projects/import-local-asset');
+  const { copyFile } = await import('node:fs/promises');
+  const project = await createProject({name: 'FLUX edit parity'});
+  const other = await createProject({name: 'Other FLUX project'});
+  const assets: Array<Awaited<ReturnType<typeof importLocalProjectAsset>>> = [];
+  for (let index = 0; index < 11; index++) {
+    const filePath = join(directory, `flux-${index}.png`);
+    await copyFile('public/logo.png', filePath);
+    assets.push(await importLocalProjectAsset({projectId: project.id, filePath}));
+  }
+  const video = await importLocalProjectAsset({projectId: project.id, filePath: join(process.cwd(), 'tests/fixtures/tiny-black.mp4')});
+  const generation = {version: 2, projectId: project.id, mode: 'image', modelId: 'local-flux3-klein',
+    prompt: 'Combine @Image1 and @Image2.',
+    references: [assets[1], assets[0]].map(asset => ({assetId: asset.id, role: 'reference'})),
+    parameters: {aspect_ratio: '4:3', _localReferences: [{path: 'C:/forged.png', type: 'image'}], image_urls: ['https://forged.invalid/x.png']} };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {throw new Error('Network upload attempted');};
+  try {
+    assert.equal((await preflightAssetFirstGeneration(generation)).expectedUploadCount, 0);
+    await submitAssetFirstGeneration({generation, origin: 'ui'});
+    const ui = inputs.at(-1) as Record<string, unknown>;
+    await submitAssetFirstGeneration({generation, origin: 'mcp'});
+    assert.deepEqual(inputs.at(-1), ui);
+    const refs = ui._localReferences as Array<{assetId: string; type: string; path: string}>;
+    assert.deepEqual(refs.map(ref => ref.assetId), [assets[1].id, assets[0].id]);
+    assert.ok(refs.every(ref => ref.type === 'image' && ref.path.includes(ref.assetId) && !ref.path.includes('forged')));
+    await submitAssetFirstGeneration({generation: {...generation, references: [...generation.references, generation.references[0]]}, origin: 'mcp'});
+    assert.deepEqual(inputs.at(-1), ui);
+    await assert.rejects(() => preflightAssetFirstGeneration({...generation, projectId: other.id}), /does not belong/);
+    await assert.rejects(() => preflightAssetFirstGeneration({...generation, references: [{assetId: video.id, role: 'reference'}]}), /image references only/);
+    await assert.rejects(() => preflightAssetFirstGeneration({...generation, references: [{assetId: assets[0].id, role: 'audio_track'}]}), /must be an audio/);
+    await assert.rejects(() => preflightAssetFirstGeneration({...generation, references: assets.map(asset => ({assetId: asset.id, role: 'reference'}))}), /at most 10/);
+  } finally {globalThis.fetch = originalFetch;}
 });
 
 test('completed local audio is persisted with project ownership and a task-bound result', async () => {

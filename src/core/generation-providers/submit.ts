@@ -184,7 +184,7 @@ async function prepareGenerationReferences({
 
 export async function preflightAssetFirstGeneration(source: unknown) {
   let generation = normalizeAssetFirstGenerationRequest(source);
-  if (generation.modelId === 'local-h3-ref2va') {
+  if (['local-h3-ref2va', 'local-flux3-klein'].includes(generation.modelId)) {
     const seen = new Set<string>();
     generation = { ...generation, references: generation.references.filter(ref => {
       if (seen.has(ref.assetId)) return false;
@@ -270,13 +270,15 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   for (const [assetId, asset] of uniqueAssets) {
     if (!asset)
       throw new Error(`Asset ${assetId} does not belong to this project.`);
-    if (generation.modelId === 'local-h3-ref2va') {
-      if (asset.storageProvider !== 'local') throw new Error('Import Ref2VA references into local project storage first.');
+    if (['local-h3-ref2va', 'local-flux3-klein'].includes(generation.modelId)) {
+      if (generation.modelId === 'local-flux3-klein' && asset.type !== 'image')
+        throw new Error('Local FLUX 3 accepts image references only.');
+      if (asset.storageProvider !== 'local') throw new Error('Import local model references into local project storage first.');
       const file = await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
       const candidate = { name: asset.filename ?? '', type: asset.mimeType ?? '', size: file.size };
       const valid = asset.type === 'image' ? validateUploadedImageFile(candidate)
         : asset.type === 'video' ? validateUploadedVideoFile(candidate) : validateUploadedAudioFile(candidate);
-      if (!valid.ok) throw new Error('Ref2VA reference type or size is not supported.');
+      if (!valid.ok) throw new Error('Local model reference type or size is not supported.');
       if (generation.references.some(ref => ref.assetId === assetId && ref.role === 'audio_track') && asset.type !== 'audio')
         throw new Error('An audio_track reference must be an audio asset.');
     }
@@ -379,7 +381,7 @@ export async function submitAssetFirstGeneration({
         references.push({ assetId: asset.id, type: asset.type, path });
       }
       Object.assign(input, { _localReferencePaths: paths });
-      if (generation.modelId === 'local-h3-ref2va') Object.assign(input, { _localReferences: references });
+      if (['local-h3-ref2va', 'local-flux3-klein'].includes(generation.modelId)) Object.assign(input, { _localReferences: references });
     }
     validateGenerationModelInput({ modelId: generation.modelId, input });
     const result = await submitEffectGeneration({

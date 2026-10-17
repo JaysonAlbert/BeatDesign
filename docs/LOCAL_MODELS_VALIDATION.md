@@ -65,3 +65,38 @@ Only 124/141-frame Ref2VA and square/4:3 FLUX outputs were generated in this
 change's QA. Full reference-count limits and every duration/ratio were not
 individually inferred. These receipts establish integration and media validity,
 not artistic fidelity, audio quality, or film acceptance.
+
+## FLUX image editing and multiple references — 2026-10-17 follow-up
+
+Independent QA project: `3f7de39b-53d8-481d-a029-d22fb67b3885` in the
+`flux3-references` worktree (Web 3046, HTTP MCP 3047).
+
+| Entry | References | Generation | Local job | Comfy prompt | Result |
+| --- | --- | --- | --- | --- | --- |
+| UI | One cup image | `4593d778-ce3a-4226-b7f1-f3740359e709` | `572df88d-4591-4d5d-8779-2dcc3d94af34` | `a7258481-9258-4d57-902a-e8b930fece9e` | 1024×1024 PNG; blue cup changed to red |
+| MCP | Cup, then blue panel | `16fc2cb1-876f-4a23-8cab-dc1432f965dd` | `547c6cec-7160-4ce0-8cdb-2964dd6ee048` | `7620f001-3294-41d4-a8a6-7aa7667f6443` | 1024×1024 PNG; cup in front of blue panel |
+
+Both actual graphs feed ordered images to `ReferenceMultiLatent` on positive
+and negative conditioning, and separate letterboxed image batches to the
+Qwen3.5 prompt upsampler with the official editing instruction. Source/prepared/
+vision SHA-256, asset IDs and ordinals are retained in each take's provenance.
+MCP refreshed both successful generations and returned project-owned assets.
+Chrome showed both results after refresh, with persisted `@Image1`/`@Image2`.
+The UI removed and reattached an existing image, updated the remaining count
+10 → 9, and submitted the single-image edit. The reference menu offered images
+only. File chooser upload has the existing extension-permission limitation
+documented above; server imports and canvas attachments passed.
+
+Reopening the completed two-image take returned the same Comfy prompt ID
+without submitting; swapping reference order was rejected. Automated tests
+also check changed reference bytes, aliases, project ownership, forged paths,
+UI/MCP parity, deduplication, 10/11-image limits and video/audio rejection.
+Graph tests cover 1, 2 and 10 reference connections plus every output ratio.
+
+Typecheck, i18n and production build passed. Node: 441 total, 439 passed,
+2 existing skips. Python duration/model runner tests: 11 passed. The fresh
+worktree initially lacked generated route/i18n files and its database schema;
+normal build and `db:push` setup resolved those bootstrap failures, after which
+the full checks passed. No packages, weights or H3 runtime were changed.
+Ten-reference inference and every ratio are not individually runtime-tested.
+These are technical integration checks, not film or artistic acceptance.
