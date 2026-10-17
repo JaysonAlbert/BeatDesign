@@ -135,7 +135,8 @@
         "uploadImage": "画像をアップロード",
         "uploadVideo": "動画をアップロード",
         "combine": "カードを結合",
-        "cancel": "キャンセル"
+        "cancel": "キャンセル",
+        "uploadAudio": "音声をアップロード"
       },
       "selection": {
         "readyToCombine": "2枚の画像カードが選択されています。カードAとカードBを融合して新しい結果の下書きを作成できます。",
@@ -267,7 +268,9 @@
         "videoMetadataLoadFailed": "動画のメタデータを読み込めませんでした。",
         "analysisVideoRequired": "分析するMP4またはMOV動画を1つだけ添付してください。",
         "analysisCompletedWithoutText": "テキスト出力なしで分析が完了しました。",
-        "addTextNoteSuccess": "テキストメモをCanvasに追加しました。"
+        "addTextNoteSuccess": "テキストメモをCanvasに追加しました。",
+        "openingAudioPicker": "音声を選択しています…",
+        "uploadAudioInvalid": "対応する音声形式で {maxSizeMb} MB 以下にしてください。"
       },
       "dock": {
         "select": "選択",

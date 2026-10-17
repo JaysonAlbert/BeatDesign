@@ -5,6 +5,7 @@ import type { AssetFirstGenerationRequest } from './generation-contract';
 
 const MEDIA_PARAMETER_KEYS = new Set([
   '_localReferencePaths',
+  '_localReferences',
   'prompt',
   'placement',
   'image_url',

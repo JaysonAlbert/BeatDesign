@@ -312,6 +312,67 @@ test('local narration enforces the short-text boundary and is discoverable as au
   );
 });
 
+test('local Ref2VA delivers ordered typed project references identically from UI and MCP without upload', async () => {
+  const { importLocalProjectAsset } = await import('@/core/projects/import-local-asset');
+  const { copyFile } = await import('node:fs/promises');
+  const project = await createProject({ name: 'Local mixed references' });
+  const other = await createProject({ name: 'Unrelated references' });
+  const imagePath = join(directory, 'mixed-image.png');
+  const videoPath = join(directory, 'mixed-video.mp4');
+  const audioPath = join(directory, 'mixed-audio.wav');
+  await copyFile('public/logo.png', imagePath);
+  await copyFile('tests/fixtures/tiny-black.mp4', videoPath);
+  await writeFile(audioPath, Buffer.from('RIFFfixtureWAVE'));
+  const assets: Array<Awaited<ReturnType<typeof importLocalProjectAsset>>> = [];
+  for (const filePath of [audioPath, imagePath, videoPath]) assets.push(await importLocalProjectAsset({ projectId: project.id, filePath }));
+  const generation = { version: 2, projectId: project.id, modelId: 'local-h3-ref2va', mode: 'video',
+    prompt: 'Use @Image1, @Video1 and @Audio1.',
+    references: assets.map(asset => ({ assetId: asset.id, role: asset.type === 'audio' ? 'audio_track' : 'reference' })),
+    parameters: { wmDuration: '5.167s', _localReferences: [{ path: 'C:/forged.wav', type: 'audio' }] } };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('Network upload attempted'); };
+  try {
+    assert.equal((await preflightAssetFirstGeneration(generation)).expectedUploadCount, 0);
+    await submitAssetFirstGeneration({ generation, origin: 'ui' });
+    const ui = inputs.at(-1) as Record<string, unknown>;
+    await submitAssetFirstGeneration({ generation, origin: 'mcp' });
+    assert.deepEqual(inputs.at(-1), ui);
+    const refs = ui._localReferences as Array<{ assetId: string; type: string; path: string }>;
+    assert.deepEqual(refs.map(ref => ref.type), ['audio', 'image', 'video']);
+    assert.deepEqual(refs.map(ref => ref.assetId), assets.map(asset => asset.id));
+    assert.ok(refs.every(ref => ref.path.includes(ref.assetId) && !ref.path.includes('forged')));
+    await assert.rejects(() => preflightAssetFirstGeneration({ ...generation, projectId: other.id }), /does not belong/);
+    await assert.rejects(() => preflightAssetFirstGeneration({ ...generation, references: [] }), /requires 1/);
+    await assert.rejects(() => preflightAssetFirstGeneration({ ...generation, references: [{ assetId: assets[1].id, role: 'audio_track' }] }), /must be an audio/);
+    await submitAssetFirstGeneration({ generation: { ...generation, references: [...generation.references, generation.references[0]] }, origin: 'mcp' });
+    assert.deepEqual(inputs.at(-1), ui);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('local model discovery and shared validation expose Ref2VA limits and FLUX text-to-image', async () => {
+  const { getGenerationModelDescriptor, validateGenerationModelInput } = await import('./model-catalog');
+  const { LOCAL_H3_DURATIONS } = await import('./local-h3-duration');
+  const ref = getGenerationModelDescriptor('local-h3-ref2va')!;
+  const schema = ref.referenceSchema as { image: { max: number }; video: { max: number }; audio: { max: number }; maxTotal: number };
+  assert.deepEqual([schema.image.max, schema.video.max, schema.audio.max, schema.maxTotal], [9, 3, 3, 12]);
+  assert.deepEqual((ref.parameterSchema as { wmDuration: { values: string[] } }).wmDuration.values, LOCAL_H3_DURATIONS);
+  for (const field of ['image_urls', 'video_urls', 'audio_urls']) {
+    validateGenerationModelInput({ modelId: ref.id, input: { prompt: 'test', [field]: ['local'] } });
+  }
+  assert.throws(() => validateGenerationModelInput({ modelId: ref.id, input: { prompt: 'test', image_urls: Array(10).fill('x') } }), /at most 9/);
+  assert.throws(() => validateGenerationModelInput({ modelId: ref.id, input: { prompt: 'test', image_urls: Array(9).fill('x'), video_urls: ['a','b','c'], audio_urls: ['d'] } }), /1–12/);
+  const flux = getGenerationModelDescriptor('local-flux3-klein')!;
+  assert.equal(flux.kind, 'image');
+  const project = await createProject({ name: 'FLUX parity' });
+  const generation = { version: 2, projectId: project.id, mode: 'image', modelId: flux.id, prompt: 'A ceramic cup', references: [], parameters: { aspect_ratio: '4:3', seed: 7 } };
+  await submitAssetFirstGeneration({ generation, origin: 'ui' });
+  const ui = inputs.at(-1);
+  await submitAssetFirstGeneration({ generation, origin: 'mcp' });
+  assert.deepEqual(inputs.at(-1), ui);
+  assert.throws(() => validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', aspect_ratio: '21:9' } }), /aspect ratio/);
+  assert.throws(() => validateGenerationModelInput({ modelId: flux.id, input: { prompt: 'test', image_urls: ['x'] } }), /Unsupported/);
+});
+
 test('completed local audio is persisted with project ownership and a task-bound result', async () => {
   const { randomUUID } = await import('node:crypto');
   const { recordGeneration } = await import('@/core/effects/record-generation');

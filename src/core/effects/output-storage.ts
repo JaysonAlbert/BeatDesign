@@ -140,7 +140,7 @@ export async function persistEffectOutputIfNeeded({
   const localUrlByProviderUrl = new Map<string, string>();
 
   for (const { url, type, role } of providerEntries) {
-    const local = url.startsWith('local-job:') && [9001, 9002].includes(effectId);
+    const local = url.startsWith('local-job:') && [9001, 9002, 9003, 9004].includes(effectId);
     if (!local && !isOfficialBeatApiMediaUrl(url)) {
       throw new Error('Generated media URL is not an approved BeatAPI asset');
     }

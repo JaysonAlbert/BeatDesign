@@ -248,7 +248,7 @@ export function BeatCanvasComposerParameterPicker({
                 <p className={composerSectionLabelClassName}>
                   {labels.durationLabel}
                 </p>
-                {activeDraftCard.modelId === 'local-h3' ? (
+                {activeDraftCard.modelId.startsWith('local-h3') ? (
                   <p className="max-w-[300px] text-[11px] leading-relaxed text-white/55">
                     {labels.localH3DurationHint}
                   </p>
@@ -270,7 +270,7 @@ export function BeatCanvasComposerParameterPicker({
                     >
                       <span className="flex flex-col items-center gap-0.5">
                         <span>{item}</span>
-                        {activeDraftCard.modelId === 'local-h3' ? (
+                        {activeDraftCard.modelId.startsWith('local-h3') ? (
                           <span className="text-[10px] font-normal opacity-60">
                             {getLocalH3Timing(item)?.frames}f
                           </span>

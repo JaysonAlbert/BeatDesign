@@ -393,6 +393,7 @@ export function BeatCanvasShell({
     uploadFiles,
     uploadIntent,
     videoFileInputRef,
+    audioFileInputRef,
   } = useBeatCanvasUploadActions({
     projectId,
     studioT,
@@ -1635,7 +1636,7 @@ export function BeatCanvasShell({
       <input
         ref={mediaFileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.jpg,.jpeg,.png,.webp,.mp4,.webm,.mov"
+        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.jpg,.jpeg,.png,.webp,.mp4,.webm,.mov,audio/*,.mp3,.wav,.m4a,.aac,.ogg"
         multiple
         className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0"
         onChange={handleMediaUpload}
@@ -1656,6 +1657,13 @@ export function BeatCanvasShell({
         onChange={handleUpload('video')}
       />
 
+      <input
+        ref={audioFileInputRef}
+        type="file"
+        accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
+        className="pointer-events-none absolute -left-[9999px] top-0 h-px w-px opacity-0"
+        onChange={handleUpload('audio')}
+      />
       {/* Canvas area */}
       <div className="relative flex-1 min-w-0">
         <BeatCanvasFrontLayerProvider value={frontLayerValue}>

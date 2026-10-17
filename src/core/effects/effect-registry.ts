@@ -3,6 +3,7 @@ import {
   resolveProviderUpstreamModel,
 } from '@/core/generation-providers/registry';
 import { LOCAL_H3_DEFAULT_DURATION, LOCAL_H3_DURATIONS } from '@/core/generation-providers/local-h3-duration';
+import localFlux3 from '@/core/generation-providers/local-flux3.json';
 
 export type WorkspaceRegistryType = 'ai-video' | 'ai-image';
 
@@ -125,6 +126,8 @@ const SEEDANCE_ASPECT_RATIOS = [
 export const WORKSPACE_EFFECT_REGISTRY: readonly WorkspaceEffectRegistryEntry[] =
   [
     { id: 'local-h3', name: 'Local H3 · Turbo 4 · 1024×576', workspaceType: 'ai-video', routeSlug: null, requiresImageInput: true, supportsSeed: true, defaultDuration: LOCAL_H3_DEFAULT_DURATION, supportedDurations: LOCAL_H3_DURATIONS, defaultAspectRatio: '16:9', supportedAspectRatios: ['16:9'] },
+    { id: 'local-h3-ref2va', name: 'Local H3 · Ref2VA · Turbo 4 · 1024×576', workspaceType: 'ai-video', routeSlug: null, supportsSeed: true, defaultDuration: LOCAL_H3_DEFAULT_DURATION, supportedDurations: LOCAL_H3_DURATIONS, defaultAspectRatio: '16:9', supportedAspectRatios: ['16:9'] },
+    { id: 'local-flux3-klein', name: 'Local FLUX 3 Image Klein · BF16 · 16 steps', workspaceType: 'ai-image', routeSlug: null, supportsSeed: true, defaultAspectRatio: '1:1', supportedAspectRatios: Object.keys(localFlux3.ratios) as WorkspaceRegistryAspectRatio[] },
     {
       id: 'nano-banana-pro',
       name: 'Nano Banana Pro',

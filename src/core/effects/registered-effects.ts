@@ -72,7 +72,7 @@ const buildInputSchema = (entry: WorkspaceEffectRegistryEntry) => {
       type: 'enum',
       required: false,
       values: entry.supportedDurations,
-      ...(entry.id === 'local-h3' ? {
+      ...(entry.id === 'local-h3' || entry.id === 'local-h3-ref2va' ? {
         description: 'Native H3 frame-grid durations, rounded to milliseconds. No trimming or retiming.',
         fps: LOCAL_H3_FPS,
         frameCounts: Object.fromEntries(LOCAL_H3_DURATIONS.map(duration => [duration, getLocalH3Timing(duration)!.frames])),

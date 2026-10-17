@@ -1,11 +1,12 @@
 import { cn } from '@/lib/utils';
-import type { CanvasGenerationCard } from '@/core/beatcanvas/canvas-types';
+import type { CanvasReferenceMediaType } from '@/core/beatcanvas/canvas-types';
 import {
   ChevronDown,
   GripVertical,
   ImagePlus,
   FileText,
   Video,
+  Music2,
   X,
 } from 'lucide-react';
 import { useState, type RefObject } from 'react';
@@ -19,14 +20,14 @@ import {
 import type { CanvasLabels } from './beatcanvas-front-layer-context';
 
 type ReferenceOption = {
-  intent: CanvasGenerationCard['type'];
+  intent: CanvasReferenceMediaType;
   remaining: number | null;
 };
 
 export type CanvasReferenceCardOption = {
   id: string;
   name: string;
-  type: CanvasGenerationCard['type'] | 'text';
+  type: CanvasReferenceMediaType | 'text';
   thumbnailUrl: string | null;
   alias?: string;
 };
@@ -60,7 +61,7 @@ export function BeatCanvasComposerReferencePicker({
   onOpenChange: (nextOpen: boolean) => void;
   onOpenReferencePicker: (
     draftId: string,
-    intent: CanvasGenerationCard['type']
+    intent: CanvasReferenceMediaType
   ) => void;
   onInsertReferenceMention?: (alias: string) => void;
   onReorderCanvasReferences?: (
@@ -70,7 +71,7 @@ export function BeatCanvasComposerReferencePicker({
   ) => void;
   onRemoveCanvasReference?: (draftId: string, cardId: string) => void;
   options: ReferenceOption[];
-  primaryIntent: CanvasGenerationCard['type'];
+  primaryIntent: CanvasReferenceMediaType;
   variant?: 'icon' | 'row';
 }) {
   const [draggedReferenceId, setDraggedReferenceId] = useState<string | null>(
@@ -80,7 +81,9 @@ export function BeatCanvasComposerReferencePicker({
   const primaryLabel =
     primaryIntent === 'video'
       ? labels.uploadVideoLabel
-      : labels.uploadImageLabel;
+      : primaryIntent === 'audio'
+        ? labels.uploadAudioLabel
+        : labels.uploadImageLabel;
   const attachedCount = currentReferenceCards.length;
 
   return (
@@ -143,7 +146,7 @@ export function BeatCanvasComposerReferencePicker({
                       preload="metadata"
                       className="size-full object-cover"
                     />
-                  ) : card.thumbnailUrl ? (
+                  ) : card.thumbnailUrl && card.type === 'image' ? (
                     <img
                       src={card.thumbnailUrl}
                       alt=""
@@ -152,6 +155,8 @@ export function BeatCanvasComposerReferencePicker({
                     />
                   ) : card.type === 'video' ? (
                     <Video className="m-auto size-3 text-white/70" />
+                  ) : card.type === 'audio' ? (
+                    <Music2 className="m-auto size-3 text-white/70" />
                   ) : (
                     <ImagePlus className="m-auto size-3 text-white/70" />
                   )}
@@ -232,7 +237,9 @@ export function BeatCanvasComposerReferencePicker({
                     )}
                   >
                     <span className="flex items-center gap-2">
-                      {option.intent === 'video' ? (
+                      {option.intent === 'audio' ? (
+                        <Music2 className="size-3.5 text-[var(--beat-text-2)]" />
+                      ) : option.intent === 'video' ? (
                         <Video className="size-3.5 text-[var(--beat-text-2)]" />
                       ) : (
                         <ImagePlus className="size-3.5 text-[var(--beat-text-2)]" />
@@ -240,7 +247,9 @@ export function BeatCanvasComposerReferencePicker({
                       <span>
                         {option.intent === 'video'
                           ? labels.uploadVideoLabel
-                          : labels.uploadImageLabel}
+                          : option.intent === 'audio'
+                            ? labels.uploadAudioLabel
+                            : labels.uploadImageLabel}
                       </span>
                     </span>
                     {option.remaining !== null ? (
@@ -275,7 +284,7 @@ export function BeatCanvasComposerReferencePicker({
                             />
                             <Video className="pointer-events-none absolute inset-0 m-auto size-3.5 text-white drop-shadow" />
                           </span>
-                        ) : card.thumbnailUrl ? (
+                        ) : card.thumbnailUrl && card.type === 'image' ? (
                           <img
                             src={card.thumbnailUrl}
                             alt=""
@@ -284,7 +293,9 @@ export function BeatCanvasComposerReferencePicker({
                           />
                         ) : (
                           <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-white/[0.06] text-[var(--beat-text-2)]">
-                            {card.type === 'text' ? (
+                            {card.type === 'audio' ? (
+                              <Music2 className="size-4" />
+                            ) : card.type === 'text' ? (
                               <FileText className="size-4" />
                             ) : card.type === 'video' ? (
                               <Video className="size-3.5" />
@@ -351,7 +362,7 @@ export function BeatCanvasComposerReferencePicker({
                             />
                             <Video className="pointer-events-none absolute inset-0 m-auto size-4 text-white drop-shadow" />
                           </span>
-                        ) : card.thumbnailUrl ? (
+                        ) : card.thumbnailUrl && card.type === 'image' ? (
                           <img
                             src={card.thumbnailUrl}
                             alt={card.name}
@@ -360,7 +371,9 @@ export function BeatCanvasComposerReferencePicker({
                           />
                         ) : (
                           <span className="inline-flex size-full items-center justify-center text-[var(--beat-text-3)]">
-                            {card.type === 'text' ? (
+                            {card.type === 'audio' ? (
+                              <Music2 className="size-4" />
+                            ) : card.type === 'text' ? (
                               <FileText className="size-4" />
                             ) : card.type === 'video' ? (
                               <Video className="size-4" />

@@ -12,6 +12,7 @@ import type {
 import type { VideoAnalysisDepth } from '@/core/effects/video-analysis';
 
 export type CanvasCardMediaType = 'image' | 'video';
+export type CanvasReferenceMediaType = CanvasCardMediaType | 'audio';
 export type CanvasAssetMediaType = CanvasCardMediaType | 'audio' | 'timeline';
 export type CanvasGenerationMode = CanvasCardMediaType | 'analysis';
 export type CanvasCardKind = 'asset' | 'generation' | 'output' | 'text';

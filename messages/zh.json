@@ -135,7 +135,8 @@
         "uploadImage": "上传图片",
         "uploadVideo": "上传视频",
         "combine": "合并卡片",
-        "cancel": "取消"
+        "cancel": "取消",
+        "uploadAudio": "上传音频"
       },
       "selection": {
         "readyToCombine": "当前已选中两张图片卡片，可以直接把卡片 A 和卡片 B 融合成新的结果草稿。",
@@ -267,7 +268,9 @@
         "videoMetadataLoadFailed": "无法加载视频元数据。",
         "analysisVideoRequired": "请添加且仅添加一个 MP4 或 MOV 视频进行分析。",
         "analysisCompletedWithoutText": "分析已完成，但没有返回文本结果。",
-        "addTextNoteSuccess": "文本备注已加入画布。"
+        "addTextNoteSuccess": "文本备注已加入画布。",
+        "openingAudioPicker": "正在打开音频选择器…",
+        "uploadAudioInvalid": "音频格式须受支持，且大小不超过 {maxSizeMb} MB。"
       },
       "dock": {
         "select": "选择",

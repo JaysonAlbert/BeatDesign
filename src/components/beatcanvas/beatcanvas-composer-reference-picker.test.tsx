@@ -9,7 +9,17 @@ import { BeatCanvasComposerReferencePicker } from './beatcanvas-composer-referen
 const labels = {
   uploadImageLabel: 'Upload image',
   uploadVideoLabel: 'Upload video',
+  uploadAudioLabel: 'Upload audio',
 } as CanvasLabels;
+
+test('audio reference picker renders the audio action and alias without an image preview', () => {
+  const html = renderToStaticMarkup(<BeatCanvasComposerReferencePicker activeDraftId="draft" isDraftBusy={false} isOpen={true} labels={labels}
+    onOpenChange={() => {}} onOpenReferencePicker={() => {}} options={[{intent:'audio', remaining:3}]} primaryIntent="audio"
+    currentReferenceCards={[{id:'voice',type:'audio',name:'Voice reference',alias:'@Audio1',thumbnailUrl:'/voice.wav'}]} />);
+  assert.match(html, /Upload audio/);
+  assert.match(html, /@Audio1/);
+  assert.doesNotMatch(html, /<img[^>]*voice.wav/);
+});
 
 test('row variant renders an icon-only compact reference upload control', () => {
   const html = renderToStaticMarkup(

@@ -7,11 +7,20 @@ import { getBeatDesignDataRoot } from '@/config/data-root';
 import type { GenerationResult } from '@/core/adapters/base-adapter';
 
 export const localJobRoot = () => join(getBeatDesignDataRoot(), 'local-jobs');
-export async function assertLocalConfigured() {
+export async function assertLocalConfigured(model?: string) {
   const config = JSON.parse(await readFile(join(getBeatDesignDataRoot(), 'local-runtime.json'), 'utf8'));
   for (const key of ['python', 'openmontageRoot']) {
     if (typeof config[key] !== 'string') throw new Error(`Missing local runtime ${key}`);
     await stat(config[key]);
+  }
+  if (model === 'local-flux3-klein') {
+    const flux = config.flux3;
+    if (!flux || typeof flux.url !== 'string' || !['127.0.0.1', 'localhost', '[::1]'].includes(new URL(flux.url).hostname))
+      throw new Error('Configure the local FLUX 3 runtime in local-runtime.json.');
+    for (const key of ['python', 'root', 'dataDir', 'modelDir']) {
+      if (typeof flux[key] !== 'string') throw new Error(`Missing FLUX runtime ${key}`);
+      await stat(flux[key]);
+    }
   }
   return config as { python: string; openmontageRoot: string };
 }
@@ -23,7 +32,7 @@ async function wakeWorker() {
   const config = await assertLocalConfigured();
   const script = resolve(process.env.BEATDESIGN_ROOT || process.cwd(), 'scripts/local-worker.py');
   const log = openSync(join(localJobRoot(), 'worker.log'), 'a');
-  const child = spawn(config.python, [script, '--jobs', localJobRoot(), '--runtime', config.openmontageRoot],
+  const child = spawn(config.python, [script, '--jobs', localJobRoot(), '--runtime', config.openmontageRoot, '--settings', join(getBeatDesignDataRoot(), 'local-runtime.json')],
     { detached: true, windowsHide: true, stdio: ['ignore', log, log] });
   try {
     await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
@@ -31,8 +40,8 @@ async function wakeWorker() {
   child.unref();
 }
 export async function submitLocalJob(model: string, input: unknown): Promise<GenerationResult> {
-  await assertLocalConfigured();
-  if (!['local-h3', 'local-drama3'].includes(model)) throw new Error('Unsupported local model');
+  await assertLocalConfigured(model);
+  if (!['local-h3', 'local-drama3', 'local-h3-ref2va', 'local-flux3-klein'].includes(model)) throw new Error('Unsupported local model');
   const id = randomUUID();
   const path = jobPath(id);
   await mkdir(join(localJobRoot(), id), { recursive: true });
@@ -53,8 +62,9 @@ export async function readLocalOutput(url: string, expectedId: string) {
   const job = JSON.parse(await readFile(jobPath(id), 'utf8'));
   if (job.status !== 'succeeded') throw new Error('Local output is not complete');
   const audio = job.model === 'local-drama3';
-  const path = join(localJobRoot(), id, audio ? 'output.wav' : 'output.mp4');
+  const image = job.model === 'local-flux3-klein';
+  const path = join(localJobRoot(), id, image ? 'output.png' : audio ? 'output.wav' : 'output.mp4');
   const info = await stat(path);
   if (info.size > 100 * 1024 * 1024) throw new Error('Local output exceeds 100 MiB');
-  return new Response(await readFile(path), { headers: { 'content-type': audio ? 'audio/wav' : 'video/mp4' } });
+  return new Response(await readFile(path), { headers: { 'content-type': image ? 'image/png' : audio ? 'audio/wav' : 'video/mp4' } });
 }
