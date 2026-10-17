@@ -414,6 +414,19 @@
       },
       "textNote": {
         "template": "テキストメモ\n\n構図のアイデア、ショットメモ、制作上の注意点をここに記録します。"
+      },
+      "textNode": {
+        "create": "テキストノードを追加",
+        "defaultName": "テキスト",
+        "title": "テキストのタイトル",
+        "role": "テキストの用途",
+        "content": "テキスト内容",
+        "note": "メモ",
+        "script": "脚本",
+        "character": "キャラクター設定",
+        "storyboard": "ショット指示",
+        "placeholder": "脚本、キャラクター設定、ショット指示を記入…",
+        "referenceHint": "生成ノードの参照からこのテキストを選択"
       }
     },
     "editor": {

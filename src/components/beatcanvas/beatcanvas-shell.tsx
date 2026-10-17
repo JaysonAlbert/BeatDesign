@@ -1,4 +1,3 @@
-
 import {
   invalidateWorkspaceAfterAssetMutation,
   invalidateWorkspaceAfterGeneration,
@@ -51,9 +50,7 @@ import {
   useState,
 } from 'react';
 import { toast } from 'sonner';
-import {
-  addProjectAssetsToTimeline,
-} from '@/core/editor/timeline-client';
+import { addProjectAssetsToTimeline } from '@/core/editor/timeline-client';
 import { extractVideoFrame } from '@/core/media/video-frame';
 import { uploadLocalProjectAsset } from '@/core/workspace-lib/app/local-project-asset-client';
 import { useCanvasComposerLabels } from './use-canvas-composer-labels';
@@ -104,9 +101,9 @@ const BeatCanvasStatusPill = lazy(() =>
  * small while React Flow and the composer overlays load together.
  */
 const BeatCanvasFrontLayer = lazy(() =>
-  import('./beatcanvas-front-layer').then(
-    (mod) => ({ default: mod.BeatCanvasFrontLayer })
-  )
+  import('./beatcanvas-front-layer').then((mod) => ({
+    default: mod.BeatCanvasFrontLayer,
+  }))
 );
 
 const BeatCanvasReactFlowEditor = lazy(
@@ -250,6 +247,7 @@ export function BeatCanvasShell({
     handleSelectShape,
     handleSelectedCanvasCardIdsChange,
     insertAssetCard,
+    insertTextCard,
     pasteCanvasCards,
     createGenerationOutput,
     updateGenerationOutput,
@@ -261,6 +259,7 @@ export function BeatCanvasShell({
     selectedCanvasCardIds,
     setActiveComposerCardId,
     updateCanvasCard,
+    setCanvasCard,
     updateDraftCard,
   } = useBeatCanvasGraph({
     studioT,
@@ -276,18 +275,14 @@ export function BeatCanvasShell({
   const [canvasDocumentRevision, setCanvasDocumentRevision] = useState(0);
   const [allowEmptyProjectSnapshot, setAllowEmptyProjectSnapshot] =
     useState(false);
-  const [previewMedia, setPreviewMedia] = useState<BeatCanvasPreviewMedia | null>(
-    null
-  );
+  const [previewMedia, setPreviewMedia] =
+    useState<BeatCanvasPreviewMedia | null>(null);
   const [isContinuingVideo, setIsContinuingVideo] = useState(false);
   const [isAddingSelectionToTimeline, setIsAddingSelectionToTimeline] =
     useState(false);
 
   const insertProjectAsset = useCallback(
-    (
-      asset: ProjectAssetTransfer,
-      clientPoint?: { x: number; y: number }
-    ) => {
+    (asset: ProjectAssetTransfer, clientPoint?: { x: number; y: number }) => {
       if (asset.projectId !== projectId) return;
 
       const size = getProjectAssetCardSize(asset);
@@ -475,20 +470,20 @@ export function BeatCanvasShell({
     resumeInFlightGenerations,
     runGenerateDraft,
   } = useBeatCanvasGenerationRuntime({
-      projectId,
-      studioT,
-      canvasCardsRef,
-      imageModels,
-      isCanvasReady,
-      videoModels,
-      createGenerationOutput,
-      updateGenerationOutput,
-      completeGenerationOutput,
-      setErrorMessage,
-      setStatusMessage,
-      updateDraftCard,
-      onGenerationComplete: refreshWorkspaceAfterGeneration,
-    });
+    projectId,
+    studioT,
+    canvasCardsRef,
+    imageModels,
+    isCanvasReady,
+    videoModels,
+    createGenerationOutput,
+    updateGenerationOutput,
+    completeGenerationOutput,
+    setErrorMessage,
+    setStatusMessage,
+    updateDraftCard,
+    onGenerationComplete: refreshWorkspaceAfterGeneration,
+  });
 
   const handleCreateGenerationFromConnector = useCallback(
     ({
@@ -556,9 +551,12 @@ export function BeatCanvasShell({
       }
 
       if (
+        sourceCard.kind !== 'text' &&
         draftCard.generationMode === 'analysis' &&
         !draftCard.referenceCardIds?.includes(sourceCardId) &&
-        (draftCard.referenceCardIds?.length ?? 0) >= 1
+        draftCard.referenceCardIds.some(
+          (id) => canvasCardsRef.current[id]?.type === 'video'
+        )
       ) {
         return;
       }
@@ -755,6 +753,11 @@ export function BeatCanvasShell({
       onUndoCanvas: undoCanvas,
       onRedoCanvas: redoCanvas,
       onCreateImageDraft: () => handleCreatePromptDraft('image'),
+      onTextNodeEditStart: recordCanvasHistory,
+      onTextNodeChange: (id, patch) => {
+        const current = canvasCardsRef.current[id];
+        if (current?.kind === 'text') setCanvasCard({ ...current, ...patch });
+      },
       onUploadImage: () =>
         openUploadPicker({ intent: 'image', mode: 'global' }),
       onCreateGenerationFromConnector: handleCreateGenerationFromConnector,
@@ -768,8 +771,7 @@ export function BeatCanvasShell({
       onDraftModelChange: handleDraftModelChange,
       onDraftAspectRatioChange: handleDraftAspectRatioChange,
       onDraftBackgroundSourceChange: handleDraftBackgroundSourceChange,
-      onDraftCharacterOrientationChange:
-        handleDraftCharacterOrientationChange,
+      onDraftCharacterOrientationChange: handleDraftCharacterOrientationChange,
       onDraftOutputQualityChange: handleDraftOutputQualityChange,
       onDraftModeChange: handleDraftModeChange,
       onDraftVariantChange: handleDraftVariantChange,
@@ -789,6 +791,9 @@ export function BeatCanvasShell({
       canUndoCanvas,
       canRedoCanvas,
       canvasCards,
+      canvasCardsRef,
+      recordCanvasHistory,
+      setCanvasCard,
       canvasCopy,
       handleDraftAspectRatioChange,
       handleDraftAnalysisDepthChange,
@@ -929,7 +934,8 @@ export function BeatCanvasShell({
       ? selectedTimelineMedia[0]
       : null;
   const handleAddSelectionToTimeline = useCallback(() => {
-    if (selectedTimelineMedia.length === 0 || isAddingSelectionToTimeline) return;
+    if (selectedTimelineMedia.length === 0 || isAddingSelectionToTimeline)
+      return;
     setIsAddingSelectionToTimeline(true);
     void addProjectAssetsToTimeline({
       projectId,
@@ -1031,6 +1037,7 @@ export function BeatCanvasShell({
     recordCanvasHistory,
     selectedTimelineMedia,
     updateCanvasCard,
+    setCanvasCard,
   ]);
 
   const handleContinueFromTailFrame = useCallback(() => {
@@ -1279,7 +1286,10 @@ export function BeatCanvasShell({
       });
     };
 
-    window.addEventListener('beatcanvas:preview-media', handlePreviewMediaEvent);
+    window.addEventListener(
+      'beatcanvas:preview-media',
+      handlePreviewMediaEvent
+    );
     return () => {
       window.removeEventListener(
         'beatcanvas:preview-media',
@@ -1351,13 +1361,14 @@ export function BeatCanvasShell({
           workflows,
         }
       : nextDocument;
-  }, [activeTemplateProjectWorkflowSnapshot, buildCanvasProjectSnapshotDocument]);
+  }, [
+    activeTemplateProjectWorkflowSnapshot,
+    buildCanvasProjectSnapshotDocument,
+  ]);
 
   const restoreProjectSnapshot = useCallback(
     (
-      document: import(
-        '@/core/projects/project-snapshot'
-      ).ProjectSnapshotDocument
+      document: import('@/core/projects/project-snapshot').ProjectSnapshotDocument
     ) => {
       restoreCanvasProjectSnapshot(document);
       resumeInFlightGenerations();
@@ -1439,11 +1450,11 @@ export function BeatCanvasShell({
         const targetModel = getSelectableModel(models, targetCard.modelId);
         if (
           !canUseCanvasCardAsGenerationReference({
-          sourceCard,
-          targetType: targetCard.type,
-          targetModel,
-          targetGenerationMode: targetCard.generationMode,
-        })
+            sourceCard,
+            targetType: targetCard.type,
+            targetModel,
+            targetGenerationMode: targetCard.generationMode,
+          })
         ) {
           return;
         }
@@ -1453,10 +1464,7 @@ export function BeatCanvasShell({
         });
         updateDraftCard(targetCardId, {
           referenceCardIds: [
-            ...new Set([
-              ...(targetCard.referenceCardIds ?? []),
-              sourceCardId,
-            ]),
+            ...new Set([...(targetCard.referenceCardIds ?? []), sourceCardId]),
           ],
         });
       }
@@ -1669,6 +1677,7 @@ export function BeatCanvasShell({
             projectId={projectId}
             onUploadMedia={openMediaUploadPicker}
             onCreateImageDraft={() => handleCreatePromptDraft('image')}
+            onCreateTextNode={() => insertTextCard()}
             onInsertHistoryAsset={(asset) =>
               insertProjectAsset({ ...asset, projectId })
             }
@@ -1683,9 +1692,7 @@ export function BeatCanvasShell({
                 downloadLabel={contextDownloadLabel}
                 isBatchDownload={isGroupSelected}
                 previewLabel={
-                  canPreviewSelection
-                    ? studioT('multiSelect.preview')
-                    : null
+                  canPreviewSelection ? studioT('multiSelect.preview') : null
                 }
                 onDownload={() => {
                   void handleDownloadSelection();

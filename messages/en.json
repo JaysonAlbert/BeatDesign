@@ -414,6 +414,19 @@
       },
       "textNote": {
         "template": "Text note\n\nCapture composition ideas, shot notes, or production reminders here."
+      },
+      "textNode": {
+        "create": "Add text node",
+        "defaultName": "Text",
+        "title": "Text node title",
+        "role": "Text purpose",
+        "content": "Text content",
+        "note": "Note",
+        "script": "Script",
+        "character": "Character",
+        "storyboard": "Shot prompt",
+        "placeholder": "Write a script, character description, or shot prompt…",
+        "referenceHint": "Attach from a generation node’s reference picker"
       }
     },
     "editor": {

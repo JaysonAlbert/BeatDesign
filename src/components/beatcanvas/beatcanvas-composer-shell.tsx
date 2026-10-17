@@ -8,7 +8,7 @@ import {
   type ActiveCanvasReferenceMention,
   type CanvasReferenceMention,
 } from '@/core/beatcanvas/reference-mentions';
-import { ArrowUp, Image, Loader2, Video, X } from 'lucide-react';
+import { ArrowUp, FileText, Image, Loader2, Video, X } from 'lucide-react';
 import { useRef, useState, type ReactNode, type RefObject } from 'react';
 
 import {
@@ -151,10 +151,7 @@ export function BeatCanvasComposerShell({
     >
       {/* ── Header row ── */}
       <div
-        className={cn(
-          'flex items-center justify-between gap-3',
-          'px-3.5 pt-3'
-        )}
+        className={cn('flex items-center justify-between gap-3', 'px-3.5 pt-3')}
       >
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div suppressHydrationWarning className="min-w-0 flex-1">
@@ -197,9 +194,10 @@ export function BeatCanvasComposerShell({
                   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                     event.preventDefault();
                     const direction = event.key === 'ArrowDown' ? 1 : -1;
-                    setSelectedMentionIndex((current) =>
-                      (current + direction + mentionOptions.length) %
-                      mentionOptions.length
+                    setSelectedMentionIndex(
+                      (current) =>
+                        (current + direction + mentionOptions.length) %
+                        mentionOptions.length
                     );
                     return;
                   }
@@ -259,7 +257,8 @@ export function BeatCanvasComposerShell({
                         )}
                       >
                         <span className="relative inline-flex size-8 shrink-0 overflow-hidden rounded-md bg-black/45">
-                          {reference?.thumbnailUrl && mention.type === 'video' ? (
+                          {reference?.thumbnailUrl &&
+                          mention.type === 'video' ? (
                             <video
                               src={reference.thumbnailUrl}
                               muted
@@ -274,6 +273,8 @@ export function BeatCanvasComposerShell({
                               draggable={false}
                               className="size-full object-cover"
                             />
+                          ) : mention.type === 'text' ? (
+                            <FileText className="m-auto size-3.5" />
                           ) : mention.type === 'video' ? (
                             <Video className="m-auto size-3.5" />
                           ) : (

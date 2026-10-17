@@ -288,6 +288,7 @@ export const canUseCanvasCardAsGenerationReference = ({
   targetModel: WorkspaceModelOption | null;
   targetGenerationMode?: CanvasGenerationMode;
 }) => {
+  if (sourceCard.kind === 'text') return true;
   if (targetGenerationMode === 'analysis') {
     return sourceCard.type === 'video';
   }
@@ -325,47 +326,46 @@ export const listCompatibleCanvasReferenceCards = ({
   );
 
   return Object.values(cards).filter(
-    (card): card is CanvasCard & { type: CanvasCardMediaType } => {
-    if (
-      !card ||
-      (card.type !== 'image' && card.type !== 'video') ||
-      card.id === draftCard.id
-    ) {
-      return false;
-    }
+    (card): card is CanvasCard & { type: CanvasCardMediaType | 'text' } => {
+      if (card?.kind === 'text')
+        return !attachedIds.has(card.id) && Boolean(card.textContent.trim());
+      if (
+        !card ||
+        (card.type !== 'image' && card.type !== 'video') ||
+        card.id === draftCard.id
+      ) {
+        return false;
+      }
 
-    if (card.kind === 'output' && !isAnalysis) {
-      return false;
-    }
+      if (card.kind === 'output' && !isAnalysis) {
+        return false;
+      }
 
-    if (!card.url || attachedIds.has(card.id)) {
-      return false;
-    }
+      if (!card.url || attachedIds.has(card.id)) {
+        return false;
+      }
 
-    if (isAnalysis) {
-      return card.type === 'video' && referenceCounts.video < 1;
-    }
+      if (isAnalysis) {
+        return card.type === 'video' && referenceCounts.video < 1;
+      }
 
-    if (
-      card.type === 'image' &&
-      imageRemaining <= 0
-    ) {
-      return false;
-    }
+      if (card.type === 'image' && imageRemaining <= 0) {
+        return false;
+      }
 
-    if (
-      card.type === 'video' &&
-      (videoRemaining <= 0 || !model?.supportsSourceVideo)
-    ) {
-      return false;
-    }
+      if (
+        card.type === 'video' &&
+        (videoRemaining <= 0 || !model?.supportsSourceVideo)
+      ) {
+        return false;
+      }
 
-    return canUseCanvasCardAsGenerationReference({
-      sourceCard: card,
-      targetType: draftCard.type,
-      targetModel: model,
-      targetGenerationMode: draftCard.generationMode,
-    });
+      return canUseCanvasCardAsGenerationReference({
+        sourceCard: card,
+        targetType: draftCard.type,
+        targetModel: model,
+        targetGenerationMode: draftCard.generationMode,
+      });
     }
   );
 };

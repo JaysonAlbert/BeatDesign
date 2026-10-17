@@ -26,6 +26,13 @@ The shared product model is asset-first:
 - A Take is an alternate Asset for one clip; the original source remains recoverable.
 - Canvas edges describe visual organization. Generation lineage describes real derivation and is stored separately.
 
+In the local text-node fork, `kind: text, type: text` is a Canvas-native document
+with `textContent` and `textRole`, stored in the same project snapshot without a
+media Asset or file upload. UI and MCP use the same incremental command boundary.
+Generation requests carry text snapshots verified against that project's current
+Canvas; the shared submission service assembles prompt context before validation.
+See `docs/TEXT_NODES.md` for limits and provenance semantics.
+
 ## Runtime flow
 
 The browser calls local `/api` routes. Server routes validate input and resolve a logical model through the active Generation Provider contract. BeatAPI is the built-in/default provider; forks can register another source-level provider without changing Canvas, Editor, MCP, or the asset-first request contract.

@@ -94,6 +94,13 @@ Codex / Claude Code / Other Agent
 
 ## 5. 已完成并有代码支撑的能力
 
+### 本地 Fork：文本节点（2026-10-17）
+
+- `codex/text-nodes` 增加独立文本节点，支持剧本、角色设定、分镜提示词和笔记；可编辑标题、用途、正文并持久保存。
+- 图片、视频和分析生成节点可引用多份文本，独立 `@TextN` 编号；提交时拼接上下文，保存当次文本快照并校验项目边界、文本变更和模型总提示词长度。
+- MCP 使用现有 `canvas_get`、`canvas_search`、`canvas_apply` 读写，通过 `upsert_text` 局部修改，继续共用 Command Kernel、revision 和幂等机制。
+- 此项属于本地分支和独立预览，不代表上游版本或公开 Release 已包含。使用方法与验证边界见 [TEXT_NODES.md](./TEXT_NODES.md)。
+
 ### Project / Local-first
 
 - 项目创建、打开、重命名和本地 SQLite 持久化。

@@ -23,10 +23,7 @@ import { importLocalProjectAsset } from '@/core/projects/import-local-asset';
 import { parseLocalProjectAssetUrl } from '@/core/projects/local-project-asset-url';
 import { createCommandId } from '@/core/commands/contracts';
 import { listCommandReceipts } from '@/core/commands/receipts';
-import {
-  findCaptionAtTime,
-  MAX_SRT_FILE_BYTES,
-} from '@/core/editor/captions';
+import { findCaptionAtTime, MAX_SRT_FILE_BYTES } from '@/core/editor/captions';
 import { diagnoseTimeline } from '@/core/editor/timeline-diagnostics';
 import {
   removeRenderedProjectTimelineAsset,
@@ -165,20 +162,22 @@ const errorResult = (error: unknown) => ({
           }
         : {
             message:
-              error instanceof Error ? error.message : 'BeatDesign tool failed.',
+              error instanceof Error
+                ? error.message
+                : 'BeatDesign tool failed.',
           },
   },
 });
 
-const withToolErrors = <TArgs, TResult>(
-  handler: (args: TArgs) => Promise<TResult> | TResult
-) => async (args: TArgs) => {
-  try {
-    return jsonResult(await handler(args));
-  } catch (error) {
-    return errorResult(error);
-  }
-};
+const withToolErrors =
+  <TArgs, TResult>(handler: (args: TArgs) => Promise<TResult> | TResult) =>
+  async (args: TArgs) => {
+    try {
+      return jsonResult(await handler(args));
+    } catch (error) {
+      return errorResult(error);
+    }
+  };
 
 const workspaceHandoffResult = (
   handoff: BeatDesignWorkspaceHandoff,
@@ -199,26 +198,26 @@ const workspaceHandoffResult = (
   };
 };
 
-const withWorkspaceHandoffErrors = <TArgs>(
-  handler: (
-    args: TArgs
+const withWorkspaceHandoffErrors =
+  <TArgs>(
+    handler: (args: TArgs) =>
+      | Promise<{
+          handoff: BeatDesignWorkspaceHandoff;
+          extra?: Record<string, unknown>;
+        }>
+      | {
+          handoff: BeatDesignWorkspaceHandoff;
+          extra?: Record<string, unknown>;
+        }
   ) =>
-    | Promise<{
-        handoff: BeatDesignWorkspaceHandoff;
-        extra?: Record<string, unknown>;
-      }>
-    | {
-        handoff: BeatDesignWorkspaceHandoff;
-        extra?: Record<string, unknown>;
-      }
-) => async (args: TArgs) => {
-  try {
-    const { handoff, extra } = await handler(args);
-    return workspaceHandoffResult(handoff, extra);
-  } catch (error) {
-    return errorResult(error);
-  }
-};
+  async (args: TArgs) => {
+    try {
+      const { handoff, extra } = await handler(args);
+      return workspaceHandoffResult(handoff, extra);
+    } catch (error) {
+      return errorResult(error);
+    }
+  };
 
 const assertActiveProject = async (projectId: string) => {
   const project = await getActiveProject({ projectId });
@@ -461,7 +460,8 @@ export function createBeatDesignMcpServer() {
       sourceCard.kind !== 'generation' ||
       !outputCard ||
       outputCard.kind !== 'output'
-    ) return null;
+    )
+      return null;
     const media = resolveOutputMedia(output);
     const applied = await executeExternalCommand({
       projectId,
@@ -517,7 +517,9 @@ export function createBeatDesignMcpServer() {
     'bdesign_project_list',
     {
       description: 'List local BeatDesign projects.',
-      inputSchema: z.object({ limit: z.number().int().min(1).max(100).default(24) }),
+      inputSchema: z.object({
+        limit: z.number().int().min(1).max(100).default(24),
+      }),
       annotations: { readOnlyHint: true },
     },
     withToolErrors(async ({ limit }) =>
@@ -595,25 +597,27 @@ export function createBeatDesignMcpServer() {
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    withWorkspaceHandoffErrors(async ({ projectId, view, focusCardId, time }) => {
-      const project = await resolveScopedProject(projectId);
-      targetedProjectId = project.id;
-      const [canvas, timeline] = await Promise.all([
-        loadProjectWithLatestSnapshot({ projectId: project.id }),
-        loadProjectTimeline(project.id),
-      ]);
-      return {
-        handoff: buildProjectHandoff(project, { view, focusCardId, time }),
-        extra: {
-          targeted: true,
-          orientation: {
-            canvasRevision: canvas?.snapshotVersion ?? null,
-            timelineId: timeline?.document.id ?? null,
-            timelineRevision: timeline?.version ?? null,
+    withWorkspaceHandoffErrors(
+      async ({ projectId, view, focusCardId, time }) => {
+        const project = await resolveScopedProject(projectId);
+        targetedProjectId = project.id;
+        const [canvas, timeline] = await Promise.all([
+          loadProjectWithLatestSnapshot({ projectId: project.id }),
+          loadProjectTimeline(project.id),
+        ]);
+        return {
+          handoff: buildProjectHandoff(project, { view, focusCardId, time }),
+          extra: {
+            targeted: true,
+            orientation: {
+              canvasRevision: canvas?.snapshotVersion ?? null,
+              timelineId: timeline?.document.id ?? null,
+              timelineRevision: timeline?.version ?? null,
+            },
           },
-        },
-      };
-    })
+        };
+      }
+    )
   );
 
   server.registerTool(
@@ -629,21 +633,18 @@ export function createBeatDesignMcpServer() {
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    withWorkspaceHandoffErrors(async ({
-      projectId,
-      view,
-      focusCardId,
-      time,
-    }) => {
-      const project = await resolveScopedProject(projectId);
-      return {
-        handoff: buildProjectHandoff(project, {
-          view,
-          focusCardId,
-          time,
-        }),
-      };
-    })
+    withWorkspaceHandoffErrors(
+      async ({ projectId, view, focusCardId, time }) => {
+        const project = await resolveScopedProject(projectId);
+        return {
+          handoff: buildProjectHandoff(project, {
+            view,
+            focusCardId,
+            time,
+          }),
+        };
+      }
+    )
   );
 
   server.registerTool(
@@ -666,7 +667,10 @@ export function createBeatDesignMcpServer() {
     'bdesign_asset_get',
     {
       description: 'Read one project Asset by stable assetId.',
-      inputSchema: z.object({ projectId: idSchema.optional(), assetId: idSchema }),
+      inputSchema: z.object({
+        projectId: idSchema.optional(),
+        assetId: idSchema,
+      }),
       annotations: { readOnlyHint: true },
     },
     withToolErrors(async ({ projectId, assetId }) => {
@@ -705,7 +709,9 @@ export function createBeatDesignMcpServer() {
       inputSchema: z.object({
         projectId: idSchema.optional(),
         assetId: idSchema,
-        position: z.union([z.enum(['first', 'last']), z.number()]).default('last'),
+        position: z
+          .union([z.enum(['first', 'last']), z.number()])
+          .default('last'),
       }),
       annotations: { destructiveHint: false, idempotentHint: false },
     },
@@ -785,12 +791,15 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_canvas_search',
     {
-      description: 'Search Canvas nodes by name, prompt, result text, model, kind, or media type.',
+      description:
+        'Search Canvas nodes by name, prompt, result text, model, kind, or media type.',
       inputSchema: z.object({
         projectId: idSchema.optional(),
         query: z.string().trim().max(500).default(''),
-        kind: z.enum(['asset', 'generation', 'output']).optional(),
-        type: z.enum(['image', 'video', 'audio', 'timeline']).optional(),
+        kind: z.enum(['asset', 'generation', 'output', 'text']).optional(),
+        type: z
+          .enum(['image', 'video', 'audio', 'timeline', 'text'])
+          .optional(),
       }),
       annotations: { readOnlyHint: true },
     },
@@ -805,7 +814,15 @@ export function createBeatDesignMcpServer() {
         if (kind && card.kind !== kind) return false;
         if (type && card.type !== type) return false;
         if (!needle) return true;
-        return [card.id, card.name, card.prompt, card.resultText, card.modelId]
+        return [
+          card.id,
+          card.name,
+          card.prompt,
+          card.resultText,
+          card.modelId,
+          card.textContent,
+          card.textRole,
+        ]
           .filter((value): value is string => typeof value === 'string')
           .some((value) => value.toLocaleLowerCase().includes(needle));
       });
@@ -816,7 +833,7 @@ export function createBeatDesignMcpServer() {
     'bdesign_canvas_apply',
     {
       description:
-        'Apply incremental Canvas operations. For a newly connected node, append place_card to position it once to the right of its references; later user drag positions remain untouched unless place_card is called again. Raw document replacement is not exposed.',
+        'Apply incremental Canvas operations. Use upsert_text (cardId, name, textContent, textRole) to create/edit text nodes for scripts, characters and storyboard prompts. Connect text to a generation using set_references; its content is frozen into the prompt at submission. Append place_card to position a new node. Raw document replacement is not exposed.',
       inputSchema: commandMetadataSchema.extend({
         projectId: idSchema.optional(),
         operations: z.array(canvasOperationSchema).min(1).max(500),
@@ -844,52 +861,61 @@ export function createBeatDesignMcpServer() {
         assetId: idSchema.optional(),
         prompt: z.string().max(20_000).default(''),
         modelId: idSchema.optional(),
-        position: z.union([z.enum(['first', 'last']), z.number()]).default('last'),
+        position: z
+          .union([z.enum(['first', 'last']), z.number()])
+          .default('last'),
       }),
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    withToolErrors(async ({
-      projectId,
-      sourceCardId,
-      assetId,
-      prompt,
-      modelId,
-      position,
-      commandId,
-      expectedRevision,
-      idempotencyKey,
-    }) => {
-      const project = await resolveScopedProject(projectId);
-      return continueFromTailFrame({
-        projectId: project.id,
+    withToolErrors(
+      async ({
+        projectId,
         sourceCardId,
         assetId,
         prompt,
         modelId,
         position,
-        commandId: commandId ?? idempotencyKey,
+        commandId,
         expectedRevision,
-      });
-    }
+        idempotencyKey,
+      }) => {
+        const project = await resolveScopedProject(projectId);
+        return continueFromTailFrame({
+          projectId: project.id,
+          sourceCardId,
+          assetId,
+          prompt,
+          modelId,
+          position,
+          commandId: commandId ?? idempotencyKey,
+          expectedRevision,
+        });
+      }
     )
   );
 
   server.registerTool(
     'bdesign_generation_models',
     {
-      description: 'List logical generation models and their current parameter/reference capabilities.',
-      inputSchema: z.object({ kind: z.enum(['image', 'video', 'audio', 'analysis']).optional() }),
+      description:
+        'List logical generation models and their current parameter/reference capabilities.',
+      inputSchema: z.object({
+        kind: z.enum(['image', 'video', 'audio', 'analysis']).optional(),
+      }),
       annotations: { readOnlyHint: true },
     },
     withToolErrors(({ kind }) =>
-      listGenerationModelDescriptors().filter((model) => !kind || model.kind === kind)
+      listGenerationModelDescriptors().filter(
+        (model) => !kind || model.kind === kind
+      )
     )
   );
 
   server.registerTool(
     'bdesign_generation_model_get',
     {
-      description: 'Read one logical model, including defaults and accepted parameters.',
+      description:
+        'Read one logical model, including defaults and accepted parameters.',
       inputSchema: z.object({ modelId: idSchema }),
       annotations: { readOnlyHint: true },
     },
@@ -900,19 +926,39 @@ export function createBeatDesignMcpServer() {
     })
   );
 
-  server.registerTool('bdesign_audio_generate', {
-    description: 'Generate short local Drama 3 narration into the current project Assets and generation history. Does not change the Canvas or Timeline. Text only; maximum 200 characters.',
-    inputSchema: z.object({ projectId: idSchema.optional(), text: z.string().min(1).max(200) }),
-    annotations: { destructiveHint: false, idempotentHint: false },
-  }, withToolErrors(async input => {
-    const project = await resolveScopedProject(input.projectId);
-    return submitAssetFirstGeneration({ origin: 'mcp', generation: { version: 2, projectId: project.id, mode: 'audio', modelId: 'local-drama3', prompt: input.text, references: [], parameters: {} } });
-  }));
+  server.registerTool(
+    'bdesign_audio_generate',
+    {
+      description:
+        'Generate short local Drama 3 narration into the current project Assets and generation history. Does not change the Canvas or Timeline. Text only; maximum 200 characters.',
+      inputSchema: z.object({
+        projectId: idSchema.optional(),
+        text: z.string().min(1).max(200),
+      }),
+      annotations: { destructiveHint: false, idempotentHint: false },
+    },
+    withToolErrors(async (input) => {
+      const project = await resolveScopedProject(input.projectId);
+      return submitAssetFirstGeneration({
+        origin: 'mcp',
+        generation: {
+          version: 2,
+          projectId: project.id,
+          mode: 'audio',
+          modelId: 'local-drama3',
+          prompt: input.text,
+          references: [],
+          parameters: {},
+        },
+      });
+    })
+  );
 
   server.registerTool(
     'bdesign_generation_submit',
     {
-      description: 'Submit from a reviewed Canvas generation node. A visible output node is created before the provider request, and successful outputs remain reusable Assets.',
+      description:
+        'Submit from a reviewed Canvas generation node. A visible output node is created before the provider request, and successful outputs remain reusable Assets.',
       inputSchema: commandMetadataSchema.extend({
         projectId: idSchema.optional(),
         sourceCardId: idSchema,
@@ -926,7 +972,8 @@ export function createBeatDesignMcpServer() {
     },
     withToolErrors(async (input) => {
       const project = await resolveScopedProject(input.projectId);
-      const commandId = input.commandId ?? input.idempotencyKey ?? createCommandId();
+      const commandId =
+        input.commandId ?? input.idempotencyKey ?? createCommandId();
       const stableRequestKey = input.idempotencyKey ?? commandId;
       return runCanvasGenerationSubmissionOnce({
         key: `${project.id}:${stableRequestKey}`,
@@ -1111,7 +1158,8 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_editor_edit',
     {
-      description: 'Apply incremental timeline operations such as media and image-overlay add/update, trim, split, move, remove, audio updates, Takes, captions, per-caption layout, caption styles, and SRT import.',
+      description:
+        'Apply incremental timeline operations such as media and image-overlay add/update, trim, split, move, remove, audio updates, Takes, captions, per-caption layout, caption styles, and SRT import.',
       inputSchema: commandMetadataSchema.extend({
         projectId: idSchema.optional(),
         operations: z.array(editorOperationSchema).min(1).max(500),
@@ -1141,39 +1189,44 @@ export function createBeatDesignMcpServer() {
       }),
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    withToolErrors(async ({
-      projectId,
-      srt,
-      filePath,
-      replace,
-      commandId,
-      expectedRevision,
-      idempotencyKey,
-    }) => {
-      const project = await resolveScopedProject(projectId);
-      let source = srt?.trim() ?? '';
-      if (!source && filePath) {
-        const trimmedPath = filePath.trim();
-        if (!isAbsolute(trimmedPath)) {
-          throw new Error('SRT import requires an absolute file path.');
-        }
-        const sourceStat = await stat(resolvePath(trimmedPath));
-        if (!sourceStat.isFile() || sourceStat.size > MAX_SRT_FILE_BYTES) {
-          throw new Error('SRT file is too large or is not a regular file.');
-        }
-        source = await readFile(resolvePath(trimmedPath), 'utf8');
-      }
-      if (!source.trim()) {
-        throw new Error('Provide srt text or filePath.');
-      }
-      return executeExternalCommand({
-        projectId: project.id,
+    withToolErrors(
+      async ({
+        projectId,
+        srt,
+        filePath,
+        replace,
         commandId,
         expectedRevision,
         idempotencyKey,
-        command: { type: 'editor.apply', operations: [{ type: 'import_srt', srt: source, replace }] },
-      });
-    })
+      }) => {
+        const project = await resolveScopedProject(projectId);
+        let source = srt?.trim() ?? '';
+        if (!source && filePath) {
+          const trimmedPath = filePath.trim();
+          if (!isAbsolute(trimmedPath)) {
+            throw new Error('SRT import requires an absolute file path.');
+          }
+          const sourceStat = await stat(resolvePath(trimmedPath));
+          if (!sourceStat.isFile() || sourceStat.size > MAX_SRT_FILE_BYTES) {
+            throw new Error('SRT file is too large or is not a regular file.');
+          }
+          source = await readFile(resolvePath(trimmedPath), 'utf8');
+        }
+        if (!source.trim()) {
+          throw new Error('Provide srt text or filePath.');
+        }
+        return executeExternalCommand({
+          projectId: project.id,
+          commandId,
+          expectedRevision,
+          idempotencyKey,
+          command: {
+            type: 'editor.apply',
+            operations: [{ type: 'import_srt', srt: source, replace }],
+          },
+        });
+      }
+    )
   );
 
   server.registerTool(
@@ -1237,7 +1290,8 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_editor_snapshot',
     {
-      description: 'Resolve the active timeline clips at a time. This is semantic inspection, not a pixel screenshot.',
+      description:
+        'Resolve the active timeline clips at a time. This is semantic inspection, not a pixel screenshot.',
       inputSchema: z.object({
         projectId: idSchema.optional(),
         time: z.number().finite().min(0),
@@ -1256,7 +1310,8 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_editor_diagnostics',
     {
-      description: 'Diagnose gaps, overlaps, missing media, duration mismatches, and tiny clips.',
+      description:
+        'Diagnose gaps, overlaps, missing media, duration mismatches, and tiny clips.',
       inputSchema: z.object({ projectId: idSchema.optional() }),
       annotations: { readOnlyHint: true },
     },
@@ -1299,7 +1354,8 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_editor_history',
     {
-      description: 'Read persisted command receipts for timeline and Canvas changes.',
+      description:
+        'Read persisted command receipts for timeline and Canvas changes.',
       inputSchema: z.object({
         projectId: idSchema.optional(),
         limit: z.number().int().min(1).max(200).default(50),

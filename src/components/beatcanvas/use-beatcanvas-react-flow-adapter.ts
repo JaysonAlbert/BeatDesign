@@ -19,7 +19,12 @@ import type {
   CanvasCardMediaType,
   CanvasDraftCard,
   CanvasOutputCard,
+  CanvasTextCard,
 } from '@/core/beatcanvas/canvas-types';
+import {
+  buildTextCard,
+  resolveCanvasTextReferences,
+} from '@/core/beatcanvas/text-nodes';
 import { buildGenerationTakes } from '@/core/beatcanvas/generation-history';
 import {
   isCanvasDraftCard,
@@ -46,6 +51,7 @@ import {
 
 import {
   ASSET_CARD_NODE_TYPE,
+  TEXT_CARD_NODE_TYPE,
   GENERATION_CARD_NODE_TYPE,
   type BeatCanvasEditor,
   type GenerationCardNodeProps,
@@ -187,12 +193,12 @@ export const buildGenerationCardPresentation = ({
     );
   const latestOutput = orderedOutputs[orderedOutputs.length - 1] ?? null;
   const pinnedOutput = card.pinnedOutputId
-    ? orderedOutputs.find(
+    ? (orderedOutputs.find(
         (output) =>
           output.id === card.pinnedOutputId &&
           output.status === 'succeeded' &&
           Boolean(output.url || output.resultText)
-      ) ?? null
+      ) ?? null)
     : null;
   const latestSucceededOutput = [...orderedOutputs]
     .reverse()
@@ -213,14 +219,13 @@ export const buildGenerationCardPresentation = ({
     isAnalysis,
     latestOutputUrl: isAnalysis
       ? null
-      : pinnedOutput?.url ?? latestSucceededOutput?.url ?? card.url ?? null,
-    latestOutputText:
-      isAnalysis
-        ? null
-        : pinnedOutput?.resultText ??
-          latestSucceededOutput?.resultText ??
-          card.resultText ??
-          null,
+      : (pinnedOutput?.url ?? latestSucceededOutput?.url ?? card.url ?? null),
+    latestOutputText: isAnalysis
+      ? null
+      : (pinnedOutput?.resultText ??
+        latestSucceededOutput?.resultText ??
+        card.resultText ??
+        null),
     analysisReportCount,
     takes: buildGenerationTakes({
       outputs: orderedOutputs,
@@ -824,6 +829,50 @@ export function useBeatCanvasReactFlowAdapter({
     []
   );
 
+  const insertTextCard = useCallback(
+    (options?: {
+      card?: CanvasTextCard;
+      frame?: ProjectSnapshotShapeFrame;
+      recordHistory?: boolean;
+      activate?: boolean;
+    }) => {
+      const editor = editorRef.current;
+      if (!editor) return null;
+      if (options?.recordHistory !== false) recordCanvasHistory();
+      const card =
+        options?.card ??
+        buildTextCard({
+          id: `text:${crypto.randomUUID()}`,
+          name: studioT('textNode.defaultName'),
+        });
+      const size = { w: options?.frame?.w ?? 420, h: options?.frame?.h ?? 360 };
+      const position = options?.frame ?? getCanvasPlacement([], 0, size);
+      setCanvasCard(card);
+      editor.createShape({
+        id: card.id,
+        type: TEXT_CARD_NODE_TYPE,
+        x: position.x,
+        y: position.y,
+        meta: { [CARD_KIND_META_KEY]: 'text', [CARD_TYPE_META_KEY]: 'text' },
+        props: { ...size, textNode: true },
+      });
+      if (options?.activate !== false) {
+        setActiveComposerCardId(null);
+        editor.select(card.id);
+        focusShape(card.id);
+      }
+      return card.id;
+    },
+    [
+      recordCanvasHistory,
+      setCanvasCard,
+      studioT,
+      getCanvasPlacement,
+      setActiveComposerCardId,
+      focusShape,
+    ]
+  );
+
   const syncAssetShape = useCallback((card: CanvasCard) => {
     const editor = editorRef.current;
     if (!editor || card.kind !== 'asset') return;
@@ -1050,12 +1099,7 @@ export function useBeatCanvasReactFlowAdapter({
         : ANALYSIS_REPORT_FRAME_SIZE;
       const placement =
         frame ??
-        getCanvasPlacement(
-          [draftCard.id],
-          reportIndex,
-          reportSize,
-          'right'
-        );
+        getCanvasPlacement([draftCard.id], reportIndex, reportSize, 'right');
 
       editor.createShape({
         id: outputCard.id,
@@ -1130,6 +1174,11 @@ export function useBeatCanvasReactFlowAdapter({
           analysisDepth: draftCard.analysisDepth,
           prompt: draftCard.prompt,
           referenceCardIds: [...draftCard.referenceCardIds],
+          ...resolveCanvasTextReferences({
+            cards: canvasCardsRef.current,
+            referenceCardIds: draftCard.referenceCardIds,
+            prompt: draftCard.prompt,
+          }),
           workflowTemplateId: draftCard.workflowTemplateId,
           modelId: draftCard.modelId,
           aspectRatio: resolvedAspectRatio,
@@ -1240,12 +1289,7 @@ export function useBeatCanvasReactFlowAdapter({
       }
       return outputCardId;
     },
-    [
-      canvasCardsRef,
-      focusShape,
-      materializeAnalysisReport,
-      setCanvasCard,
-    ]
+    [canvasCardsRef, focusShape, materializeAnalysisReport, setCanvasCard]
   );
 
   const createDraftCard = useCallback(
@@ -1435,6 +1479,15 @@ export function useBeatCanvasReactFlowAdapter({
       const restorePlan = createProjectSnapshotRestorePlan(document);
       const restoredCardIds: string[] = [];
       const restoredDraftIds: string[] = [];
+      for (const item of restorePlan.textCards) {
+        const id = insertTextCard({
+          card: item.card,
+          frame: item.frame,
+          recordHistory: false,
+          activate: false,
+        });
+        if (id) restoredCardIds.push(id);
+      }
 
       for (const item of restorePlan.assetCards) {
         const insertedAssetCardId = insertAssetCard({
@@ -1476,9 +1529,8 @@ export function useBeatCanvasReactFlowAdapter({
       }
 
       for (const item of restorePlan.outputCards) {
-        const sourceConfigCard = canvasCardsRef.current[
-          item.card.sourceConfigCardId
-        ];
+        const sourceConfigCard =
+          canvasCardsRef.current[item.card.sourceConfigCardId];
         if (!isCanvasDraftCard(sourceConfigCard)) {
           continue;
         }
@@ -1539,6 +1591,7 @@ export function useBeatCanvasReactFlowAdapter({
       focusShapes,
       insertAssetCard,
       replaceCanvasCards,
+      insertTextCard,
       setActiveComposerCardId,
     ]
   );
@@ -1553,7 +1606,9 @@ export function useBeatCanvasReactFlowAdapter({
         target: document,
         current: captureCanvasDocument(),
       });
-      const currentShapeIds = editor.getCurrentPageShapes().map((shape) => shape.id);
+      const currentShapeIds = editor
+        .getCurrentPageShapes()
+        .map((shape) => shape.id);
       if (currentShapeIds.length > 0) {
         editor.deleteShapes(currentShapeIds);
       }
@@ -1849,6 +1904,16 @@ export function useBeatCanvasReactFlowAdapter({
         continue;
       }
 
+      if (card.kind === 'text') {
+        insertTextCard({
+          card: { ...card, id: nextId },
+          frame: nextFrame,
+          recordHistory: false,
+          activate: false,
+        });
+        pastedCardIds.push(nextId);
+        continue;
+      }
       if (card.kind === 'asset') {
         insertAssetCard({
           type: card.type,
@@ -1881,11 +1946,13 @@ export function useBeatCanvasReactFlowAdapter({
     createDraftCard,
     focusShapes,
     insertAssetCard,
+    insertTextCard,
     recordCanvasHistory,
   ]);
 
   return {
     buildProjectSnapshotDocument,
+    insertTextCard,
     canUndoCanvas: historyState.canUndo,
     canRedoCanvas: historyState.canRedo,
     recordCanvasHistory,

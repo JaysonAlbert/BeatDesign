@@ -7,6 +7,7 @@ import {
 } from './canvas-engine/canvas-engine-context';
 import {
   ASSET_CARD_NODE_TYPE,
+  TEXT_CARD_NODE_TYPE,
   GENERATION_CARD_NODE_TYPE,
 } from './react-flow/beatcanvas-react-flow-types';
 import { useCanvasFrontLayer } from './beatcanvas-front-layer-context';
@@ -32,6 +33,7 @@ const MENU_WIDTH = 276;
 
 const isCardShapeType = (shapeType: string) =>
   shapeType === ASSET_CARD_NODE_TYPE ||
+  shapeType === TEXT_CARD_NODE_TYPE ||
   shapeType === GENERATION_CARD_NODE_TYPE;
 
 export function CardConnectorOverlay() {
@@ -319,9 +321,10 @@ export function CardConnectorOverlay() {
                 ? 'var(--beat-graph)'
                 : 'rgba(255,255,255,0.24)'
             }`,
-            color: isHovered || isDraggingSource
-              ? 'var(--beat-graph)'
-              : 'var(--beat-text-2)',
+            color:
+              isHovered || isDraggingSource
+                ? 'var(--beat-graph)'
+                : 'var(--beat-text-2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

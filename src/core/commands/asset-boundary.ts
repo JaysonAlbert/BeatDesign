@@ -46,7 +46,11 @@ export async function normalizeCommandAssetReferences({
       ...command,
       operations: await Promise.all(
         command.operations.map(async (operation) => {
-          if (operation.type === 'upsert_card' && operation.card.assetId) {
+          if (
+            operation.type === 'upsert_card' &&
+            operation.card.kind !== 'text' &&
+            operation.card.assetId
+          ) {
             const expectedType =
               operation.card.type === 'timeline'
                 ? 'video'

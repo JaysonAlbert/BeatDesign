@@ -15,7 +15,7 @@ import {
 
 const makeCard = (
   id: string,
-  type: CanvasCard['type'],
+  type: Exclude<CanvasCard['type'], 'text'>,
   name: string
 ): CanvasCard => ({
   id,

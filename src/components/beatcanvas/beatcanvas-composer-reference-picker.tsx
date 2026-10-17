@@ -1,6 +1,13 @@
 import { cn } from '@/lib/utils';
 import type { CanvasGenerationCard } from '@/core/beatcanvas/canvas-types';
-import { ChevronDown, GripVertical, ImagePlus, Video, X } from 'lucide-react';
+import {
+  ChevronDown,
+  GripVertical,
+  ImagePlus,
+  FileText,
+  Video,
+  X,
+} from 'lucide-react';
 import { useState, type RefObject } from 'react';
 
 import {
@@ -19,7 +26,7 @@ type ReferenceOption = {
 export type CanvasReferenceCardOption = {
   id: string;
   name: string;
-  type: CanvasGenerationCard['type'];
+  type: CanvasGenerationCard['type'] | 'text';
   thumbnailUrl: string | null;
   alias?: string;
 };
@@ -78,7 +85,9 @@ export function BeatCanvasComposerReferencePicker({
 
   return (
     <div ref={containerRef} className={cn('shrink-0', isRow && 'min-w-0')}>
-      <div className={cn('relative', isRow && 'flex min-w-0 items-center gap-1')}>
+      <div
+        className={cn('relative', isRow && 'flex min-w-0 items-center gap-1')}
+      >
         {isRow && attachedCount > 0 ? (
           <div className="flex min-w-0 max-w-[392px] items-center gap-1 overflow-x-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {currentReferenceCards.map((card) => (
@@ -104,7 +113,8 @@ export function BeatCanvasComposerReferencePicker({
                 onDrop={(event) => {
                   event.preventDefault();
                   const activeCardId =
-                    draggedReferenceId || event.dataTransfer.getData('text/plain');
+                    draggedReferenceId ||
+                    event.dataTransfer.getData('text/plain');
                   if (activeCardId && activeCardId !== card.id) {
                     onReorderCanvasReferences(
                       activeDraftId,
@@ -145,7 +155,9 @@ export function BeatCanvasComposerReferencePicker({
                   ) : (
                     <ImagePlus className="m-auto size-3 text-white/70" />
                   )}
-                  {card.type === 'video' ? (
+                  {card.type === 'text' ? (
+                    <FileText className="size-4" />
+                  ) : card.type === 'video' ? (
                     <Video className="pointer-events-none absolute bottom-0 right-0 size-2.5 rounded-sm bg-black/65 p-0.5 text-white" />
                   ) : null}
                 </span>
@@ -204,160 +216,164 @@ export function BeatCanvasComposerReferencePicker({
             onPointerDownCapture={stopComposerEvent}
           >
             <div className="max-h-[320px] space-y-2.5 overflow-y-auto">
-            <div className="space-y-0.5">
-              {options.map((option) => (
-                <button
-                  key={option.intent}
-                  type="button"
-                  disabled={isDraftBusy}
-                  onClick={() => {
-                    onOpenReferencePicker(activeDraftId, option.intent);
-                    onOpenChange(false);
-                  }}
-                  className={cn(
-                    getComposerOptionRowClassName(false),
-                    'justify-between disabled:cursor-not-allowed disabled:opacity-60'
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    {option.intent === 'video' ? (
-                      <Video className="size-3.5 text-[var(--beat-text-2)]" />
-                    ) : (
-                      <ImagePlus className="size-3.5 text-[var(--beat-text-2)]" />
+              <div className="space-y-0.5">
+                {options.map((option) => (
+                  <button
+                    key={option.intent}
+                    type="button"
+                    disabled={isDraftBusy}
+                    onClick={() => {
+                      onOpenReferencePicker(activeDraftId, option.intent);
+                      onOpenChange(false);
+                    }}
+                    className={cn(
+                      getComposerOptionRowClassName(false),
+                      'justify-between disabled:cursor-not-allowed disabled:opacity-60'
                     )}
-                    <span>
-                      {option.intent === 'video'
-                        ? labels.uploadVideoLabel
-                        : labels.uploadImageLabel}
-                    </span>
-                  </span>
-                  {option.remaining !== null ? (
-                    <span className="text-[11px] font-medium tabular-nums text-[var(--beat-text-3)]">
-                      {option.remaining}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-
-            {attachedCount > 0 ? (
-              <div className="space-y-1.5">
-                <div className={cn(composerSectionLabelClassName, 'px-2')}>
-                  {labels.currentReferencesLabel}
-                </div>
-                {currentReferenceCards.map((card) => (
-                  <div
-                    key={card.id}
-                    className="flex w-full items-center justify-between gap-2 rounded-[8px] px-2 py-1.5 transition-colors duration-150 hover:bg-white/[0.06]"
                   >
-                    <span className="flex min-w-0 items-center gap-2.5 text-[var(--beat-text-1)]">
-                      {card.thumbnailUrl && card.type === 'video' ? (
-                        <span className="relative inline-flex size-8 shrink-0 overflow-hidden rounded-md bg-black">
-                          <video
-                            src={card.thumbnailUrl}
-                            aria-label={card.name}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            className="size-full object-cover"
-                          />
-                          <Video className="pointer-events-none absolute inset-0 m-auto size-3.5 text-white drop-shadow" />
-                        </span>
-                      ) : card.thumbnailUrl ? (
-                        <img
-                          src={card.thumbnailUrl}
-                          alt=""
-                          draggable={false}
-                          className="size-8 shrink-0 rounded-md object-cover"
-                        />
+                    <span className="flex items-center gap-2">
+                      {option.intent === 'video' ? (
+                        <Video className="size-3.5 text-[var(--beat-text-2)]" />
                       ) : (
-                        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-white/[0.06] text-[var(--beat-text-2)]">
-                          {card.type === 'video' ? (
-                            <Video className="size-3.5" />
-                          ) : (
-                            <ImagePlus className="size-3.5" />
-                          )}
-                        </span>
+                        <ImagePlus className="size-3.5 text-[var(--beat-text-2)]" />
                       )}
-                      <span className="min-w-0">
-                        <span className="block font-mono text-[11px] font-semibold text-[var(--beat-graph)]">
-                          {card.alias}
-                        </span>
-                        <span className="block truncate text-[12px] font-medium">
-                          {card.name}
-                        </span>
+                      <span>
+                        {option.intent === 'video'
+                          ? labels.uploadVideoLabel
+                          : labels.uploadImageLabel}
                       </span>
                     </span>
-                    <button
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() => {
-                        onRemoveCanvasReference(activeDraftId, card.id);
-                      }}
-                      className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[var(--beat-text-3)] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-                      aria-label={labels.removeReferenceLabel}
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
+                    {option.remaining !== null ? (
+                      <span className="text-[11px] font-medium tabular-nums text-[var(--beat-text-3)]">
+                        {option.remaining}
+                      </span>
+                    ) : null}
+                  </button>
                 ))}
               </div>
-            ) : null}
 
-            <div className="space-y-1.5">
-              <div className={cn(composerSectionLabelClassName, 'px-2')}>
-                {labels.fromCanvasLabel}
-              </div>
-              {canvasReferenceCards.length === 0 ? (
-                <div className="px-2.5 pb-1 text-xs text-[var(--beat-text-3)]">
-                  {labels.noCanvasReferencesLabel}
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 gap-1.5 px-2.5 pb-1">
-                  {canvasReferenceCards.map((card) => (
-                    <button
+              {attachedCount > 0 ? (
+                <div className="space-y-1.5">
+                  <div className={cn(composerSectionLabelClassName, 'px-2')}>
+                    {labels.currentReferencesLabel}
+                  </div>
+                  {currentReferenceCards.map((card) => (
+                    <div
                       key={card.id}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() => {
-                        onAttachCanvasReference(activeDraftId, card.id);
-                      }}
-                      title={card.name}
-                      className="relative aspect-square overflow-hidden rounded-lg border border-white/[0.08] transition hover:border-[var(--beat-graph)] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex w-full items-center justify-between gap-2 rounded-[8px] px-2 py-1.5 transition-colors duration-150 hover:bg-white/[0.06]"
                     >
-                      {card.thumbnailUrl && card.type === 'video' ? (
-                        <span className="relative inline-flex size-full bg-black">
-                          <video
+                      <span className="flex min-w-0 items-center gap-2.5 text-[var(--beat-text-1)]">
+                        {card.thumbnailUrl && card.type === 'video' ? (
+                          <span className="relative inline-flex size-8 shrink-0 overflow-hidden rounded-md bg-black">
+                            <video
+                              src={card.thumbnailUrl}
+                              aria-label={card.name}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="size-full object-cover"
+                            />
+                            <Video className="pointer-events-none absolute inset-0 m-auto size-3.5 text-white drop-shadow" />
+                          </span>
+                        ) : card.thumbnailUrl ? (
+                          <img
                             src={card.thumbnailUrl}
-                            aria-label={card.name}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            className="size-full object-cover"
+                            alt=""
+                            draggable={false}
+                            className="size-8 shrink-0 rounded-md object-cover"
                           />
-                          <Video className="pointer-events-none absolute inset-0 m-auto size-4 text-white drop-shadow" />
+                        ) : (
+                          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-white/[0.06] text-[var(--beat-text-2)]">
+                            {card.type === 'text' ? (
+                              <FileText className="size-4" />
+                            ) : card.type === 'video' ? (
+                              <Video className="size-3.5" />
+                            ) : (
+                              <ImagePlus className="size-3.5" />
+                            )}
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="block font-mono text-[11px] font-semibold text-[var(--beat-graph)]">
+                            {card.alias}
+                          </span>
+                          <span className="block truncate text-[12px] font-medium">
+                            {card.name}
+                          </span>
                         </span>
-                      ) : card.thumbnailUrl ? (
-                        <img
-                          src={card.thumbnailUrl}
-                          alt={card.name}
-                          draggable={false}
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <span className="inline-flex size-full items-center justify-center text-[var(--beat-text-3)]">
-                          {card.type === 'video' ? (
-                            <Video className="size-4" />
-                          ) : (
-                            <ImagePlus className="size-4" />
-                          )}
-                        </span>
-                      )}
-                    </button>
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isDraftBusy}
+                        onClick={() => {
+                          onRemoveCanvasReference(activeDraftId, card.id);
+                        }}
+                        className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-[var(--beat-text-3)] transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label={labels.removeReferenceLabel}
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
+              ) : null}
+
+              <div className="space-y-1.5">
+                <div className={cn(composerSectionLabelClassName, 'px-2')}>
+                  {labels.fromCanvasLabel}
+                </div>
+                {canvasReferenceCards.length === 0 ? (
+                  <div className="px-2.5 pb-1 text-xs text-[var(--beat-text-3)]">
+                    {labels.noCanvasReferencesLabel}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5 px-2.5 pb-1">
+                    {canvasReferenceCards.map((card) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        disabled={isDraftBusy}
+                        onClick={() => {
+                          onAttachCanvasReference(activeDraftId, card.id);
+                        }}
+                        title={card.name}
+                        className="relative aspect-square overflow-hidden rounded-lg border border-white/[0.08] transition hover:border-[var(--beat-graph)] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {card.thumbnailUrl && card.type === 'video' ? (
+                          <span className="relative inline-flex size-full bg-black">
+                            <video
+                              src={card.thumbnailUrl}
+                              aria-label={card.name}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="size-full object-cover"
+                            />
+                            <Video className="pointer-events-none absolute inset-0 m-auto size-4 text-white drop-shadow" />
+                          </span>
+                        ) : card.thumbnailUrl ? (
+                          <img
+                            src={card.thumbnailUrl}
+                            alt={card.name}
+                            draggable={false}
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <span className="inline-flex size-full items-center justify-center text-[var(--beat-text-3)]">
+                            {card.type === 'text' ? (
+                              <FileText className="size-4" />
+                            ) : card.type === 'video' ? (
+                              <Video className="size-4" />
+                            ) : (
+                              <ImagePlus className="size-4" />
+                            )}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : null}

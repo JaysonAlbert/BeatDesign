@@ -24,13 +24,27 @@ export const assetFirstGenerationRequestSchema = z
     mode: z.enum(['image', 'video', 'analysis', 'audio']),
     modelId: z.string().min(1).max(200),
     prompt: z.string().max(20_000),
+    textReferences: z
+      .array(
+        z
+          .object({
+            cardId: z.string().min(1).max(200),
+            name: z.string().max(500),
+            textRole: z.enum(['note', 'script', 'character', 'storyboard']),
+            textContent: z.string().max(100_000),
+          })
+          .strict()
+      )
+      .max(20)
+      .optional(),
     references: z
       .array(
-        z.object({
-          assetId: z.string().min(1).max(200),
-          role: generationReferenceRoleSchema,
-          deliveryUrl: z.string().trim().min(1).max(4096).optional(),
-        })
+        z
+          .object({
+            assetId: z.string().min(1).max(200),
+            role: generationReferenceRoleSchema,
+            deliveryUrl: z.string().trim().min(1).max(4096).optional(),
+          })
           .strict()
       )
       .max(20)
@@ -91,7 +105,8 @@ export function buildAssetFirstReferencesFromCanvasCards({
     let role: GenerationReferenceRole = 'reference';
     if (card.type === 'video') role = 'source';
     else if (card.type === 'audio') role = 'audio_track';
-    const deliveryUrl = deliveryUrlsByCardId[card.id]?.trim() || card.url?.trim();
+    const deliveryUrl =
+      deliveryUrlsByCardId[card.id]?.trim() || card.url?.trim();
     references.push({
       assetId,
       role,

@@ -129,7 +129,11 @@ export function useBeatCanvasDraftActions({
           analysisDepth: current.analysisDepth ?? 'standard',
           name: studioT('analysis.modeLabel'),
           modelId: VIDEO_ANALYSIS_MODEL_ID,
-          referenceCardIds: videoReferenceId ? [videoReferenceId] : [],
+          referenceCardIds: current.referenceCardIds.filter(
+            (id) =>
+              canvasCardsRef.current[id]?.kind === 'text' ||
+              id === videoReferenceId
+          ),
           url: null,
           resultText: null,
           status: 'idle',
@@ -326,12 +330,9 @@ export function useBeatCanvasDraftActions({
 
   const handleDraftCharacterOrientationChange = useCallback(
     (draftId: string, characterOrientation: WorkspaceCharacterOrientation) =>
-      updateEditableDraft(
-        draftId,
-        (value: WorkspaceCharacterOrientation) => ({
-          characterOrientation: value,
-        })
-      )(characterOrientation),
+      updateEditableDraft(draftId, (value: WorkspaceCharacterOrientation) => ({
+        characterOrientation: value,
+      }))(characterOrientation),
     [updateEditableDraft]
   );
 

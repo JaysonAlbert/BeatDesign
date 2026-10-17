@@ -22,8 +22,15 @@ import {
   linkGenerationAsset,
 } from '@/core/workspace-lib/assets/user-assets';
 import { uploadManagedGenerationInput } from '@/core/workspace-storage/managed-generation-input';
-import { getProject } from '@/core/projects/projects';
-import { getGenerationPromptConstraints, validateGenerationPrompt } from '@/core/effects/validation';
+import {
+  getProject,
+  loadProjectWithLatestSnapshot,
+} from '@/core/projects/projects';
+import { resolveCanvasTextReferences } from '@/core/beatcanvas/text-nodes';
+import {
+  getGenerationPromptConstraints,
+  validateGenerationPrompt,
+} from '@/core/effects/validation';
 
 import {
   getGenerationModelDescriptor,
@@ -75,10 +82,24 @@ async function prepareGenerationReferences({
 
   if (LOCAL_MODELS.includes(generation.modelId)) {
     for (const asset of assets.values()) {
-      if (asset.storageProvider !== 'local') throw new Error('Import the reference into local project storage first.');
+      if (asset.storageProvider !== 'local')
+        throw new Error(
+          'Import the reference into local project storage first.'
+        );
       await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
     }
-    return { generation: { ...generation, references: generation.references.map(ref => ({ ...ref, deliveryUrl: assets.get(ref.assetId)!.publicUrl })) }, authorizedDeliveryUrls: [...assets.values()].map(asset => asset.publicUrl) };
+    return {
+      generation: {
+        ...generation,
+        references: generation.references.map((ref) => ({
+          ...ref,
+          deliveryUrl: assets.get(ref.assetId)!.publicUrl,
+        })),
+      },
+      authorizedDeliveryUrls: [...assets.values()].map(
+        (asset) => asset.publicUrl
+      ),
+    };
   }
   const localAssets = [...assets.values()].filter(
     needsManagedGenerationReferenceUpload
@@ -94,7 +115,9 @@ async function prepareGenerationReferences({
         `Asset ${asset.id} does not have a public delivery URL or a readable local file.`
       );
     }
-    const filePath = resolveLocalProjectAssetPath({ objectKey: asset.objectKey });
+    const filePath = resolveLocalProjectAssetPath({
+      objectKey: asset.objectKey,
+    });
     const fileInfo = await stat(filePath);
     if (!fileInfo.isFile()) {
       throw new Error(`Local file for asset ${asset.id} is unavailable.`);
@@ -157,9 +180,36 @@ async function prepareGenerationReferences({
 }
 
 export async function preflightAssetFirstGeneration(source: unknown) {
-  const generation = normalizeAssetFirstGenerationRequest(source);
+  let generation = normalizeAssetFirstGenerationRequest(source);
+  const originalPrompt = generation.prompt;
+  if (generation.textReferences?.length) {
+    const state = await loadProjectWithLatestSnapshot({
+      projectId: generation.projectId,
+    });
+    const cards = Object.fromEntries(
+      (state?.snapshot.cards ?? []).map((card) => [card.id, card])
+    );
+    for (const reference of generation.textReferences) {
+      if (cards[reference.cardId]?.kind !== 'text')
+        throw new Error('Text reference does not belong to this project.');
+    }
+    const resolved = resolveCanvasTextReferences({
+      cards,
+      referenceCardIds: generation.textReferences.map((ref) => ref.cardId),
+      prompt: originalPrompt,
+    });
+    if (
+      JSON.stringify(resolved.textReferences) !==
+      JSON.stringify(generation.textReferences)
+    )
+      throw new Error(
+        'Referenced text changed. Review the text node and submit again.'
+      );
+    generation = { ...generation, prompt: resolved.resolvedPrompt };
+  }
   const project = await getProject({ projectId: generation.projectId });
-  if (!project || project.status !== 'active') throw new Error('Project not found');
+  if (!project || project.status !== 'active')
+    throw new Error('Project not found');
   const provider = getActiveGenerationProvider();
   const binding = getGenerationModelBinding({
     modelId: generation.modelId,
@@ -176,8 +226,16 @@ export async function preflightAssetFirstGeneration(source: unknown) {
       `Model ${generation.modelId} does not support ${generation.mode} generation.`
     );
   }
-  const prompt = validateGenerationPrompt(generation.prompt, getGenerationPromptConstraints({ modelId: generation.modelId }));
-  if (!prompt.ok) throw new Error(prompt.code === 'PROMPT_TOO_LONG' ? `Prompt must be ${prompt.maxChars} characters or fewer.` : 'Prompt is required.');
+  const prompt = validateGenerationPrompt(
+    generation.prompt,
+    getGenerationPromptConstraints({ modelId: generation.modelId })
+  );
+  if (!prompt.ok)
+    throw new Error(
+      prompt.code === 'PROMPT_TOO_LONG'
+        ? `Prompt must be ${prompt.maxChars} characters or fewer.`
+        : 'Prompt is required.'
+    );
   const uniqueAssets = new Map<
     string,
     Awaited<ReturnType<typeof getProjectAssetById>>
@@ -193,16 +251,23 @@ export async function preflightAssetFirstGeneration(source: unknown) {
       );
     }
   }
-  const expectedUploadCount = LOCAL_MODELS.includes(generation.modelId) ? 0 : [...uniqueAssets.values()].filter(
-    (asset) => asset && needsManagedGenerationReferenceUpload(asset)
-  ).length;
+  const expectedUploadCount = LOCAL_MODELS.includes(generation.modelId)
+    ? 0
+    : [...uniqueAssets.values()].filter(
+        (asset) => asset && needsManagedGenerationReferenceUpload(asset)
+      ).length;
   const validationUrls: string[] = [];
   for (const [assetId, asset] of uniqueAssets) {
-    if (!asset) throw new Error(`Asset ${assetId} does not belong to this project.`);
+    if (!asset)
+      throw new Error(`Asset ${assetId} does not belong to this project.`);
     if (needsManagedGenerationReferenceUpload(asset)) {
-      if (asset.storageProvider !== 'local') throw new Error(`Asset ${assetId} is unavailable.`);
-      const file = await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
-      if (!file.isFile()) throw new Error(`Local file for asset ${assetId} is unavailable.`);
+      if (asset.storageProvider !== 'local')
+        throw new Error(`Asset ${assetId} is unavailable.`);
+      const file = await stat(
+        resolveLocalProjectAssetPath({ objectKey: asset.objectKey })
+      );
+      if (!file.isFile())
+        throw new Error(`Local file for asset ${assetId} is unavailable.`);
     }
   }
   // Validation uses inert URLs; no file leaves the workspace during preflight.
@@ -210,16 +275,23 @@ export async function preflightAssetFirstGeneration(source: unknown) {
     ...generation,
     references: generation.references.map((reference, index) => {
       const asset = uniqueAssets.get(reference.assetId)!;
-      const extension = asset.type === 'video' ? 'mp4' : asset.type === 'audio' ? 'mp3' : 'png';
+      const extension =
+        asset.type === 'video' ? 'mp4' : asset.type === 'audio' ? 'mp3' : 'png';
       const deliveryUrl = `https://validation.invalid/reference-${index}.${extension}`;
       validationUrls.push(deliveryUrl);
       return { ...reference, deliveryUrl };
     }),
   };
-  const input = await compileAssetFirstGenerationInput({ generation: validationRequest, generationIntentId: '', authorizedDeliveryUrls: validationUrls });
+  const input = await compileAssetFirstGenerationInput({
+    generation: validationRequest,
+    generationIntentId: '',
+    authorizedDeliveryUrls: validationUrls,
+  });
   validateGenerationModelInput({ modelId: generation.modelId, input });
-  await provider.assertConfigured?.(getRegisteredEffectById(binding.effectId) ?? undefined);
-  return { generation, binding, expectedUploadCount };
+  await provider.assertConfigured?.(
+    getRegisteredEffectById(binding.effectId) ?? undefined
+  );
+  return { generation, binding, expectedUploadCount, originalPrompt };
 }
 
 export async function createAssetFirstGenerationIntent(source: unknown) {
@@ -240,14 +312,24 @@ export async function submitAssetFirstGeneration({
   origin: 'ui' | 'mcp' | 'cli' | 'system';
   generationIntentId?: string;
 }) {
-  const { generation, binding, expectedUploadCount } = await preflightAssetFirstGeneration(source);
-  const intentId = generationIntentId || await issueGenerationUploadIntent({
-    projectId: generation.projectId,
-    effectId: binding.effectId,
-    expectedUploadCount,
-  });
-  if (await getGenerationUploadIntentEffectId({ intentId, projectId: generation.projectId }) !== binding.effectId) {
-    throw new Error('Generation authorization does not match this project and model.');
+  const { generation, binding, expectedUploadCount, originalPrompt } =
+    await preflightAssetFirstGeneration(source);
+  const intentId =
+    generationIntentId ||
+    (await issueGenerationUploadIntent({
+      projectId: generation.projectId,
+      effectId: binding.effectId,
+      expectedUploadCount,
+    }));
+  if (
+    (await getGenerationUploadIntentEffectId({
+      intentId,
+      projectId: generation.projectId,
+    })) !== binding.effectId
+  ) {
+    throw new Error(
+      'Generation authorization does not match this project and model.'
+    );
   }
   try {
     const prepared = await prepareGenerationReferences({
@@ -262,9 +344,15 @@ export async function submitAssetFirstGeneration({
     if (LOCAL_MODELS.includes(generation.modelId)) {
       const paths = [];
       for (const ref of generation.references) {
-        const asset = await getProjectAssetById({ projectId: generation.projectId, assetId: ref.assetId });
-        if (!asset || asset.storageProvider !== 'local') throw new Error('Local reference unavailable');
-        paths.push(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
+        const asset = await getProjectAssetById({
+          projectId: generation.projectId,
+          assetId: ref.assetId,
+        });
+        if (!asset || asset.storageProvider !== 'local')
+          throw new Error('Local reference unavailable');
+        paths.push(
+          resolveLocalProjectAssetPath({ objectKey: asset.objectKey })
+        );
       }
       Object.assign(input, { _localReferencePaths: paths });
     }
@@ -279,6 +367,9 @@ export async function submitAssetFirstGeneration({
         origin,
         requestVersion: generation.version,
         logicalModelId: generation.modelId,
+        ...(generation.textReferences?.length
+          ? { originalPrompt, textReferences: generation.textReferences }
+          : {}),
       },
     });
     const generationId =
