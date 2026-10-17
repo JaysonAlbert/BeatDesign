@@ -1,4 +1,5 @@
 import type { EffectRecord } from '@/core/adapters/base-adapter';
+import { LOCAL_H3_DURATIONS, LOCAL_H3_FPS, getLocalH3Timing } from '@/core/generation-providers/local-h3-duration';
 import {
   getActiveGenerationProvider,
   getActiveGenerationProviderId,
@@ -71,6 +72,11 @@ const buildInputSchema = (entry: WorkspaceEffectRegistryEntry) => {
       type: 'enum',
       required: false,
       values: entry.supportedDurations,
+      ...(entry.id === 'local-h3' ? {
+        description: 'Native H3 frame-grid durations, rounded to milliseconds. No trimming or retiming.',
+        fps: LOCAL_H3_FPS,
+        frameCounts: Object.fromEntries(LOCAL_H3_DURATIONS.map(duration => [duration, getLocalH3Timing(duration)!.frames])),
+      } : {}),
     };
   }
   if (entry.supportedOutputQualities?.length) {

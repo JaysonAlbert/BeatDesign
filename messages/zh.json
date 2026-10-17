@@ -114,6 +114,7 @@
           "model": "模型",
           "aspectRatio": "比例",
           "duration": "时长",
+          "localH3DurationHint": "原生时长，24 fps，每档增加 17 帧；显示值四舍五入到毫秒。时长越长，耗时和显存占用越高。",
           "outputQuality": "清晰度",
           "mode": "模式",
           "variant": "版本",

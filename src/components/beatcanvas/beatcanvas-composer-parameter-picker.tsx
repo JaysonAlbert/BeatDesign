@@ -11,6 +11,7 @@ import type {
 } from '@/core/effects/workspace-models';
 import { cn } from '@/lib/utils';
 import type { CanvasGenerationCard } from '@/core/beatcanvas/canvas-types';
+import { getLocalH3Timing } from '@/core/generation-providers/local-h3-duration';
 import { ChevronDown } from 'lucide-react';
 import type { RefObject } from 'react';
 
@@ -247,6 +248,11 @@ export function BeatCanvasComposerParameterPicker({
                 <p className={composerSectionLabelClassName}>
                   {labels.durationLabel}
                 </p>
+                {activeDraftCard.modelId === 'local-h3' ? (
+                  <p className="max-w-[300px] text-[11px] leading-relaxed text-white/55">
+                    {labels.localH3DurationHint}
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-3 gap-1.5">
                   {selectedDurationOptions.map((item) => (
                     <button
@@ -262,7 +268,14 @@ export function BeatCanvasComposerParameterPicker({
                         activeDraftCard.duration === item
                       )}
                     >
-                      {item}
+                      <span className="flex flex-col items-center gap-0.5">
+                        <span>{item}</span>
+                        {activeDraftCard.modelId === 'local-h3' ? (
+                          <span className="text-[10px] font-normal opacity-60">
+                            {getLocalH3Timing(item)?.frames}f
+                          </span>
+                        ) : null}
+                      </span>
                     </button>
                   ))}
                 </div>

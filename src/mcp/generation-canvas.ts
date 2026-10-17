@@ -225,6 +225,10 @@ export function prepareCanvasGenerationSubmission({
   });
   const sourceCardPending: CanvasGenerationCard = {
     ...sourceCard,
+    // UI projections may expose the pinned output URL on a config card.
+    // Durable media belongs to the output; do not replay that URL as MCP input.
+    url: null,
+    assetId: null,
     status: 'pending',
     error: null,
   };
@@ -318,6 +322,8 @@ export function buildCanvasGenerationStatusOperations({
       type: 'upsert_card',
       card: {
         ...sourceCard,
+        url: null,
+        assetId: null,
         ...(succeeded ? { pinnedOutputId: outputCard.id } : {}),
         status: terminal ? 'idle' : status,
         error: null,
