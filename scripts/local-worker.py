@@ -31,7 +31,7 @@ def main():
     sys.path.insert(0, str(Path(args.runtime).resolve()))
     from lib.local_runtime import gpu_batch, write_json, probe_media, bootstrap
     from lib.local_services import ensure_comfy, ensure_drama, release_comfy, stop_owned_drama, _ready
-    from tools.video.local_h3_video import LocalH3Video
+    from local_h3_duration import execute_h3_with_duration, verify_h3_output
     from tools.audio.drama3_local_tts import Drama3LocalTTS
 
     def pending():
@@ -68,14 +68,14 @@ def main():
                         if output.exists():
                             probe_media(output)
                             provenance = json.loads(output.with_suffix('.provenance.json').read_text(encoding='utf8'))
+                            if lease == 'h3':
+                                provenance['timing'] = verify_h3_output(output, job['input'].get('wmDuration'))
                         else:
                             inputs = job['input']
                             if lease == 'h3':
                                 stop_owned_drama()
                                 ensure_comfy(notify)
-                                result = LocalH3Video().execute({'prompt': inputs['prompt'],
-                                    'reference_image_path': inputs['_localReferencePaths'][0],
-                                    'output_path': str(output), **({'seed': inputs['seed']} if 'seed' in inputs else {})})
+                                result = execute_h3_with_duration(inputs, output)
                             else:
                                 if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
                                     release_comfy()

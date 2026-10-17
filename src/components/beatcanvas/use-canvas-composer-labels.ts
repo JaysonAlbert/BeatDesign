@@ -55,6 +55,7 @@ export function useCanvasComposerLabels(): CanvasLabels {
       aspectRatioLabel: studioT('single.labels.aspectRatio'),
       outputQualityLabel: studioT('single.labels.outputQuality'),
       durationLabel: studioT('single.labels.duration'),
+      localH3DurationHint: studioT('single.labels.localH3DurationHint'),
       characterOrientationLabel: studioT(
         'canvas.composer.characterOrientation'
       ),

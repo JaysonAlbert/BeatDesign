@@ -257,8 +257,24 @@ test('local H3 reads a project-owned image without cloud upload and rejects cros
           ...generation,
           parameters: { wmDuration: '10s' },
         }),
-      /pinned H3/
+      /Unsupported local H3 duration/
     );
+    const { LOCAL_H3_DURATIONS, requireLocalH3Timing } = await import('./local-h3-duration');
+    const { getGenerationModelDescriptor } = await import('./model-catalog');
+    const descriptor = getGenerationModelDescriptor('local-h3')!;
+    const schema = descriptor.parameterSchema as { wmDuration: { values: string[]; fps: number; frameCounts: Record<string, number> } };
+    assert.deepEqual(schema.wmDuration.values, LOCAL_H3_DURATIONS);
+    assert.equal(schema.wmDuration.fps, 24);
+    for (const duration of LOCAL_H3_DURATIONS) {
+      assert.equal(schema.wmDuration.frameCounts[duration], requireLocalH3Timing(duration).frames);
+      const request = { ...generation, parameters: { wmDuration: duration } };
+      const intent = await createAssetFirstGenerationIntent(request);
+      await submitAssetFirstGeneration({ generation: request, generationIntentId: intent, origin: 'ui' });
+      const uiInput = inputs.at(-1);
+      await submitAssetFirstGeneration({ generation: request, origin: 'mcp' });
+      assert.deepEqual(inputs.at(-1), uiInput);
+      assert.equal((uiInput as Record<string, unknown>).wmDuration, duration);
+    }
   } finally {
     globalThis.fetch = originalFetch;
   }

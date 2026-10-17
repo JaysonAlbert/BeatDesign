@@ -35,6 +35,12 @@ An API with a different request or polling contract needs its own adapter. Forks
 
 A custom provider definition owns adapter construction, readiness checks, parameter validation, model bindings, upstream model names, and upload paths. Provider credentials must stay server-side. Switching providers does not change Canvas nodes, Editor clips, Asset IDs, or MCP requests; each submitted task also records its provider/model identity so polling does not silently follow a later default-provider change.
 
+This fork's opt-in workstation H3 provider accepts the native duration presets
+listed in `docs/LOCAL_MODELS.md`. Canvas, Studio, MCP discovery and server
+validation share the same catalog. The worker patches a verified job-local
+template, checks the decoded frame count/fps and preserves timing provenance;
+the configured external runtime and its original pinned workflow stay unchanged.
+
 ## Storage
 
 Storage is independently configurable from generation:

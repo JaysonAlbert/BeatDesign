@@ -69,6 +69,7 @@ type CanvasLabels = {
   aspectRatioLabel: string;
   outputQualityLabel: string;
   durationLabel: string;
+  localH3DurationHint?: string;
   characterOrientationLabel: string;
   backgroundSourceLabel: string;
   languageLabel: string;

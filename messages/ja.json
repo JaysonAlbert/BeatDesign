@@ -114,6 +114,7 @@
           "model": "モデル",
           "aspectRatio": "アスペクト比",
           "duration": "長さ",
+          "localH3DurationHint": "24 fps・17フレーム刻みのネイティブ長です。表示値はミリ秒単位に丸められます。長い動画ほど時間とメモリを使います。",
           "outputQuality": "出力品質",
           "mode": "モード",
           "variant": "バリエーション",

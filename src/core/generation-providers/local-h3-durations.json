@@ -1,0 +1,21 @@
+{
+  "fps": 24,
+  "defaultDuration": "6.583s",
+  "presets": [
+    { "duration": "5.167s", "frames": 124 },
+    { "duration": "5.875s", "frames": 141 },
+    { "duration": "6.583s", "frames": 158 },
+    { "duration": "7.292s", "frames": 175 },
+    { "duration": "8s", "frames": 192 },
+    { "duration": "8.708s", "frames": 209 },
+    { "duration": "9.417s", "frames": 226 },
+    { "duration": "10.125s", "frames": 243 },
+    { "duration": "10.833s", "frames": 260 },
+    { "duration": "11.542s", "frames": 277 },
+    { "duration": "12.25s", "frames": 294 },
+    { "duration": "12.958s", "frames": 311 },
+    { "duration": "13.667s", "frames": 328 },
+    { "duration": "14.375s", "frames": 345 },
+    { "duration": "15.083s", "frames": 362 }
+  ]
+}

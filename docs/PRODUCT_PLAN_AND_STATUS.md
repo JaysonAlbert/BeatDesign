@@ -101,6 +101,12 @@ Codex / Claude Code / Other Agent
 - MCP 使用现有 `canvas_get`、`canvas_search`、`canvas_apply` 读写，通过 `upsert_text` 局部修改，继续共用 Command Kernel、revision 和幂等机制。
 - 此项属于本地分支和独立预览，不代表上游版本或公开 Release 已包含。使用方法与验证边界见 [TEXT_NODES.md](./TEXT_NODES.md)。
 
+### 本地 Fork：H3 原生时长（2026-10-17）
+
+- Canvas 与 Studio 的视频参数面板支持本地 H3 的 15 档原生时长：124–362 帧、每档 17 帧、24 fps，约 5.167–15.083 秒；保留 `6.583s` 默认值。
+- MCP 模型发现返回相同枚举与帧数；配置节点 `duration` 和提交参数 `wmDuration` 共用校验，实际任务工作流和结果帧数都受到检查。
+- 已实测最短、最长及 MCP 141 帧任务；其余档位通过本机节点时序函数与服务测试核验，未逐档推理。范围、用法和验证边界见 [LOCAL_MODELS.md](./LOCAL_MODELS.md)。
+
 ### Project / Local-first
 
 - 项目创建、打开、重命名和本地 SQLite 持久化。

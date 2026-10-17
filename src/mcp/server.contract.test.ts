@@ -243,7 +243,7 @@ test('generation completion writes the result onto its existing output node', ()
     capturedAt: '2026-09-06T00:00:00.000Z',
   });
   const operations = buildCanvasGenerationStatusOperations({
-    sourceCard: reviewedGenerationCard,
+    sourceCard: { ...reviewedGenerationCard, url: '/api/app/projects/project/assets/asset-video', assetId: null },
     outputCard: plan.outputCard,
     generationId: 'generation-task',
     status: 'succeeded',
@@ -255,6 +255,7 @@ test('generation completion writes the result onto its existing output node', ()
   assert.equal(sourceOperation?.type, 'upsert_card');
   if (sourceOperation?.type === 'upsert_card') {
     assert.equal(sourceOperation.card.url, null);
+    assert.equal(sourceOperation.card.assetId, null);
     assert.equal(sourceOperation.card.pinnedOutputId, 'output:test');
   }
   assert.equal(outputOperation?.type, 'upsert_card');

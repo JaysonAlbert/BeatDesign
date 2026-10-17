@@ -114,6 +114,7 @@
           "model": "Model",
           "aspectRatio": "Aspect ratio",
           "duration": "Duration",
+          "localH3DurationHint": "Native duration at 24 fps; 17-frame steps. Values are rounded to milliseconds. Longer clips take more time and memory.",
           "outputQuality": "Output quality",
           "mode": "Mode",
           "variant": "Variant",

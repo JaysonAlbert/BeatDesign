@@ -2,6 +2,7 @@ import {
   getGenerationModelBindingByEffectId,
   resolveProviderUpstreamModel,
 } from '@/core/generation-providers/registry';
+import { LOCAL_H3_DEFAULT_DURATION, LOCAL_H3_DURATIONS } from '@/core/generation-providers/local-h3-duration';
 
 export type WorkspaceRegistryType = 'ai-video' | 'ai-image';
 
@@ -123,7 +124,7 @@ const SEEDANCE_ASPECT_RATIOS = [
 
 export const WORKSPACE_EFFECT_REGISTRY: readonly WorkspaceEffectRegistryEntry[] =
   [
-    { id: 'local-h3', name: 'Local H3 · Turbo 4 · 1024×576', workspaceType: 'ai-video', routeSlug: null, requiresImageInput: true, supportsSeed: true, defaultDuration: '6.583s', supportedDurations: ['6.583s'], defaultAspectRatio: '16:9', supportedAspectRatios: ['16:9'] },
+    { id: 'local-h3', name: 'Local H3 · Turbo 4 · 1024×576', workspaceType: 'ai-video', routeSlug: null, requiresImageInput: true, supportsSeed: true, defaultDuration: LOCAL_H3_DEFAULT_DURATION, supportedDurations: LOCAL_H3_DURATIONS, defaultAspectRatio: '16:9', supportedAspectRatios: ['16:9'] },
     {
       id: 'nano-banana-pro',
       name: 'Nano Banana Pro',
