@@ -48,7 +48,6 @@ async function GET({ request }: { request: Request }) {
             )
           )
           .orderBy(desc(userAsset.createdAt))
-          .limit(30)
       : db
           .select(imageFields)
           .from(userAsset)
@@ -77,7 +76,6 @@ async function GET({ request }: { request: Request }) {
             )
           )
           .orderBy(desc(userAsset.createdAt))
-          .limit(30)
       : db
           .select(videoFields)
           .from(userAsset)
@@ -106,7 +104,6 @@ async function GET({ request }: { request: Request }) {
             )
           )
           .orderBy(desc(userAsset.createdAt))
-          .limit(30)
       : db
           .select(videoFields)
           .from(userAsset)

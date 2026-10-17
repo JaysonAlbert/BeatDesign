@@ -333,15 +333,15 @@ export const validateUploadedVideoFile = (file: {
   return { ok: true };
 };
 
-export const validateUploadedAudioFile = (file: {
-  size: number;
-  type: string;
-}): UploadedAudioValidationSuccess | UploadedAudioValidationFailure => {
-  if (file.size > REFERENCE_AUDIO_MAX_FILE_SIZE) {
+export const validateUploadedAudioFile = (
+  file: { size: number; type: string },
+  { maxBytes = REFERENCE_AUDIO_MAX_FILE_SIZE }: { maxBytes?: number } = {}
+): UploadedAudioValidationSuccess | UploadedAudioValidationFailure => {
+  if (file.size > maxBytes) {
     return {
       ok: false,
       code: 'AUDIO_TOO_LARGE',
-      maxBytes: REFERENCE_AUDIO_MAX_FILE_SIZE,
+      maxBytes,
     };
   }
 
@@ -353,7 +353,7 @@ export const validateUploadedAudioFile = (file: {
     return {
       ok: false,
       code: 'AUDIO_TYPE_UNSUPPORTED',
-      maxBytes: REFERENCE_AUDIO_MAX_FILE_SIZE,
+      maxBytes,
       allowedTypes: ALLOWED_AUDIO_MIME_TYPES,
     };
   }

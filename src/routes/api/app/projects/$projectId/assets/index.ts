@@ -6,9 +6,9 @@ import {
   validateUploadedImageFile,
   validateUploadedAudioFile,
   validateUploadedVideoFile,
-  REFERENCE_AUDIO_MAX_FILE_SIZE,
   REFERENCE_VIDEO_MAX_FILE_SIZE,
 } from '@/core/effects/validation';
+import { LOCAL_PROJECT_AUDIO_MAX_FILE_SIZE } from '@/core/workspace-lib/constants';
 import {
   LOCAL_PROJECT_ASSET_BUCKET,
   LOCAL_PROJECT_ASSET_PROVIDER,
@@ -57,7 +57,7 @@ async function POST({
   try {
     const formData = await readRequestFormDataWithLimit(
       request,
-      Math.max(REFERENCE_VIDEO_MAX_FILE_SIZE, REFERENCE_AUDIO_MAX_FILE_SIZE) +
+      Math.max(REFERENCE_VIDEO_MAX_FILE_SIZE, LOCAL_PROJECT_AUDIO_MAX_FILE_SIZE) +
         MAX_MULTIPART_OVERHEAD_BYTES
     );
     const file = formData.get('file');
@@ -101,7 +101,7 @@ async function POST({
         ? validateUploadedImageFile(file)
         : mediaType === 'video'
           ? validateUploadedVideoFile(file)
-          : validateUploadedAudioFile(file);
+          : validateUploadedAudioFile(file, { maxBytes: LOCAL_PROJECT_AUDIO_MAX_FILE_SIZE });
     if (!validation.ok) {
       return Response.json(
         { error: 'Project asset type or size is not supported' },
