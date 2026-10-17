@@ -8,6 +8,8 @@ import {
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
+import { createServerFn } from '@tanstack/react-start';
+import { getGenerationRuntimeConfig, setBrowserGenerationRuntimeConfig } from '@/config/generation-runtime';
 import type { ReactNode } from 'react';
 
 import { Toaster } from '@/components/ui/sonner';
@@ -21,7 +23,10 @@ import '@fontsource-variable/geist-mono';
 import '@fontsource-variable/space-grotesk';
 import '@/styles/globals.css';
 
+const loadGenerationRuntime = createServerFn({ method: 'GET' }).handler(() => getGenerationRuntimeConfig());
+
 export const Route = createRootRoute({
+  loader: () => loadGenerationRuntime(),
   head: () => {
     const appUrl = appConfig.app_url || '';
     return {
@@ -46,6 +51,7 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  setBrowserGenerationRuntimeConfig(Route.useLoaderData());
   return (
     <QueryClientProvider client={getQueryClient()}>
       <ThemeProvider

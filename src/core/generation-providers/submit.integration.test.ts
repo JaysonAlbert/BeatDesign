@@ -52,6 +52,31 @@ after(() => {
   provider.createAdapter = originalAdapter;
 });
 
+test('local-only rejects cloud requests before adapters or upload intents are used', async () => {
+  const previous = process.env.BEATDESIGN_LOCAL_ONLY;
+  const project = await createProject({ name: 'Local-only rejection test' });
+  const generation = { version: 2, projectId: project.id, modelId: 'nano-banana-pro',
+    mode: 'image', prompt: 'Must remain local', references: [], parameters: {} };
+  const before = inputs.length;
+  try {
+    process.env.BEATDESIGN_LOCAL_ONLY = '1';
+    await assert.rejects(() => preflightAssetFirstGeneration(generation), /not available/);
+    await assert.rejects(() => createAssetFirstGenerationIntent(generation), /not available/);
+    const { submitEffectGeneration } = await import('@/core/effects/submit-generation');
+    const cloudBinding = provider.modelBindings.find(binding => binding.modelId === generation.modelId)!;
+    const legacy = await submitEffectGeneration({ projectId: project.id, effectId: cloudBinding.effectId,
+      input: { prompt: generation.prompt } });
+    assert.equal(legacy.status, 400);
+    assert.match(String(legacy.body.error), /BEATDESIGN_LOCAL_ONLY/);
+    const local = await preflightAssetFirstGeneration({ ...generation, modelId: 'local-flux3-klein', parameters: { aspect_ratio: '1:1' } });
+    assert.equal(local.generation.modelId, 'local-flux3-klein');
+    assert.equal(inputs.length, before);
+  } finally {
+    if (previous === undefined) delete process.env.BEATDESIGN_LOCAL_ONLY;
+    else process.env.BEATDESIGN_LOCAL_ONLY = previous;
+  }
+});
+
 test('UI and MCP generation requests compile identically through the shared service', async () => {
   const project = await createProject({ name: 'Parity test' });
   const generation = {

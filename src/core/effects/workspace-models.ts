@@ -160,18 +160,6 @@ const toWorkspaceModelOption = (
   };
 };
 
-const VIDEO_MODELS: WorkspaceModelOption[] =
-  getWorkspaceEffectRegistryEntriesByType('ai-video').flatMap((entry) => {
-    const model = toWorkspaceModelOption('ai-video', entry);
-    return model ? [model] : [];
-  });
-
-const IMAGE_MODELS: WorkspaceModelOption[] =
-  getWorkspaceEffectRegistryEntriesByType('ai-image').flatMap((entry) => {
-    const model = toWorkspaceModelOption('ai-image', entry);
-    return model ? [model] : [];
-  });
-
 const WORKSPACE_LAUNCH_TARGET: Record<WorkspaceType, string> = {
   'ai-video': 'video',
   'ai-image': 'image',
@@ -195,17 +183,13 @@ const WORKSPACE_MODEL_DEFAULTS_BY_ALIAS = Object.fromEntries(
   Partial<Pick<WorkspaceModelOption, 'defaultMode' | 'defaultVariant'>>
 >;
 
-const DEFAULT_WORKSPACE_MODEL_ID_BY_TYPE: Partial<
-  Record<WorkspaceType, string>
-> = {
-  'ai-image': 'nano-banana-pro',
-  'ai-video': getActiveGenerationProviderId() === 'workstation' ? 'local-h3' : 'seedance-2',
-};
-
 export const getWorkspaceModelsByType = (
   workspaceType: WorkspaceType
 ): WorkspaceModelOption[] => {
-  return workspaceType === 'ai-image' ? IMAGE_MODELS : VIDEO_MODELS;
+  return getWorkspaceEffectRegistryEntriesByType(workspaceType).flatMap((entry) => {
+    const model = toWorkspaceModelOption(workspaceType, entry);
+    return model ? [model] : [];
+  });
 };
 
 export const getWorkspaceAspectRatioOptions = ({
@@ -246,7 +230,9 @@ export const getDefaultSelectableWorkspaceModel = (
 ): WorkspaceModelOption | null =>
   getWorkspaceModelsByType(workspaceType).find(
     (model) =>
-      model.id === DEFAULT_WORKSPACE_MODEL_ID_BY_TYPE[workspaceType] &&
+      model.id === (workspaceType === 'ai-image'
+        ? 'nano-banana-pro'
+        : (getActiveGenerationProviderId() === 'workstation' ? 'local-h3' : 'seedance-2')) &&
       model.available !== false
   ) ??
   getWorkspaceModelsByType(workspaceType).find(

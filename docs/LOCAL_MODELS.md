@@ -25,7 +25,7 @@ this first integration.
   generation service and project storage as the UI. Audio submission is not
   idempotent: query history after an ambiguous response before submitting again.
 
-Cloud model names remain available and still require their own BeatAPI key.
+Cloud model names remain available in the default mixed mode and still require their own BeatAPI key.
 There is no cloud fallback from either local model. Local input paths are
 resolved server-side from project membership, never accepted from client params.
 
@@ -204,11 +204,10 @@ Create ignored `data/local-runtime.json` (or under `BEATDESIGN_DATA_DIR`):
 }
 ```
 
-Set these before building and starting, or put them in ignored `.env.local` for
-Vite. MCP needs the server environment variable as well:
+Select the workstation provider at startup. The browser receives the server's
+provider/mode on page load, so changing modes no longer requires rebuilding:
 
 ```text
-VITE_GENERATION_PROVIDER=workstation
 BEATDESIGN_GENERATION_PROVIDER=workstation
 ```
 
@@ -220,6 +219,47 @@ pnpm db:push
 pnpm build
 pnpm local:start
 ```
+
+### Local-only startup mode
+
+To hide cloud models from Canvas image/video nodes, Studio, API model lists and
+MCP model discovery, launch with either:
+
+```powershell
+pnpm local:start --local-only
+```
+
+or set a local environment variable:
+
+```powershell
+$env:BEATDESIGN_LOCAL_ONLY = '1'
+pnpm local:start
+```
+
+For a persistent workstation setting, add `BEATDESIGN_LOCAL_ONLY=1` to the
+Git-ignored `.env.local` in this checkout. `local:start` loads `.env.local` and
+then `.env`, preserving existing shell variables, and forwards the configuration
+to both web and MCP. The CLI flag takes precedence over the environment.
+`BEATDESIGN_LOCAL_ONLY` also works with `pnpm dev`, `pnpm start` and `pnpm mcp:http`
+when exported in their process environment; set it for both web and MCP.
+
+Local-only mode selects `workstation` automatically. Image generation defaults
+to the integrated local FLUX 3 model; video offers local H3 first-frame and
+Ref2VA, and local Drama 3 audio remains available. These are the fork's registered
+local integrations, not an automatic scan of every downloaded checkpoint.
+Existing local runtime/file validation still runs before generation.
+Cloud image/video/analysis requests are rejected before upload or submission,
+including saved cloud-model nodes and direct API/MCP requests. Existing project
+assets, node data and generation history are retained.
+
+Use `BEATDESIGN_LOCAL_ONLY=0` (or `pnpm local:start --local-only=false`) for the
+previous mixed workstation catalog. Values `true`/`false` are also accepted;
+other nonempty values fail explicitly. Stop and restart both web and MCP when
+changing the setting, then reload the browser. The launcher leaves occupied
+ports untouched and warns that existing services need restarting.
+
+`VITE_GENERATION_PROVIDER` remains a compatibility fallback when no runtime
+provider is supplied; a runtime setting takes precedence over that build flag.
 
 `local:start` starts hidden loopback web/MCP processes, logs under `data/`, and
 leaves already responding ports untouched. It does not start either GPU model
