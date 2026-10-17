@@ -2,7 +2,7 @@ import { createAdapter } from '@/core/adapters/adapter-factory';
 import { getEffectById } from '@/core/effects/effects';
 import { getWorkspaceEffectRegistryEntryByEffectId } from '@/core/effects/effect-registry';
 import { VIDEO_ANALYSIS_MODEL_ID } from '@/core/effects/video-analysis';
-import { getGenerationModelBindingByEffectId } from '@/core/generation-providers';
+import { getGenerationModelBindingByEffectId, isGenerationModelAllowed } from '@/core/generation-providers';
 import {
   resolveGenerationSubmitTransition,
   resolveProviderTaskId,
@@ -153,6 +153,9 @@ export async function submitEffectGeneration({
   }
   if (effect.type !== 1 && effect.type !== 2 && effect.type !== 3 && effect.type !== 4) {
     return { status: 400, body: { error: 'Unsupported task type.' } };
+  }
+  if (!isGenerationModelAllowed(binding.modelId)) {
+    return { status: 400, body: { error: 'Cloud models are disabled by BEATDESIGN_LOCAL_ONLY.' } };
   }
 
   const normalizedProjectId = projectId?.trim() || null;

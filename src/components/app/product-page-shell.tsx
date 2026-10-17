@@ -9,7 +9,7 @@ import { Link } from '@/core/i18n/navigation';
 import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 import { apiJsonPatch, apiJsonPost } from '@/lib/api-client';
 import { appConfig } from '@/config';
-import { ACTIVE_GENERATION_PROVIDER_ID } from '@/config/generation-providers';
+import { getGenerationRuntimeConfig } from '@/config/generation-runtime';
 import type { WorkspaceMode } from '@/config/workspace-modes';
 
 export function ProductPageShell({
@@ -181,7 +181,7 @@ export function ProductPageShell({
               ) : null}
               <LanguageSwitcher variant="workspace" />
               <WorkspaceApiConfigDialog
-                providerId={ACTIVE_GENERATION_PROVIDER_ID}
+                providerId={getGenerationRuntimeConfig().providerId}
               />
               <a
                 href="https://github.com/BeatAPI/BeatDesign"

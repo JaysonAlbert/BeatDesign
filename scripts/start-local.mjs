@@ -2,8 +2,26 @@ import { spawn } from 'node:child_process';
 import { openSync, closeSync, existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadEnvFile } from 'node:process';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+// Shell variables take precedence; .env.local is an optional workstation config.
+for (const name of ['.env.local', '.env']) {
+  const path = resolve(root, name);
+  if (existsSync(path)) loadEnvFile(path);
+}
+for (const arg of process.argv.slice(2)) {
+  if (arg === '--local-only' || arg === '--local-only=true' || arg === '--local-only=1') {
+    process.env.BEATDESIGN_LOCAL_ONLY = '1';
+  } else if (arg === '--local-only=false' || arg === '--local-only=0') {
+    process.env.BEATDESIGN_LOCAL_ONLY = '0';
+  } else {
+    throw new Error(`Unknown startup argument: ${arg}`);
+  }
+}
+if (process.env.BEATDESIGN_LOCAL_ONLY?.trim() && !['1', '0', 'true', 'false'].includes(process.env.BEATDESIGN_LOCAL_ONLY.trim().toLowerCase())) {
+  throw new Error('BEATDESIGN_LOCAL_ONLY must be 1, 0, true or false.');
+}
 const data = resolve(process.env.BEATDESIGN_DATA_DIR || resolve(root, 'data'));
 mkdirSync(data, { recursive: true });
 if (!existsSync(resolve(root, '.output/server/index.mjs')) || !existsSync(resolve(data, 'local-runtime.json'))) {
@@ -21,7 +39,7 @@ const services = [
 for (const service of services) {
   try {
     await fetch(service.url, { signal: AbortSignal.timeout(1500) });
-    console.log(`${service.name}: port already responding; left unchanged.`);
+    console.log(`${service.name}: port already responding; left unchanged. Stop and restart it to apply startup configuration.`);
     continue;
   } catch {}
   const out = openSync(resolve(data, `${service.name}.stdout.log`), 'a');

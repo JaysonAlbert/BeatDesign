@@ -1,7 +1,6 @@
-import {
-  ACTIVE_GENERATION_PROVIDER_ID,
-  registerProjectGenerationProviders,
-} from '@/config/generation-providers';
+import { registerProjectGenerationProviders } from '@/config/generation-providers';
+import { getGenerationRuntimeConfig } from '@/config/generation-runtime';
+import { LOCAL_MODELS } from './local-provider';
 import { MockAdapter } from '@/core/adapters/mock-adapter';
 
 import { beatApiGenerationProvider, BEATAPI_PROVIDER_ID } from './beatapi-provider';
@@ -62,10 +61,10 @@ export function getGenerationProvider(providerId: string) {
 
 export function getActiveGenerationProviderId() {
   ensureProvidersRegistered();
-  const requested = ACTIVE_GENERATION_PROVIDER_ID.trim() || BEATAPI_PROVIDER_ID;
+  const requested = getGenerationRuntimeConfig().providerId.trim() || BEATAPI_PROVIDER_ID;
   if (!providers.has(requested)) {
     throw new Error(
-      `Generation provider ${requested} is not registered. Register it and select it in src/config/generation-providers.ts.`
+      `Generation provider ${requested} is not registered. Register it in src/config/generation-providers.ts and select it with BEATDESIGN_GENERATION_PROVIDER.`
     );
   }
   return requested;
@@ -75,6 +74,12 @@ export function getActiveGenerationProvider() {
   const providerId = getActiveGenerationProviderId();
   const provider = getGenerationProvider(providerId);
   if (!provider) throw new Error(`Generation provider ${providerId} is not registered.`);
+  if (getGenerationRuntimeConfig().localOnly) {
+    return {
+      ...provider,
+      modelBindings: provider.modelBindings.filter(binding => isGenerationModelAllowed(binding.modelId)),
+    };
+  }
   return provider;
 }
 
@@ -85,8 +90,13 @@ export function getGenerationModelBinding({
   modelId: string;
   providerId?: string;
 }): GenerationProviderModelBinding | null {
+  if (!isGenerationModelAllowed(modelId)) return null;
   const provider = getGenerationProvider(providerId);
   return provider?.modelBindings.find((binding) => binding.modelId === modelId) ?? null;
+}
+
+export function isGenerationModelAllowed(modelId: string) {
+  return !getGenerationRuntimeConfig().localOnly || LOCAL_MODELS.includes(modelId);
 }
 
 export function getGenerationModelBindingByEffectId({
