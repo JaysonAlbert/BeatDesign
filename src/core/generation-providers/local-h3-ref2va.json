@@ -1,0 +1,9 @@
+{
+  "image": 9,
+  "video": 3,
+  "audio": 3,
+  "total": 12,
+  "videoMinSeconds": 2,
+  "videoMaxSeconds": 15,
+  "audioMaxSeconds": 15
+}

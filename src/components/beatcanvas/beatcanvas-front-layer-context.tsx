@@ -15,6 +15,7 @@ import type {
   CanvasCard,
   CanvasGenerationMode,
   CanvasCardMediaType,
+  CanvasReferenceMediaType,
   CanvasGenerationCard,
 } from '@/core/beatcanvas/canvas-types';
 import type { ReactNode } from 'react';
@@ -75,6 +76,7 @@ type CanvasLabels = {
   languageLabel: string;
   uploadImageLabel: string;
   uploadVideoLabel: string;
+  uploadAudioLabel?: string;
   fromCanvasLabel: string;
   currentReferencesLabel: string;
   noCanvasReferencesLabel: string;
@@ -205,7 +207,7 @@ export type BeatCanvasFrontLayerValue = {
   ) => void;
   onOpenReferencePicker: (
     draftId: string,
-    intent: CanvasGenerationCard['type']
+    intent: CanvasReferenceMediaType
   ) => void;
   onAttachCanvasReference: (draftId: string, sourceCardId: string) => void;
   onDetachCanvasReference: (draftId: string, sourceCardId: string) => void;

@@ -7,6 +7,7 @@ import { getWorkspaceMediaSchema } from '@/core/effects/workspace-media';
 import {
   VIDEO_ANALYSIS_MODEL_ID,
 } from '@/core/effects/video-analysis';
+import refLimits from './local-h3-ref2va.json';
 
 import {
   getActiveGenerationProvider,
@@ -81,7 +82,13 @@ export function listGenerationModelDescriptors(): GenerationModelDescriptor[] {
         available: true,
         parameterSchema: effect.inputSchema,
         defaultParameters: defaultsFromEntry(entry),
-        referenceSchema: getWorkspaceMediaSchema(entry.id),
+        referenceSchema: entry.id === 'local-h3-ref2va' ? {
+          ...getWorkspaceMediaSchema(entry.id), minTotal: 1, maxTotal: refLimits.total,
+          videoDurationSeconds: { min: refLimits.videoMinSeconds, max: refLimits.videoMaxSeconds },
+          audioDurationSeconds: { minExclusive: 0, max: refLimits.audioMaxSeconds },
+          labels: { image: '@ImageN → <Picture N>', video: '@VideoN → <Video N>', audio: '@AudioN → <Audio N>' },
+          videoSoundtrack: 'Visual reference only; attach audio separately to use a soundtrack.',
+        } : getWorkspaceMediaSchema(entry.id),
       },
     ];
   });

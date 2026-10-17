@@ -45,6 +45,14 @@ const cards = {
   camera: makeCard('camera', 'video', 'Camera move'),
 };
 
+test('audio references get independent aliases and preserve identity on reorder', () => {
+  const all = { ...cards, voice: makeCard('voice', 'audio', 'Voice'), effect: makeCard('effect', 'audio', 'Effect') };
+  const previousMentions = buildCanvasReferenceMentions({ cards: all, referenceCardIds: ['voice', 'person', 'effect'] });
+  assert.deepEqual(previousMentions.map(ref => ref.alias), ['@Audio1', '@Image1', '@Audio2']);
+  const nextMentions = buildCanvasReferenceMentions({ cards: all, referenceCardIds: ['effect', 'person', 'voice'] });
+  assert.equal(rewriteCanvasReferenceAliases({ prompt: '@Audio1 greets @Image1 with @Audio2', previousMentions, nextMentions }), '@Audio2 greets @Image1 with @Audio1');
+});
+
 test('numbers images and videos independently in API order', () => {
   assert.deepEqual(
     buildCanvasReferenceMentions({

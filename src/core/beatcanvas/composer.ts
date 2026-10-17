@@ -14,10 +14,12 @@ import type {
   CanvasCard,
   CanvasGenerationMode,
   CanvasCardMediaType,
+  CanvasReferenceMediaType,
   CanvasCardStatus,
   CanvasDraftCard,
   CanvasGenerationCard,
 } from './canvas-types';
+import refLimits from '@/core/generation-providers/local-h3-ref2va.json';
 import { isCanvasAnalysisCard } from './canvas-types';
 
 type DraftModelSettings = Pick<
@@ -44,7 +46,7 @@ export type CanvasShortcutContext = {
 };
 
 export type DraftReferencePickerOption = {
-  intent: CanvasCardMediaType;
+  intent: CanvasReferenceMediaType;
   remaining: number | null;
 };
 
@@ -196,6 +198,8 @@ const getReferenceCounts = ({
         counts.image += 1;
       } else if (referenceCard.type === 'video') {
         counts.video += 1;
+      } else if (referenceCard.type === 'audio') {
+        counts.audio += 1;
       }
 
       return counts;
@@ -203,6 +207,7 @@ const getReferenceCounts = ({
     {
       image: 0,
       video: 0,
+      audio: 0,
     }
   );
 
@@ -259,6 +264,7 @@ export const getDraftReferencePickerOptions = ({
   const videoLimit = Math.max(model.maxSourceVideos ?? 0, 0);
   const videoRemaining = Math.max(videoLimit - referenceCounts.video, 0);
   const options: DraftReferencePickerOption[] = [];
+  if (model.id === 'local-h3-ref2va' && referenceCounts.image + referenceCounts.video + referenceCounts.audio >= refLimits.total) return options;
 
   if (imageRemaining > 0) {
     options.push({
@@ -273,6 +279,9 @@ export const getDraftReferencePickerOptions = ({
       remaining: videoRemaining,
     });
   }
+
+  const audioRemaining = Math.max((model.maxReferenceAudios ?? 0) - referenceCounts.audio, 0);
+  if (audioRemaining > 0) options.push({ intent: 'audio', remaining: audioRemaining });
 
   return options;
 };
@@ -294,8 +303,9 @@ export const canUseCanvasCardAsGenerationReference = ({
   }
 
   if (sourceCard.type === 'image') {
-    return true;
+    return targetModel?.id !== 'local-flux3-klein';
   }
+  if (sourceCard.type === 'audio') return targetModel?.supportsReferenceAudio === true;
 
   return (
     sourceCard.type === 'video' &&
@@ -326,12 +336,12 @@ export const listCompatibleCanvasReferenceCards = ({
   );
 
   return Object.values(cards).filter(
-    (card): card is CanvasCard & { type: CanvasCardMediaType | 'text' } => {
+    (card): card is CanvasCard & { type: CanvasReferenceMediaType | 'text' } => {
       if (card?.kind === 'text')
         return !attachedIds.has(card.id) && Boolean(card.textContent.trim());
       if (
         !card ||
-        (card.type !== 'image' && card.type !== 'video') ||
+        (card.type !== 'image' && card.type !== 'video' && card.type !== 'audio') ||
         card.id === draftCard.id
       ) {
         return false;
@@ -344,6 +354,8 @@ export const listCompatibleCanvasReferenceCards = ({
       if (!card.url || attachedIds.has(card.id)) {
         return false;
       }
+      if (model?.id === 'local-h3-ref2va' && referenceCounts.image + referenceCounts.video + referenceCounts.audio >= refLimits.total) return false;
+      if (card.type === 'audio' && referenceCounts.audio >= (model?.maxReferenceAudios ?? 0)) return false;
 
       if (isAnalysis) {
         return card.type === 'video' && referenceCounts.video < 1;

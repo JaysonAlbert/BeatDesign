@@ -63,6 +63,7 @@ export function useCanvasComposerLabels(): CanvasLabels {
       languageLabel: studioT('canvas.composer.language'),
       uploadImageLabel: studioT('actions.uploadImage'),
       uploadVideoLabel: studioT('actions.uploadVideo'),
+      uploadAudioLabel: studioT('actions.uploadAudio'),
       fromCanvasLabel: studioT('canvas.composer.fromCanvas'),
       currentReferencesLabel: studioT('canvas.composer.currentReferences'),
       noCanvasReferencesLabel: studioT('canvas.composer.noCanvasReferences'),

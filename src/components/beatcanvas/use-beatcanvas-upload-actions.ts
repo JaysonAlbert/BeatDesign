@@ -2,12 +2,14 @@ import {
   detectUploadedMediaType,
   validateUploadedImageFile,
   validateUploadedVideoFile,
+  validateUploadedAudioFile,
 } from '@/core/effects/validation';
 import type { WorkspaceModelOption } from '@/core/effects/workspace-models';
 import type { ProjectSnapshotShapeFrame } from '@/core/projects/project-snapshot';
 import type {
   CanvasCard,
   CanvasCardMediaType,
+  CanvasReferenceMediaType,
   CanvasDraftCard,
 } from '@/core/beatcanvas/canvas-types';
 import { isCanvasDraftCard } from '@/core/beatcanvas/canvas-types';
@@ -41,7 +43,7 @@ type TranslateFn = (
   values?: Record<string, string | number>
 ) => string;
 
-export type UploadIntent = CanvasCardMediaType;
+export type UploadIntent = CanvasReferenceMediaType;
 export type UploadActivityIntent = UploadIntent | 'media';
 
 export type UploadMediaMetadata = {
@@ -199,7 +201,7 @@ export function useBeatCanvasUploadActions({
     targetCardId: string
   ) => void;
   createDraftCard: (input: {
-    taskType: UploadIntent;
+    taskType: CanvasCardMediaType;
     prompt: string;
     referenceCardIds: string[];
     placementSide?: PlacementSide;
@@ -241,6 +243,7 @@ export function useBeatCanvasUploadActions({
     useState<UploadActivityIntent | null>(null);
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null);
   const imageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioFileInputRef = useRef<HTMLInputElement | null>(null);
   const videoFileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadRequestRef = useRef<UploadRequest | null>(null);
   const statusMessageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -304,7 +307,7 @@ export function useBeatCanvasUploadActions({
       const input =
         request.intent === 'image'
           ? imageFileInputRef.current
-          : videoFileInputRef.current;
+          : request.intent === 'audio' ? audioFileInputRef.current : videoFileInputRef.current;
       if (!input) {
         return;
       }
@@ -316,7 +319,7 @@ export function useBeatCanvasUploadActions({
         studioT(
           request.intent === 'image'
             ? 'messages.openingImagePicker'
-            : 'messages.openingVideoPicker'
+            : request.intent === 'audio' ? 'messages.openingAudioPicker' : 'messages.openingVideoPicker'
         )
       );
 
@@ -361,6 +364,12 @@ export function useBeatCanvasUploadActions({
         img.src = objectUrl;
       });
     }
+    if (intent === 'audio') return new Promise((resolve) => {
+      const audio = document.createElement('audio');
+      audio.onloadedmetadata = () => resolve({durationMs: Math.round(audio.duration * 1000)});
+      audio.onerror = () => resolve({});
+      audio.preload = 'metadata'; audio.src = objectUrl;
+    });
     return new Promise((resolve) => {
       const video = document.createElement('video');
       video.onloadedmetadata = () => {
@@ -394,8 +403,7 @@ export function useBeatCanvasUploadActions({
             : request.intent;
         return {
           file,
-          // Audio enters through the dedicated editor track flow for now.
-          intent: detectedType === 'audio' ? null : detectedType,
+          intent: detectedType,
         };
       });
 
@@ -413,14 +421,14 @@ export function useBeatCanvasUploadActions({
         const validation =
           upload.intent === 'image'
             ? validateUploadedImageFile(upload.file)
-            : validateUploadedVideoFile(upload.file);
+            : upload.intent === 'audio' ? validateUploadedAudioFile(upload.file) : validateUploadedVideoFile(upload.file);
 
         if (!validation.ok) {
           const maxSizeMb = Math.floor(validation.maxBytes / (1024 * 1024));
           const message =
             upload.intent === 'image'
               ? studioT('messages.uploadImageInvalid', { maxSizeMb })
-              : studioT('messages.uploadVideoInvalid', { maxSizeMb });
+              : upload.intent === 'audio' ? studioT('messages.uploadAudioInvalid', { maxSizeMb }) : studioT('messages.uploadVideoInvalid', { maxSizeMb });
           setErrorMessage(message);
           setUploadIntent(null);
           toast.error(message);
@@ -707,5 +715,6 @@ export function useBeatCanvasUploadActions({
     uploadFiles,
     uploadIntent,
     videoFileInputRef,
+    audioFileInputRef,
   };
 }

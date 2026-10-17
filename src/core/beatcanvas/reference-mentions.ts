@@ -1,8 +1,8 @@
-import type { CanvasCard, CanvasCardMediaType } from './canvas-types';
+import type { CanvasCard, CanvasReferenceMediaType } from './canvas-types';
 
 export type CanvasReferenceMention = {
   cardId: string;
-  type: CanvasCardMediaType | 'text';
+  type: CanvasReferenceMediaType | 'text';
   index: number;
   alias: string;
   name: string;
@@ -14,7 +14,7 @@ export type ActiveCanvasReferenceMention = {
   query: string;
 };
 
-const REFERENCE_MENTION_PATTERN = /@(?:Image|Video|Text)\d+\b/g;
+const REFERENCE_MENTION_PATTERN = /@(?:Image|Video|Audio|Text)\d+\b/g;
 
 export const CANONICAL_FIRST_FRAME_PROMPT_DIRECTIVE =
   'Use @Image1 as the first frame.';
@@ -31,10 +31,10 @@ export const ensureCanvasFirstFramePromptDirective = (prompt: string) => {
 };
 
 export const getCanvasReferenceAlias = (
-  type: CanvasCardMediaType | 'text',
+  type: CanvasReferenceMediaType | 'text',
   index: number
 ) =>
-  `@${type === 'text' ? 'Text' : type === 'video' ? 'Video' : 'Image'}${index}`;
+  `@${type === 'text' ? 'Text' : type === 'video' ? 'Video' : type === 'audio' ? 'Audio' : 'Image'}${index}`;
 
 export const buildCanvasReferenceMentions = ({
   referenceCardIds,
@@ -43,17 +43,18 @@ export const buildCanvasReferenceMentions = ({
   referenceCardIds: string[];
   cards: Record<string, CanvasCard | undefined>;
 }): CanvasReferenceMention[] => {
-  const counts: Record<CanvasCardMediaType | 'text', number> = {
+  const counts: Record<CanvasReferenceMediaType | 'text', number> = {
     text: 0,
     image: 0,
     video: 0,
+    audio: 0,
   };
 
   return referenceCardIds.flatMap((cardId) => {
     const card = cards[cardId];
     if (
       !card ||
-      (card.type !== 'image' && card.type !== 'video' && card.type !== 'text')
+      (card.type !== 'image' && card.type !== 'video' && card.type !== 'audio' && card.type !== 'text')
     )
       return [];
 
@@ -176,7 +177,7 @@ export const rewriteCanvasReferenceAliases = ({
       .split(placeholder)
       .join(
         next?.alias ??
-          `@Removed${previous?.type === 'text' ? 'Text' : previous?.type === 'video' ? 'Video' : 'Image'}`
+          `@Removed${previous?.type === 'text' ? 'Text' : previous?.type === 'video' ? 'Video' : previous?.type === 'audio' ? 'Audio' : 'Image'}`
       );
   }
 

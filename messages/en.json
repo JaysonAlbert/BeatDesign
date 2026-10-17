@@ -135,7 +135,8 @@
         "uploadImage": "Upload image",
         "uploadVideo": "Upload video",
         "combine": "Combine cards",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "uploadAudio": "Upload audio"
       },
       "selection": {
         "readyToCombine": "Two image cards are selected. You can fuse Card A and Card B into a new result draft.",
@@ -267,7 +268,9 @@
         "videoMetadataLoadFailed": "Unable to load video metadata.",
         "analysisVideoRequired": "Attach exactly one MP4 or MOV video to analyze.",
         "analysisCompletedWithoutText": "Analysis completed without text output.",
-        "addTextNoteSuccess": "Text note added to the canvas."
+        "addTextNoteSuccess": "Text note added to the canvas.",
+        "openingAudioPicker": "Opening audio picker…",
+        "uploadAudioInvalid": "Audio must use a supported format and be no larger than {maxSizeMb} MB."
       },
       "dock": {
         "select": "Select",

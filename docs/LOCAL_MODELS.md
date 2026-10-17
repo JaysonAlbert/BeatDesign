@@ -1,6 +1,6 @@
 # Local H3 and Drama 3 preview
 
-This fork adds two local models to BeatDesign v0.2.4. It preserves the upstream
+This fork adds local models to BeatDesign v0.2.4. It preserves the upstream
 Studio, Canvas, Editor, Assets and BeatAPI catalog. Character cards, storyboard
 management, approvals, keyframe generation and production planning are outside
 this first integration.
@@ -10,7 +10,8 @@ this first integration.
 - **Canvas / Studio:** select `Local H3 · Turbo 4 · 1024×576`, supply one local
   image and a prompt. Open the composer's **Parameters** control to choose a
   native duration from 5.167 to 15.083 seconds. The default remains 158 frames at
-  24 fps (6.583 seconds). Other H3 modes/resolutions are not exposed.
+  24 fps (6.583 seconds). For mixed references select the separate Ref2VA model
+  described below; this first-frame route retains its existing fixed resolution.
 - **Assets:** the `Local voice · Drama 3 INT4` form accepts a short narration,
   at most 200 characters. The WAV becomes a normal project Asset. Studio history
   retains its text, status and audio preview. Fixed voices, cloning and long-form
@@ -28,10 +29,121 @@ Cloud model names remain available and still require their own BeatAPI key.
 There is no cloud fallback from either local model. Local input paths are
 resolved server-side from project membership, never accepted from client params.
 
-## Reuse the existing runtime
+## Local Ref2VA and FLUX 3 Image Klein (2026-10-17)
 
-This first version deliberately reuses the already tested OpenMontage local
-adapter checkout. It does **not** require an OpenMontage web server or main Agent.
+These are workstation-specific fork integrations, using the same Project,
+Command Kernel, provider service, worker queue and project-owned output store.
+Existing model IDs/effect IDs remain stable. No cloud fallback is used.
+
+### Ref2VA — `local-h3-ref2va`
+
+Select **Local H3 · Ref2VA · Turbo 4 · 1024×576** in the Canvas or Studio video
+model picker. It uses the existing Ref2VA INT8 checkpoint, the matching Ref2V
+Turbo 4 LoRA, video/audio VAEs and text encoder. It accepts 1–12 references in
+total: up to 9 images, 3 videos and 3 standalone audio files. Audio-only references
+are supported. Video clips must be 2–15 seconds and audio clips >0–15 seconds;
+project imports may be longer, but generation rejects oversized reference clips.
+Normal reference file-type/size limits also apply.
+
+Canvas supports audio uploads and attachment of existing audio cards, with
+independent `@ImageN`, `@VideoN`, `@AudioN` aliases. Reordering keeps aliases bound
+to the same cards. The worker converts these aliases into native `<Picture N>`,
+`<Video N>`, `<Audio N>` tags, maintaining order within each media category.
+Video references supply visuals; attach soundtrack audio separately if wanted,
+so embedded tracks never silently consume standalone audio ordinals.
+
+The original source files are retained. Job-local video copies are resampled to
+24 fps, scaled down to the local reference budget and stripped of embedded audio.
+The native node rounds/truncates video conditioning to its temporal grid and
+output length. Source/prepared hashes, effective conditioning frame counts,
+asset IDs, labels and reference order are saved with the take.
+Output remains 1024×576 / 24 fps with generated native audio. The same 15 H3
+native duration presets apply; no arbitrary decimal duration is accepted.
+
+MCP discovers all three reference sections and the aggregate/duration limits
+through `bdesign_generation_model_get({"modelId":"local-h3-ref2va"})`.
+Import each reference with `bdesign_asset_import`, attach asset cards to the
+reviewed generation card using `bdesign_canvas_apply`, then submit the same
+prompt/parameters/reference assets with `bdesign_generation_submit`.
+When explicitly passing references to MCP, use `reference` for images, `source`
+for videos and `audio_track` for audio, matching the reviewed Canvas card.
+Omitting the optional references argument lets MCP derive these from that card.
+Caller-supplied local paths are discarded; only server-resolved project assets
+reach the worker. Duplicate asset IDs do not create extra reference ordinals.
+
+### FLUX 3 — `local-flux3-klein`
+
+Select **Local FLUX 3 Image Klein · BF16 · 16 steps** in the image model picker.
+This integration exposes text-to-image with the installed distilled BF16
+transformer, BF16 Qwen3-VL 4B encoder, INT8 Qwen3.5 9B prompt upsampler and
+FLUX.2 VAE. The upsampler runs before image generation (official workflow prompt,
+greedy generation, up to 1024 tokens); sampling uses 16 steps / Euler / simple /
+CFG 1. Image editing/reference inputs and bounding-box UI are outside this entry.
+
+Accepted ratios and exact dimensions share `local-flux3.json`: 1:1 = 1024×1024,
+16:9 = 1344×768, 9:16 = 768×1344, 4:3 = 1152×864, 3:4 = 864×1152.
+MCP uses `modelId: "local-flux3-klein"`, `mode: "image"`, `references: []` and
+`parameters: {"aspect_ratio":"1:1"}` on a matching Canvas generation card.
+The PNG is persisted as a normal project Asset and appears in Canvas/Studio/history.
+
+FLUX requires ComfyUI >=0.41 with native `flux3` CLIP/model support. This machine
+retains H3 on 0.40 / port 8000 and uses an isolated official v0.41.0 code checkout
+(commit `98cc0bf84`) / port 8002 for FLUX. The Python environment and existing
+model directory are reused without package changes or another weight download.
+The isolated runtime disables custom nodes. Its process is started hidden on
+demand; GPU batches check queues and unload the other Comfy instance before
+switching. Neither external jobs nor the WSL distribution are terminated.
+
+Add this optional block to ignored `data/local-runtime.json` (paths are examples;
+configure your actual installation):
+
+```json
+{
+  "flux3": {
+    "url": "http://127.0.0.1:8002",
+    "python": "D:/path/to/comfy/.venv/Scripts/python.exe",
+    "root": "D:/path/to/ComfyUI-0.41",
+    "dataDir": "D:/path/to/isolated-flux-data",
+    "modelDir": "D:/path/to/shared/models"
+  }
+}
+```
+
+Only loopback URLs are accepted. Required directories must exist. A missing or
+incompatible runtime fails explicitly. Use a dedicated code/data checkout and
+its documented requirements; do not update the H3 installation as a side effect.
+The upstream model filename changed after our pinned download; the workflow uses
+the verified installed underscore filenames instead of downloading renamed copies.
+
+### Recovery and validation
+
+Both new runners save input/template/workflow fingerprints, generated seed,
+reference provenance and the Comfy prompt ID. A recovered take must match its
+inputs, server and saved graph. An ambiguous submit checks the saved client ID
+in queue/history and stops if it cannot identify exactly one original prompt;
+it never automatically submits a second take. Existing outputs are verified
+against provenance; a crash after download can finish the original receipt.
+
+Technical QA uses an independent project and synthetic references, preserving
+film `production.pause` files and all film takes. Source tests cover UI/MCP parity,
+project isolation, forged paths, deduplication, reference limits, audio ordinals,
+workflow wiring, uncertain-submit recovery and FLUX ratio/upsampler settings.
+Live QA covers mixed-media Ref2VA and FLUX inference plus project ingestion;
+maximum-reference batches, every duration/ratio and artistic quality are separate
+validation boundaries. See `LOCAL_MODELS_VALIDATION.md` for dated receipts.
+
+Workflow sources: [ComfyUI native H3 node](https://github.com/Comfy-Org/ComfyUI/blob/v0.40.0/comfy_extras/nodes_minimax_h3.py),
+[official FLUX model card](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy),
+[official distilled T2I template](https://github.com/Comfy-Org/workflow_templates/blob/main/templates/image_flux3_klein_distilled_t2i.json).
+The FLUX prompt-upsample instruction is retained from that template as workflow
+data. Weights remain subject to their existing model licenses.
+
+## Reuse the configured standalone runtime
+
+The configured runtime provides the existing local adapters and service helpers.
+This machine now uses the standalone `comfy-videos/tools/local_runtime` copy.
+Legacy `openmontageRoot` is a compatibility configuration key, not a dependency
+on the retired application.
 Codex remains the Agent; BeatDesign owns its projects/history/assets. Only the
 model execution helpers and GPU lease are shared. Do not archive that runtime
 checkout while BeatDesign uses it.
@@ -94,7 +206,7 @@ the loaded SQLite native library prevents replacing `.output`.
 - One worker owns the queue. It drains waiting jobs of the current model before
   switching to another model. Submit a batch's H3 tasks before its TTS tasks.
   It does not infer future story stages or wait for tasks not yet submitted.
-- It uses the existing cross-process GPU lease, including OpenMontage's lease,
+- It uses the existing cross-process GPU lease, including other consumers of the configured standalone runtime,
   and checks ComfyUI's queue before switching. External ComfyUI work is never
   cancelled. The lease cannot prevent manual submissions from other software.
 - H3 model memory is released before Drama 3 loads. The integration-owned Drama

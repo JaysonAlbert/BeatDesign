@@ -30,6 +30,9 @@ import { resolveCanvasTextReferences } from '@/core/beatcanvas/text-nodes';
 import {
   getGenerationPromptConstraints,
   validateGenerationPrompt,
+  validateUploadedImageFile,
+  validateUploadedVideoFile,
+  validateUploadedAudioFile,
 } from '@/core/effects/validation';
 
 import {
@@ -181,6 +184,13 @@ async function prepareGenerationReferences({
 
 export async function preflightAssetFirstGeneration(source: unknown) {
   let generation = normalizeAssetFirstGenerationRequest(source);
+  if (generation.modelId === 'local-h3-ref2va') {
+    const seen = new Set<string>();
+    generation = { ...generation, references: generation.references.filter(ref => {
+      if (seen.has(ref.assetId)) return false;
+      seen.add(ref.assetId); return true;
+    }) };
+  }
   const originalPrompt = generation.prompt;
   if (generation.textReferences?.length) {
     const state = await loadProjectWithLatestSnapshot({
@@ -260,6 +270,16 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   for (const [assetId, asset] of uniqueAssets) {
     if (!asset)
       throw new Error(`Asset ${assetId} does not belong to this project.`);
+    if (generation.modelId === 'local-h3-ref2va') {
+      if (asset.storageProvider !== 'local') throw new Error('Import Ref2VA references into local project storage first.');
+      const file = await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
+      const candidate = { name: asset.filename ?? '', type: asset.mimeType ?? '', size: file.size };
+      const valid = asset.type === 'image' ? validateUploadedImageFile(candidate)
+        : asset.type === 'video' ? validateUploadedVideoFile(candidate) : validateUploadedAudioFile(candidate);
+      if (!valid.ok) throw new Error('Ref2VA reference type or size is not supported.');
+      if (generation.references.some(ref => ref.assetId === assetId && ref.role === 'audio_track') && asset.type !== 'audio')
+        throw new Error('An audio_track reference must be an audio asset.');
+    }
     if (needsManagedGenerationReferenceUpload(asset)) {
       if (asset.storageProvider !== 'local')
         throw new Error(`Asset ${assetId} is unavailable.`);
@@ -343,18 +363,23 @@ export async function submitAssetFirstGeneration({
     });
     if (LOCAL_MODELS.includes(generation.modelId)) {
       const paths = [];
+      const references = [];
+      const seenAssets = new Set<string>();
       for (const ref of generation.references) {
+        if (seenAssets.has(ref.assetId)) continue;
+        seenAssets.add(ref.assetId);
         const asset = await getProjectAssetById({
           projectId: generation.projectId,
           assetId: ref.assetId,
         });
         if (!asset || asset.storageProvider !== 'local')
           throw new Error('Local reference unavailable');
-        paths.push(
-          resolveLocalProjectAssetPath({ objectKey: asset.objectKey })
-        );
+        const path = resolveLocalProjectAssetPath({ objectKey: asset.objectKey });
+        paths.push(path);
+        references.push({ assetId: asset.id, type: asset.type, path });
       }
       Object.assign(input, { _localReferencePaths: paths });
+      if (generation.modelId === 'local-h3-ref2va') Object.assign(input, { _localReferences: references });
     }
     validateGenerationModelInput({ modelId: generation.modelId, input });
     const result = await submitEffectGeneration({

@@ -77,6 +77,20 @@ test('Composer stops offering @Image references at the model limit', () => {
   );
 });
 
+test('Ref2VA offers audio references and stops all media choices at the aggregate limit', () => {
+  const model = makeModel({ id: 'local-h3-ref2va', maxReferenceImages: 9, maxSourceVideos: 3, maxReferenceAudios: 3, supportsReferenceAudio: true, supportsSourceVideo: true });
+  const audio = makeCard({ id: 'voice', type: 'audio', url: '/voice.wav' });
+  const draft = { ...makeDraft(), type: 'video' as const };
+  assert.equal(canUseCanvasCardAsGenerationReference({ sourceCard: audio, targetType: 'video', targetModel: model }), true);
+  assert.deepEqual(getDraftReferencePickerOptions({ draftCard: draft, cards: {}, model }).map(option => option.intent), ['image', 'video', 'audio']);
+  assert.equal(listCompatibleCanvasReferenceCards({ draftCard: draft, cards: { voice: audio }, model })[0]?.id, 'voice');
+  const cards = Object.fromEntries(Array.from({length: 12}, (_, i) => [`ref-${i}`, makeCard({id: `ref-${i}`, type: i < 9 ? 'image' : 'video'})]));
+  const full = {...draft, referenceCardIds: Object.keys(cards)};
+  assert.deepEqual(getDraftReferencePickerOptions({draftCard: full, cards, model}), []);
+  assert.deepEqual(listCompatibleCanvasReferenceCards({draftCard: full, cards: {...cards, voice: audio}, model}), []);
+  assert.equal(canUseCanvasCardAsGenerationReference({sourceCard: makeCard(), targetType: 'image', targetModel: makeModel({id: 'local-flux3-klein'})}), false);
+});
+
 test('Motion Control stops offering references after one image and one video', () => {
   const draft = {
     ...makeDraft(),

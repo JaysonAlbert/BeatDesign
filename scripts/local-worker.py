@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobs', required=True)
     parser.add_argument('--runtime', required=True)
+    parser.add_argument('--settings')
     args = parser.parse_args()
     root = Path(args.jobs).resolve()
     root.mkdir(parents=True, exist_ok=True)
@@ -32,7 +33,11 @@ def main():
     from lib.local_runtime import gpu_batch, write_json, probe_media, bootstrap
     from lib.local_services import ensure_comfy, ensure_drama, release_comfy, stop_owned_drama, _ready
     from local_h3_duration import execute_h3_with_duration, verify_h3_output
+    from local_ref2va import execute_ref2va
+    from local_flux3 import ensure_flux3, execute_flux3, release_flux3
     from tools.audio.drama3_local_tts import Drama3LocalTTS
+    settings = json.loads(Path(args.settings).read_text(encoding='utf8')) if args.settings else {}
+    flux_config = settings.get('flux3')
 
     def pending():
         jobs = []
@@ -50,9 +55,10 @@ def main():
             write_json(path, job)
     while pending():
         model = pending()[0][1]['model']
-        lease = 'h3' if model == 'local-h3' else 'drama3'
+        lease = 'h3' if model in ('local-h3', 'local-h3-ref2va') else 'flux3' if model == 'local-flux3-klein' else 'drama3'
         try:
             with gpu_batch(lease):
+                flux_url = None
                 while True:
                     group = [item for item in pending() if item[1]['model'] == model]
                     if not group:
@@ -64,19 +70,39 @@ def main():
                     try:
                         job.update(status='processing', startedAt=job.get('startedAt', time.time()))
                         write_json(path, job)
-                        output = path.parent / ('output.mp4' if lease == 'h3' else 'output.wav')
-                        if output.exists():
+                        output = path.parent / ('output.mp4' if lease == 'h3' else 'output.png' if lease == 'flux3' else 'output.wav')
+                        if lease == 'flux3':
+                            if flux_url is None:
+                                stop_owned_drama()
+                                release_flux3(flux_config)
+                                if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
+                                    release_comfy()
+                                flux_url = ensure_flux3(flux_config, notify)
+                            result = execute_flux3(job['input'], output, flux_url)
+                            provenance = result.data
+                        elif model == 'local-h3-ref2va':
+                            release_flux3(flux_config)
+                            stop_owned_drama()
+                            ensure_comfy(notify)
+                            result = execute_ref2va(job['input'], output)
+                            if not result.success:
+                                raise RuntimeError(result.error)
+                            provenance = result.data
+                        elif output.exists():
                             probe_media(output)
                             provenance = json.loads(output.with_suffix('.provenance.json').read_text(encoding='utf8'))
                             if lease == 'h3':
+                                release_flux3(flux_config)
                                 provenance['timing'] = verify_h3_output(output, job['input'].get('wmDuration'))
                         else:
                             inputs = job['input']
                             if lease == 'h3':
+                                release_flux3(flux_config)
                                 stop_owned_drama()
                                 ensure_comfy(notify)
                                 result = execute_h3_with_duration(inputs, output)
                             else:
+                                release_flux3(flux_config)
                                 if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
                                     release_comfy()
                                 ensure_drama(notify)
@@ -90,6 +116,8 @@ def main():
                     write_json(path, job)
                 if lease == 'h3':
                     release_comfy()
+                elif lease == 'flux3':
+                    release_flux3(flux_config)
                 else:
                     stop_owned_drama()
         except RuntimeError as exc:

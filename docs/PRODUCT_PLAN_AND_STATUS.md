@@ -107,6 +107,14 @@ Codex / Claude Code / Other Agent
 - MCP 使用现有 `canvas_get`、`canvas_search`、`canvas_apply` 读写，通过 `upsert_text` 局部修改，继续共用 Command Kernel、revision 和幂等机制。
 - 此项属于本地分支和独立预览，不代表上游版本或公开 Release 已包含。使用方法与验证边界见 [TEXT_NODES.md](./TEXT_NODES.md)。
 
+### 本地 Fork：Ref2VA 和 FLUX 3（2026-10-17）
+
+- 视频模型新增本地 Ref2VA，支持图片、视频和独立音频参考，Canvas 补齐音频上传、引用和 `@AudioN` 编号；UI/MCP 共用项目素材解析、参数校验、队列和结果入库。
+- 图片模型新增本地 FLUX 3 Image Klein 文生图，复用既有权重，使用提示词扩写和 16 步蒸馏采样；五种画幅由共享尺寸表定义。
+- FLUX 3 使用独立 ComfyUI 0.41 实例，与 H3 0.40 共用 GPU 锁并在模型切换前释放显存；保留原 H3 实例和工作流。
+- 逐任务保存素材类型、顺序、哈希、工作流及输入指纹、提交 ID；不确定提交先查原任务，拒绝自动重复生成。
+- 验证与使用边界见 [LOCAL_MODELS.md](./LOCAL_MODELS.md) 和 [LOCAL_MODELS_VALIDATION.md](./LOCAL_MODELS_VALIDATION.md)。属于自有 Fork 的本机集成，不代表上游已支持。
+
 ### 本地 Fork：H3 原生时长（2026-10-17）
 
 - Canvas 与 Studio 的视频参数面板支持本地 H3 的 15 档原生时长：124–362 帧、每档 17 帧、24 fps，约 5.167–15.083 秒；保留 `6.583s` 默认值。
