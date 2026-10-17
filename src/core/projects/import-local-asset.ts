@@ -9,6 +9,7 @@ import {
   validateUploadedVideoFile,
 } from '@/core/effects/validation';
 import { isSupportedRasterImage } from '@/lib/image-upload-validation';
+import { LOCAL_PROJECT_AUDIO_MAX_FILE_SIZE } from '@/core/workspace-lib/constants';
 import { getProject } from '@/core/projects/projects';
 import {
   LOCAL_PROJECT_ASSET_BUCKET,
@@ -21,6 +22,10 @@ import {
   linkProjectAsset,
   recordUserAsset,
 } from '@/core/workspace-lib/assets/user-assets';
+
+// Project stems are longer than model reference clips. Provider reference limits
+// remain enforced independently at generation/upload preflight.
+export { LOCAL_PROJECT_AUDIO_MAX_FILE_SIZE } from '@/core/workspace-lib/constants';
 
 export function validateLocalAssetImportCandidate({
   filename,
@@ -41,7 +46,7 @@ export function validateLocalAssetImportCandidate({
       ? validateUploadedImageFile(file)
       : mediaType === 'video'
         ? validateUploadedVideoFile(file)
-        : validateUploadedAudioFile(file);
+        : validateUploadedAudioFile(file, { maxBytes: LOCAL_PROJECT_AUDIO_MAX_FILE_SIZE });
   if (!validation.ok) {
     throw new Error('Project asset type or size is not supported.');
   }
