@@ -26,7 +26,8 @@ const hasHydratableProjectSnapshot = (
   snapshot: ProjectSnapshotDocument | null
 ): snapshot is ProjectSnapshotDocument =>
   Boolean(
-    snapshot && (snapshot.cards.length > 0 || snapshot.workflows?.activeTemplate)
+    snapshot &&
+      (snapshot.cards.length > 0 || snapshot.workflows?.activeTemplate)
   );
 
 const valuesEqual = (left: unknown, right: unknown) =>
@@ -49,7 +50,8 @@ const mergeThreeWayValue = (
     return local ?? remote;
   }
 
-  if (!strict &&
+  if (
+    !strict &&
     key === 'referenceCardIds' &&
     Array.isArray(local) &&
     Array.isArray(remote)
@@ -207,9 +209,7 @@ export function useProjectSnapshotLifecycle({
         const targetSerializedSnapshot =
           pendingProjectSnapshotRef.current ?? serializedSnapshot;
         if (targetSerializedSnapshot === lastSavedProjectSnapshotRef.current) {
-          if (
-            pendingProjectSnapshotRef.current === targetSerializedSnapshot
-          ) {
+          if (pendingProjectSnapshotRef.current === targetSerializedSnapshot) {
             pendingProjectSnapshotRef.current = null;
           }
           return;
@@ -237,14 +237,17 @@ export function useProjectSnapshotLifecycle({
         };
 
         let recoveredFromConflict = false;
-        let result = await sendSaveRequest(lastSavedProjectSnapshotVersionRef.current);
+        let result = await sendSaveRequest(
+          lastSavedProjectSnapshotVersionRef.current
+        );
         if (result && !result.ok && result.code === 'REVISION_CONFLICT') {
           const latestResponse = await fetch(
             `/api/app/projects/${encodeURIComponent(projectId)}/snapshot`
           );
           if (!latestResponse.ok) throw new Error(result.message);
-          const latest = await latestResponse.json() as {
-            version: number; document: ProjectSnapshotDocument;
+          const latest = (await latestResponse.json()) as {
+            version: number;
+            document: ProjectSnapshotDocument;
           };
           snapshotToSave = mergeProjectSnapshotsAfterConflict({
             base: baseSnapshotDocument,
@@ -267,10 +270,17 @@ export function useProjectSnapshotLifecycle({
         const savedSerializedSnapshot = JSON.stringify(snapshotToSave);
         lastSavedProjectSnapshotRef.current = savedSerializedSnapshot;
 
+        // Incremental writes may succeed at the latest revision while returning
+        // an Agent's changes to other cards. Reconcile those authoritative values
+        // too; otherwise a later autosave mistakes stale local text for an edit.
+        const needsReconcile =
+          recoveredFromConflict ||
+          !valuesEqual(snapshotToSave, localSnapshotDocument);
+
         const newestPendingSnapshot = pendingProjectSnapshotRef.current;
         let restoredRebasedSnapshot = false;
         if (
-          recoveredFromConflict &&
+          needsReconcile &&
           newestPendingSnapshot &&
           newestPendingSnapshot !== targetSerializedSnapshot
         ) {
@@ -279,9 +289,8 @@ export function useProjectSnapshotLifecycle({
             local: JSON.parse(newestPendingSnapshot) as ProjectSnapshotDocument,
             remote: snapshotToSave,
           });
-          pendingProjectSnapshotRef.current = JSON.stringify(
-            rebasedLocalSnapshot
-          );
+          pendingProjectSnapshotRef.current =
+            JSON.stringify(rebasedLocalSnapshot);
           restoreProjectSnapshot(rebasedLocalSnapshot);
           restoredRebasedSnapshot = true;
         } else if (
@@ -289,7 +298,7 @@ export function useProjectSnapshotLifecycle({
         ) {
           pendingProjectSnapshotRef.current = null;
         }
-        if (recoveredFromConflict && !restoredRebasedSnapshot) {
+        if (needsReconcile && !restoredRebasedSnapshot) {
           restoreProjectSnapshot(snapshotToSave);
         }
         if (allowEmpty && snapshotToSave.cards.length === 0) {
@@ -299,9 +308,14 @@ export function useProjectSnapshotLifecycle({
 
       const guardedSave = async () => {
         saveInFlightRef.current = true;
-        try { await runSave(); }
-        catch (error) { onProjectSnapshotConflict?.(); throw error; }
-        finally { saveInFlightRef.current = false; }
+        try {
+          await runSave();
+        } catch (error) {
+          onProjectSnapshotConflict?.();
+          throw error;
+        } finally {
+          saveInFlightRef.current = false;
+        }
       };
       const queuedSave = saveQueueRef.current.then(guardedSave, guardedSave);
       saveQueueRef.current = queuedSave.catch(() => {});
@@ -442,7 +456,14 @@ export function useProjectSnapshotLifecycle({
       if (externalPollInFlightRef.current) return;
       externalPollInFlightRef.current = true;
       try {
-        if (!await hasNewProjectRevision(projectId, 'canvas', lastSavedProjectSnapshotVersionRef.current)) return;
+        if (
+          !(await hasNewProjectRevision(
+            projectId,
+            'canvas',
+            lastSavedProjectSnapshotVersionRef.current
+          ))
+        )
+          return;
         const response = await fetch(
           `/api/app/projects/${encodeURIComponent(projectId)}/snapshot`
         );
@@ -467,9 +488,11 @@ export function useProjectSnapshotLifecycle({
           : null;
         // Drag gestures can change layout before the autosave signal fires.
         const currentSnapshot = buildSnapshotRef.current();
-        const pendingSnapshot = JSON.stringify(currentSnapshot) !== lastSavedProjectSnapshotRef.current
-          ? currentSnapshot
-          : null;
+        const pendingSnapshot =
+          JSON.stringify(currentSnapshot) !==
+          lastSavedProjectSnapshotRef.current
+            ? currentSnapshot
+            : null;
         const snapshotToRestore = pendingSnapshot
           ? mergeProjectSnapshotsAfterConflict({
               base: baseSnapshot,
@@ -485,7 +508,8 @@ export function useProjectSnapshotLifecycle({
           : null;
         restoreProjectSnapshot(snapshotToRestore);
       } catch (error) {
-        if (error instanceof Error && error.message.startsWith('Canvas ')) onProjectSnapshotConflict?.();
+        if (error instanceof Error && error.message.startsWith('Canvas '))
+          onProjectSnapshotConflict?.();
         // External refresh is best-effort; the next poll retries automatically.
       } finally {
         externalPollInFlightRef.current = false;
@@ -526,23 +550,28 @@ export function useProjectSnapshotLifecycle({
 
       try {
         const operations = buildCanvasOperations(
-          lastSavedProjectSnapshotRef.current ? JSON.parse(lastSavedProjectSnapshotRef.current) : null,
+          lastSavedProjectSnapshotRef.current
+            ? JSON.parse(lastSavedProjectSnapshotRef.current)
+            : null,
           JSON.parse(serializedSnapshot),
           allowEmptyProjectSnapshot
         );
         if (!operations.length) return;
         const commandId = createCommandId();
-        void fetch(`/api/app/projects/${encodeURIComponent(projectId)}/commands`, {
-          method: 'POST',
-          headers: buildProjectSnapshotRequestHeaders(),
-          body: JSON.stringify({
-            commandId,
-            idempotencyKey: commandId,
-            expectedRevision: lastSavedProjectSnapshotVersionRef.current,
-            command: { type: 'canvas.apply', operations },
-          }),
-          keepalive: true,
-        }).catch(() => onProjectSnapshotConflict?.());
+        void fetch(
+          `/api/app/projects/${encodeURIComponent(projectId)}/commands`,
+          {
+            method: 'POST',
+            headers: buildProjectSnapshotRequestHeaders(),
+            body: JSON.stringify({
+              commandId,
+              idempotencyKey: commandId,
+              expectedRevision: lastSavedProjectSnapshotVersionRef.current,
+              command: { type: 'canvas.apply', operations },
+            }),
+            keepalive: true,
+          }
+        ).catch(() => onProjectSnapshotConflict?.());
         pendingProjectSnapshotRef.current = serializedSnapshot;
       } catch (error) {
         console.error('flush project snapshot failed:', error);

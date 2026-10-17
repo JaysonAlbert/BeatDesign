@@ -1,3 +1,4 @@
+import { readLocalOutput } from '@/core/generation-providers/local-runtime.server';
 import { createHash } from 'node:crypto';
 
 import { resolveOutputMedia } from './output-media';
@@ -43,7 +44,7 @@ const filenameFromUrl = (url: string, type: AssetType) => {
   } catch {
     // Fall through to a stable local filename.
   }
-  return type === 'video' ? 'generated-video.mp4' : 'generated-image.png';
+  return type === 'video' ? 'generated-video.mp4' : type === 'audio' ? 'generated-audio.wav' : 'generated-image.png';
 };
 
 const replaceMediaUrls = (
@@ -96,6 +97,8 @@ export const buildOutputStoragePlan = ({
   if (effectType === 1) {
     appendMedia('video', 'output', [...media.videoUrls, media.resultUrl]);
     appendMedia('image', 'thumbnail', [...media.coverUrls, media.coverUrl]);
+  } else if (effectType === 4) {
+    appendMedia('audio', 'output', [media.resultUrl]);
   } else {
     appendMedia(
       'image',
@@ -137,10 +140,11 @@ export async function persistEffectOutputIfNeeded({
   const localUrlByProviderUrl = new Map<string, string>();
 
   for (const { url, type, role } of providerEntries) {
-    if (!isOfficialBeatApiMediaUrl(url)) {
+    const local = url.startsWith('local-job:') && [9001, 9002].includes(effectId);
+    if (!local && !isOfficialBeatApiMediaUrl(url)) {
       throw new Error('Generated media URL is not an approved BeatAPI asset');
     }
-    const response = await fetch(url, {
+    const response = local ? await readLocalOutput(url, generation.providerTaskId || '') : await fetch(url, {
       signal: AbortSignal.timeout(LOCAL_MEDIA_DOWNLOAD_TIMEOUT_MS),
     });
     if (!response.ok) {
@@ -156,7 +160,7 @@ export async function persistEffectOutputIfNeeded({
       throw new Error('Generated media is too large to save locally');
     }
     const bytes = await readResponseBodyWithLimit(response, maxBytes);
-    const fallbackMimeType = type === 'video' ? 'video/mp4' : 'image/png';
+    const fallbackMimeType = type === 'video' ? 'video/mp4' : type === 'audio' ? 'audio/wav' : 'image/png';
     const responseMimeType =
       response.headers.get('content-type')?.split(';')[0]?.trim() || '';
     const mimeType = responseMimeType.startsWith(`${type}/`)

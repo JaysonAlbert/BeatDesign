@@ -20,7 +20,7 @@ export type GenerationProviderDefinition = {
   supports: readonly GenerationMediaCapability[];
   modelBindings: readonly GenerationProviderModelBinding[];
   createAdapter: (effect: EffectRecord) => BaseAdapter;
-  assertConfigured?: () => Promise<void>;
+  assertConfigured?: (effect?: EffectRecord) => Promise<void>;
   validateInput?: (effect: EffectRecord, input: Record<string, unknown>) => void;
 };
 

@@ -1,3 +1,4 @@
+import { localGenerationProvider } from '@/core/generation-providers/local-provider';
 import type { GenerationProviderRegistrar } from '@/core/generation-providers/contracts';
 
 /**
@@ -7,8 +8,8 @@ import type { GenerationProviderRegistrar } from '@/core/generation-providers/co
  * provider implementation here and change ACTIVE_GENERATION_PROVIDER_ID.
  * Keep credentials inside that provider's server-only implementation.
  */
-export const ACTIVE_GENERATION_PROVIDER_ID = 'beatapi';
+export const ACTIVE_GENERATION_PROVIDER_ID = (import.meta.env?.VITE_GENERATION_PROVIDER || (typeof process !== 'undefined' ? process.env.BEATDESIGN_GENERATION_PROVIDER : '') || 'beatapi');
 
 export function registerProjectGenerationProviders(
-  _register: GenerationProviderRegistrar
-) {}
+  register: GenerationProviderRegistrar
+) { register(localGenerationProvider); }

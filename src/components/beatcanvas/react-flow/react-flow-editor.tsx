@@ -27,11 +27,13 @@ import {
   getUnionBounds,
 } from '../canvas-engine/canvas-projection';
 import { AssetCardNode } from '../nodes/asset-card-node';
+import { TextCardNode } from '../nodes/text-card-node';
 import { GenerationCardNode } from '../nodes/generation-card-node';
 import { WorkflowGroupNode } from '../nodes/workflow-group-node';
 import { BeatCanvasReferenceEdge } from './beatcanvas-reference-edge';
 import {
   ASSET_CARD_NODE_TYPE,
+  TEXT_CARD_NODE_TYPE,
   GENERATION_CARD_NODE_TYPE,
   WORKFLOW_GROUP_NODE_TYPE,
   readNodeSize,
@@ -64,6 +66,7 @@ interface BeatCanvasReactFlowEditorProps {
 }
 
 const nodeTypes = {
+  [TEXT_CARD_NODE_TYPE]: TextCardNode,
   [ASSET_CARD_NODE_TYPE]: AssetCardNode,
   [GENERATION_CARD_NODE_TYPE]: GenerationCardNode,
   [WORKFLOW_GROUP_NODE_TYPE]: WorkflowGroupNode,
@@ -78,6 +81,7 @@ const DEFAULT_ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
 const normalizeNodeType = (type: string): BeatCanvasNodeType | null => {
   if (type === ASSET_CARD_NODE_TYPE) return ASSET_CARD_NODE_TYPE;
+  if (type === TEXT_CARD_NODE_TYPE) return TEXT_CARD_NODE_TYPE;
   if (type === GENERATION_CARD_NODE_TYPE) return GENERATION_CARD_NODE_TYPE;
   if (type === WORKFLOW_GROUP_NODE_TYPE || type === 'group') {
     return WORKFLOW_GROUP_NODE_TYPE;
@@ -107,9 +111,10 @@ function BeatCanvasReactFlowCanvas({
   components,
 }: BeatCanvasReactFlowEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const instanceRef = useRef<
-    ReactFlowInstance<BeatCanvasFlowNode, BeatCanvasFlowEdge> | null
-  >(null);
+  const instanceRef = useRef<ReactFlowInstance<
+    BeatCanvasFlowNode,
+    BeatCanvasFlowEdge
+  > | null>(null);
   const nodesRef = useRef<BeatCanvasFlowNode[]>([]);
   const edgesRef = useRef<BeatCanvasFlowEdge[]>([]);
   const viewportRef = useRef<Viewport>(DEFAULT_VIEWPORT);
@@ -234,16 +239,18 @@ function BeatCanvasReactFlowCanvas({
       while (changed) {
         changed = false;
         for (const node of nodesRef.current) {
-          if (node.parentId && pending.has(node.parentId) && !pending.has(node.id)) {
+          if (
+            node.parentId &&
+            pending.has(node.parentId) &&
+            !pending.has(node.id)
+          ) {
             pending.add(node.id);
             changed = true;
           }
         }
       }
 
-      commitNodes((current) =>
-        current.filter((node) => !pending.has(node.id))
-      );
+      commitNodes((current) => current.filter((node) => !pending.has(node.id)));
       commitEdges((current) =>
         current.filter(
           (edge) => !pending.has(edge.source) && !pending.has(edge.target)
@@ -374,7 +381,9 @@ function BeatCanvasReactFlowCanvas({
         return isSnapToGridRef.current;
       },
       setCurrentTool(tool) {
-        setInteractionMode(tool === 'pan' || tool === 'hand' ? 'pan' : 'select');
+        setInteractionMode(
+          tool === 'pan' || tool === 'hand' ? 'pan' : 'select'
+        );
       },
       select(shapeId) {
         api.setSelectedShapes([shapeId]);
@@ -477,7 +486,8 @@ function BeatCanvasReactFlowCanvas({
             props: { w: union.w, h: union.h },
           },
           style: { width: union.w, height: union.h },
-          zIndex: Math.min(...selectedNodes.map((node) => node.zIndex ?? 0)) - 1,
+          zIndex:
+            Math.min(...selectedNodes.map((node) => node.zIndex ?? 0)) - 1,
         };
 
         const groupedIds = new Set(selectedNodes.map((node) => node.id));
@@ -505,9 +515,7 @@ function BeatCanvasReactFlowCanvas({
         let offset = 1;
         commitNodes((current) =>
           current.map((node) =>
-            ids.has(node.id)
-              ? { ...node, zIndex: maxZ + offset++ }
-              : node
+            ids.has(node.id) ? { ...node, zIndex: maxZ + offset++ } : node
           )
         );
       },
@@ -642,8 +650,12 @@ function BeatCanvasReactFlowCanvas({
       const removedEdgeIds = new Set(
         changes
           .filter(
-            (change): change is Extract<EdgeChange<BeatCanvasFlowEdge>, { type: 'remove' }> =>
-              change.type === 'remove'
+            (
+              change
+            ): change is Extract<
+              EdgeChange<BeatCanvasFlowEdge>,
+              { type: 'remove' }
+            > => change.type === 'remove'
           )
           .map((change) => change.id)
       );

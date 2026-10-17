@@ -139,10 +139,10 @@ export const validateWorkBuddyConnector = async (
   const icon = await readFile(resolve(connectorDirectory, 'icon.svg'), 'utf8');
   assert.match(icon, /^<svg[\s>]/, 'WorkBuddy icon must be an SVG document');
 
-  const skill = await readFile(
+  const skill = (await readFile(
     resolve(connectorDirectory, 'skills/beatdesign-workspace/SKILL.md'),
     'utf8'
-  );
+  )).replace(/\r\n/g, '\n');
   assert.match(skill, /^---\n[\s\S]*?\n---\n/);
   assert.match(skill, /\nname: beatdesign-workspace\n/);
   assert.doesNotMatch(

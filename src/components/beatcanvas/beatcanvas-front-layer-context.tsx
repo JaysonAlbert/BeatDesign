@@ -133,6 +133,15 @@ export type BeatCanvasFrontLayerValue = {
   onUndoCanvas: () => void;
   onRedoCanvas: () => void;
   onCreateImageDraft: () => void;
+  onTextNodeChange: (
+    id: string,
+    patch: {
+      name?: string;
+      textContent?: string;
+      textRole?: import('@/core/beatcanvas/canvas-types').CanvasTextRole;
+    }
+  ) => void;
+  onTextNodeEditStart: () => void;
   onUploadImage: () => void;
   onCreateGenerationFromConnector: (input: {
     sourceCardId: string;
@@ -174,7 +183,10 @@ export type BeatCanvasFrontLayerValue = {
     draftId: string,
     quality: WorkspaceOutputQuality
   ) => void;
-  onDraftQualityChange: (draftId: string, quality: WorkspaceQualityOption) => void;
+  onDraftQualityChange: (
+    draftId: string,
+    quality: WorkspaceQualityOption
+  ) => void;
   onDraftDurationChange: (draftId: string, duration: WorkspaceDuration) => void;
   onDraftCharacterOrientationChange: (
     draftId: string,

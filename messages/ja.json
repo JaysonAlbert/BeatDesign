@@ -330,8 +330,8 @@
           "status": {
             "queued": "キュー待ち",
             "generating": "生成中",
-        "ready": "成功",
-        "success": "成功",
+            "ready": "成功",
+            "success": "成功",
             "failed": "失敗"
           },
           "fromCanvas": "Canvasから",
@@ -409,10 +409,24 @@
         "video": "動画",
         "analysis": "分析",
         "analysisResult": "分析結果",
-        "references": "参照"
+        "references": "参照",
+        "audio": "音声"
       },
       "textNote": {
         "template": "テキストメモ\n\n構図のアイデア、ショットメモ、制作上の注意点をここに記録します。"
+      },
+      "textNode": {
+        "create": "テキストノードを追加",
+        "defaultName": "テキスト",
+        "title": "テキストのタイトル",
+        "role": "テキストの用途",
+        "content": "テキスト内容",
+        "note": "メモ",
+        "script": "脚本",
+        "character": "キャラクター設定",
+        "storyboard": "ショット指示",
+        "placeholder": "脚本、キャラクター設定、ショット指示を記入…",
+        "referenceHint": "生成ノードの参照からこのテキストを選択"
       }
     },
     "editor": {
@@ -753,5 +767,15 @@
   },
   "Common": {
     "loading": "読み込み中"
+  },
+  "LocalRuntime": {
+    "title": "ローカル音声 · Drama 3 INT4",
+    "description": "短文プレビュー（最大200文字）。GPUはモデルごとに順番に実行します。固定の声と長文は未対応です。",
+    "text": "英語のナレーション",
+    "generate": "ローカル音声を生成",
+    "pending": "GPU待機中",
+    "processing": "生成中",
+    "succeeded": "プロジェクトに保存済み",
+    "failed": "生成失敗"
   }
 }

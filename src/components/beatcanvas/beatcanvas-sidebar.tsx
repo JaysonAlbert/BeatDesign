@@ -1,6 +1,6 @@
 import type { RecentAsset } from '@/core/workspace-lib/app/workspace-client-api';
 import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
-import { Clock3, ImagePlus, Plus } from 'lucide-react';
+import { Clock3, ImagePlus, Plus, FileText } from 'lucide-react';
 import {
   Suspense,
   lazy,
@@ -24,6 +24,7 @@ export type BeatCanvasSidebarProps = {
   projectId?: string | null;
   onUploadMedia: () => void;
   onCreateImageDraft: () => void;
+  onCreateTextNode: () => void;
   onInsertHistoryAsset: (
     asset: RecentAsset & { mediaType: 'image' | 'video' | 'audio' }
   ) => void;
@@ -34,6 +35,7 @@ export default function BeatCanvasSidebar({
   projectId,
   onUploadMedia,
   onCreateImageDraft,
+  onCreateTextNode,
   onInsertHistoryAsset,
   uploadIntent,
 }: BeatCanvasSidebarProps) {
@@ -55,9 +57,7 @@ export default function BeatCanvasSidebar({
 
   return (
     <>
-      <div
-        className="pointer-events-auto absolute left-4 top-[39%] z-50 flex w-[54px] -translate-y-1/2 flex-col items-center gap-1 rounded-[var(--beat-radius-sm)] border border-white/[0.13] bg-[var(--beatcanvas-panel)] px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_24px_56px_rgba(0,0,0,0.48)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent"
-      >
+      <div className="pointer-events-auto absolute left-4 top-[39%] z-50 flex w-[54px] -translate-y-1/2 flex-col items-center gap-1 rounded-[var(--beat-radius-sm)] border border-white/[0.13] bg-[var(--beatcanvas-panel)] px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_24px_56px_rgba(0,0,0,0.48)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent">
         <ToolBtn
           icon={<Plus size={18} />}
           title={t('toolbar.generationNode')}
@@ -70,6 +70,12 @@ export default function BeatCanvasSidebar({
           active={uploadIntent !== null}
           disabled={uploadIntent !== null}
           onClick={onUploadMedia}
+        />
+        <ToolBtn
+          icon={<FileText size={17} />}
+          title={t('textNode.create')}
+          active={false}
+          onClick={onCreateTextNode}
         />
         <ToolSeparator />
         <ToolBtn

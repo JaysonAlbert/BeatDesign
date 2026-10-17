@@ -1,5 +1,6 @@
 import {
   type CanvasCard,
+  type CanvasTextCard,
   type CanvasDraftCard,
   type CanvasGenerationCard,
   type CanvasOutputCard,
@@ -9,6 +10,7 @@ import {
 } from '@/core/beatcanvas/canvas-types';
 
 import { isTransientCanvasUrl } from '@/core/beatcanvas/local-references';
+import { normalizeProjectSnapshotDocument } from './project-snapshot';
 import type {
   ProjectSnapshotCamera,
   ProjectSnapshotDocument,
@@ -107,12 +109,12 @@ export const buildProjectSnapshotDocument = ({
     {}
   );
 
-  return {
+  return normalizeProjectSnapshotDocument({
     version: 3,
     cards,
     frames,
     ...(camera ? { camera } : {}),
-  };
+  });
 };
 
 type SnapshotRestoreCard<TCard extends CanvasCard> = {
@@ -126,6 +128,7 @@ type SnapshotConnector = {
 };
 
 export type ProjectSnapshotRestorePlan = {
+  textCards: Array<SnapshotRestoreCard<CanvasTextCard>>;
   assetCards: Array<SnapshotRestoreCard<NonDraftCanvasCard>>;
   draftCards: Array<SnapshotRestoreCard<CanvasGenerationCard>>;
   outputCards: Array<SnapshotRestoreCard<CanvasOutputCard>>;
@@ -184,7 +187,10 @@ export const createProjectSnapshotRestorePlan = (
   const connectorIds = new Set<string>();
   const connectors: SnapshotConnector[] = [];
 
-  for (const current of [...assetCards, ...draftCards]) {
+  const textCards = document.cards
+    .filter((card): card is CanvasTextCard => card.kind === 'text')
+    .map((card) => ({ card, frame: document.frames[card.id] }));
+  for (const current of [...assetCards, ...draftCards, ...textCards]) {
     for (const referenceCardId of current.card.referenceCardIds) {
       const connectorId = `${referenceCardId}->${current.card.id}`;
       if (connectorIds.has(connectorId)) {
@@ -200,6 +206,7 @@ export const createProjectSnapshotRestorePlan = (
   }
 
   return {
+    textCards,
     assetCards,
     draftCards,
     outputCards,

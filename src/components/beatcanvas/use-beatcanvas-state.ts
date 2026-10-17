@@ -1,4 +1,11 @@
-import type { CanvasCard, CanvasDraftCard } from '@/core/beatcanvas/canvas-types';
+import type {
+  CanvasCard,
+  CanvasDraftCard,
+} from '@/core/beatcanvas/canvas-types';
+import {
+  buildCanvasReferenceMentions,
+  rewriteCanvasReferenceAliases,
+} from '@/core/beatcanvas/reference-mentions';
 import {
   isCanvasDraftCard,
   isCanvasOutputCard,
@@ -37,7 +44,8 @@ export const removeCanvasCardsForShapeIds = (
       .filter(
         ([cardId, card]) =>
           !removedIds.has(cardId) &&
-          (!isCanvasOutputCard(card) || !removedIds.has(card.sourceConfigCardId))
+          (!isCanvasOutputCard(card) ||
+            !removedIds.has(card.sourceConfigCardId))
       )
       .map(([cardId, card]) => {
         const nextReferenceCardIds = card.referenceCardIds.filter(
@@ -50,6 +58,21 @@ export const removeCanvasCardsForShapeIds = (
             ? card
             : {
                 ...card,
+                ...(card.kind === 'generation'
+                  ? {
+                      prompt: rewriteCanvasReferenceAliases({
+                        prompt: card.prompt,
+                        previousMentions: buildCanvasReferenceMentions({
+                          cards: cardsById,
+                          referenceCardIds: card.referenceCardIds,
+                        }),
+                        nextMentions: buildCanvasReferenceMentions({
+                          cards: cardsById,
+                          referenceCardIds: nextReferenceCardIds,
+                        }),
+                      }),
+                    }
+                  : {}),
                 referenceCardIds: nextReferenceCardIds,
               },
         ];

@@ -1,4 +1,4 @@
-import { Loader2, X } from 'lucide-react';
+import { Loader2, Music2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { composerCardClassName } from '@/components/app/composer-styles';
@@ -35,11 +35,11 @@ function StudioHistoryItem({
     <article className="space-y-3">
       <button
         type="button"
-        onClick={onReuse}
+        onClick={item.mediaType === 'audio' ? onOpen : onReuse}
         className="flex flex-wrap items-center gap-2 text-left"
       >
         <span className={chipClassName}>
-          {isAnalysis ? t('analysis') : isVideo ? t('video') : t('image')}
+          {item.mediaType === 'audio' ? t('audio') : isAnalysis ? t('analysis') : isVideo ? t('video') : t('image')}
         </span>
         <span className={chipClassName}>
           {item.modelName || item.modelId || t('result')}
@@ -62,7 +62,7 @@ function StudioHistoryItem({
               </p>
             </div>
           ) : previewUrl ? (
-            isVideo ? (
+            item.mediaType === 'audio' ? <div className="flex h-full items-center justify-center"><Music2 className="size-10" /></div> : isVideo ? (
               <video
                 src={previewUrl}
                 preload="metadata"
@@ -159,6 +159,8 @@ export function StudioGenerationFeed({
                       {selected.resultText || (selected.status === 'processing' ? t('generating') : t('failed'))}
                     </p>
                   </div>
+                ) : selected.mediaType === 'audio' && selected.resultUrl ? (
+                  <audio src={selected.resultUrl} controls className="w-full" />
                 ) : selected.mediaType === 'video' && selected.resultUrl ? (
                   <video
                     src={selected.resultUrl}
@@ -176,7 +178,7 @@ export function StudioGenerationFeed({
               <div className="flex min-h-0 flex-col border-t border-white/[0.08] xl:border-l xl:border-t-0">
                 <div className="flex flex-wrap items-center gap-1.5 border-b border-white/[0.08] px-6 py-5">
                   <span className={chipClassName}>
-                    {selected.mediaType === 'analysis'
+                    {selected.mediaType === 'audio' ? t('audio') : selected.mediaType === 'analysis'
                       ? t('analysis')
                       : selected.mediaType === 'video'
                         ? t('video')
