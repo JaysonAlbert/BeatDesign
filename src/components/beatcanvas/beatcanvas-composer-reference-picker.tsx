@@ -1,3 +1,4 @@
+import { CachedVideoPoster } from './cached-video-poster';
 import { cn } from '@/lib/utils';
 import type { CanvasReferenceMediaType } from '@/core/beatcanvas/canvas-types';
 import {
@@ -139,11 +140,8 @@ export function BeatCanvasComposerReferencePicker({
               >
                 <span className="relative inline-flex size-5 shrink-0 overflow-hidden rounded-[5px] bg-black/50">
                   {card.thumbnailUrl && card.type === 'video' ? (
-                    <video
+                    <CachedVideoPoster
                       src={card.thumbnailUrl}
-                      muted
-                      playsInline
-                      preload="metadata"
                       className="size-full object-cover"
                     />
                   ) : card.thumbnailUrl && card.type === 'image' ? (
@@ -274,12 +272,9 @@ export function BeatCanvasComposerReferencePicker({
                       <span className="flex min-w-0 items-center gap-2.5 text-[var(--beat-text-1)]">
                         {card.thumbnailUrl && card.type === 'video' ? (
                           <span className="relative inline-flex size-8 shrink-0 overflow-hidden rounded-md bg-black">
-                            <video
+                            <CachedVideoPoster
                               src={card.thumbnailUrl}
-                              aria-label={card.name}
-                              muted
-                              playsInline
-                              preload="metadata"
+                              alt={card.name}
                               className="size-full object-cover"
                             />
                             <Video className="pointer-events-none absolute inset-0 m-auto size-3.5 text-white drop-shadow" />
@@ -352,12 +347,9 @@ export function BeatCanvasComposerReferencePicker({
                       >
                         {card.thumbnailUrl && card.type === 'video' ? (
                           <span className="relative inline-flex size-full bg-black">
-                            <video
+                            <CachedVideoPoster
                               src={card.thumbnailUrl}
-                              aria-label={card.name}
-                              muted
-                              playsInline
-                              preload="metadata"
+                              alt={card.name}
                               className="size-full object-cover"
                             />
                             <Video className="pointer-events-none absolute inset-0 m-auto size-4 text-white drop-shadow" />

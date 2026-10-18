@@ -109,3 +109,9 @@ No user, session, role, order, subscription, payment, credit, API-key, ticket, o
 ## Runtime boundary
 
 BeatDesign is a localhost application backed by one SQLite database and project-owned files under `data/`. Cloud database and hosted deployment adapters are intentionally outside this repository.
+
+### Canvas video posters
+
+Canvas nodes, Take thumbnails, reference pickers and history tiles render cached JPEG posters rather than hidden video elements. Only an explicit playback action mounts a video player. Project-owned videos resolve to the membership-checked `/api/app/projects/:projectId/assets/:assetId/thumbnail` endpoint. It reads the local source, generates a bounded 512px JPEG on a cache miss and atomically saves it under `data/cache/video-posters/`; concurrent decoding is limited to two jobs. Source identity, size, modification time and poster version determine the cache key. The cache does not change project documents, assets, lineage or revisions. Responses use private browser caching and an ETag.
+
+Server-side poster generation optionally uses `ffmpeg` from `PATH` or `BEATDESIGN_FFMPEG`; it does not require `ffprobe`. Without a server decoder, or for unresolved legacy/remote media, Canvas shows a lightweight video placeholder and retains the playback button. It never falls back to downloading the original video to create a poster. Browser playback and export still work without system FFmpeg. Multi-tab coordination and full-video offline caching are outside this change.

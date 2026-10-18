@@ -6,29 +6,13 @@ import {
 } from '@xyflow/react';
 import {
   useEffect,
-  useRef,
   useState,
   type MouseEvent,
-  type VideoHTMLAttributes,
 } from 'react';
 
-import { enqueueMediaMetadataLoad } from '@/core/media/media-load-queue';
-import { seekStaticVideoPreview } from '@/core/media/video-preview';
+import { CachedVideoPoster } from '../cached-video-poster';
 import { getBeatCanvasNodeCopy } from './beatcanvas-node-copy';
 import type { BeatCanvasFlowNode } from '../react-flow/beatcanvas-react-flow-types';
-
-function QueuedVideo({
-  src,
-  ...props
-}: VideoHTMLAttributes<HTMLVideoElement> & { src: string }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
-    return enqueueMediaMetadataLoad(video, src);
-  }, [src]);
-  return <video ref={videoRef} {...props} />;
-}
 
 const CARD_RADIUS = 8;
 
@@ -195,14 +179,9 @@ export function AssetCardNode({
           >
             <div className="relative flex-1 overflow-hidden bg-black/45">
               {thumbnailUrl ? (
-                <QueuedVideo
+                <CachedVideoPoster
                   src={thumbnailUrl}
-                  muted
-                  playsInline
-                  preload="metadata"
                   className="size-full object-cover opacity-70"
-                  onLoadedMetadata={() => setMediaStatus('ready')}
-                  onError={() => setMediaStatus('error')}
                 />
               ) : (
                 <div className="grid size-full place-items-center text-[11px] uppercase tracking-[0.18em] text-white/28">
@@ -236,18 +215,9 @@ export function AssetCardNode({
           </div>
         ) : thumbnailUrl && cardMediaType === 'video' ? (
           <>
-            <QueuedVideo
+            <CachedVideoPoster
               src={thumbnailUrl}
-              aria-label={title}
-              muted
-              playsInline
-              preload="metadata"
-              draggable={false}
-              onLoadedMetadata={(event) => {
-                seekStaticVideoPreview(event.currentTarget);
-              }}
-              onLoadedData={() => setMediaStatus('ready')}
-              onError={() => setMediaStatus('error')}
+              alt={title}
               onDoubleClick={handlePreviewMedia}
               className="nowheel"
               style={{
@@ -261,7 +231,7 @@ export function AssetCardNode({
                 boxSizing: 'border-box',
               }}
             />
-            {mediaStatus === 'ready' ? (
+            {(
               <button
                 type="button"
                 aria-label={`${shapeCopy.viewResult}: ${
@@ -275,7 +245,7 @@ export function AssetCardNode({
                   ▶
                 </span>
               </button>
-            ) : null}
+            )}
           </>
         ) : thumbnailUrl ? (
           <img
@@ -314,7 +284,7 @@ export function AssetCardNode({
               : `🖼 ${shapeCopy.image}`}
           </div>
         )}
-        {thumbnailUrl && mediaStatus === 'loading' ? (
+        {thumbnailUrl && cardMediaType === 'image' && mediaStatus === 'loading' ? (
           <div
             className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25 px-3 text-center text-[11px] text-white/80"
             role="status"

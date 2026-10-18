@@ -1,5 +1,5 @@
 const PROJECT_ASSET_MEDIA_PATH =
-  /^\/api\/app\/projects\/[^/]+\/assets\/[^/]+\/?$/;
+  /^\/api\/app\/projects\/[^/]+\/assets\/[^/]+(?:\/thumbnail)?\/?$/;
 
 const MEDIA_FETCH_DESTINATIONS = new Set(['audio', 'image', 'video']);
 

@@ -118,7 +118,7 @@ test('open picker keeps canvas references beyond the first eight selectable', ()
   assert.match(html, /title="Reference 10"/);
 });
 
-test('open picker renders video references with video elements instead of images', () => {
+test('open picker never mounts video references to make thumbnails', () => {
   const html = renderToStaticMarkup(
     <BeatCanvasComposerReferencePicker
       activeDraftId="draft-1"
@@ -155,7 +155,7 @@ test('open picker renders video references with video elements instead of images
     />
   );
 
-  assert.equal((html.match(/<video/g) ?? []).length, 2);
+  assert.equal((html.match(/<video/g) ?? []).length, 0);
   assert.doesNotMatch(html, /<img[^>]+blob:(?:attached|canvas)-motion/);
 });
 
@@ -196,5 +196,5 @@ test('row variant exposes independently numbered image and video mention chips',
   assert.match(html, /@Image1/);
   assert.match(html, /@Video1/);
   assert.match(html, /draggable="true"/);
-  assert.equal((html.match(/<video/g) ?? []).length, 1);
+  assert.equal((html.match(/<video/g) ?? []).length, 0);
 });

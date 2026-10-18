@@ -1,3 +1,4 @@
+import { CachedVideoPoster } from './cached-video-poster';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { CanvasGenerationCard } from '@/core/beatcanvas/canvas-types';
@@ -259,11 +260,8 @@ export function BeatCanvasComposerShell({
                         <span className="relative inline-flex size-8 shrink-0 overflow-hidden rounded-md bg-black/45">
                           {reference?.thumbnailUrl &&
                           mention.type === 'video' ? (
-                            <video
+                            <CachedVideoPoster
                               src={reference.thumbnailUrl}
-                              muted
-                              playsInline
-                              preload="metadata"
                               className="size-full object-cover"
                             />
                           ) : reference?.thumbnailUrl ? (

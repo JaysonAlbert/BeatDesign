@@ -11,7 +11,7 @@ test('generation media remains a full-card drag surface', () => {
   assert.match(source, /className="group cursor-grab active:cursor-grabbing"/);
   assert.match(
     source,
-    /<video[\s\S]*?preload="metadata"[\s\S]*?className="nowheel"/
+    /<CachedVideoPoster/
   );
   assert.match(
     source,
@@ -62,14 +62,13 @@ test('generated videos expose a direct playback entry', () => {
     source,
     /cardMediaType === 'video'[\s\S]*?<button[\s\S]*?handlePreviewLatestOutput/
   );
-  assert.match(source, /function StaticVideoPoster/);
-  assert.match(source, /captureStaticVideoPreview\(video, maxEdge\)/);
-  assert.match(source, /<img[\s\S]*?src=\{poster\}/);
+  assert.match(source, /CachedVideoPoster/);
+  assert.doesNotMatch(source, /<video|captureStaticVideoPreview/);
   assert.match(
     source,
-    /<StaticVideoPoster[\s\S]*?onDoubleClick=\{[\s\S]*?handlePreviewLatestOutput/
+    /<CachedVideoPoster[\s\S]*?onDoubleClick=\{[\s\S]*?handlePreviewLatestOutput/
   );
-  assert.match(source, /seekStaticVideoPreview\(event\.currentTarget\)/);
+  assert.doesNotMatch(source, /seekStaticVideoPreview/);
 });
 
 test('generated images open the same unified media preview on double click', () => {
