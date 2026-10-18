@@ -50,7 +50,18 @@ const buildVideoAnalysisEffect = (
   };
 };
 
-const buildLocalAudioEffect = (binding: GenerationProviderModelBinding, providerId = getActiveGenerationProviderId()): RegisteredEffect => ({ id: binding.effectId, name: LOCAL_AUDIO_MODEL.name, type: 4, model: binding.modelId, version: null, linkName: binding.modelId, description: 'Local short narration', platform: providerId, api: null, provider: providerId, inputSchema: { prompt: { type: 'string', required: true, maxLength: 200 } } });
+const buildLocalAudioEffect = (binding: GenerationProviderModelBinding, providerId = getActiveGenerationProviderId()): RegisteredEffect => ({
+  id: binding.effectId, name: LOCAL_AUDIO_MODEL.name, type: 4, model: binding.modelId,
+  version: null, linkName: binding.modelId, description: 'Local narration with optional fixed reference voice',
+  platform: providerId, api: null, provider: providerId,
+  inputSchema: {
+    prompt: { type: 'string', required: true, maxLength: 200 },
+    reference_text: { type: 'string', required: false, maxLength: 4000 },
+    max_new_tokens: { type: 'number', required: false, minimum: 32, maximum: 1024 },
+    temperature: { type: 'number', required: false, minimum: 0, maximum: 2 },
+    top_p: { type: 'number', required: false, exclusiveMinimum: 0, maximum: 1 },
+  },
+});
 
 const optionalAnyField = { type: 'any', required: false } as const;
 

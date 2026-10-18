@@ -351,6 +351,30 @@ Creative quality and native-English listening acceptance remain for human review
 
 ## Follow-up reuse from the existing story scripts
 
+### Fixed-reference narration in this fork
+
+For the workstation's authenticated remote MCP gateway, `bdesign_asset_upload`
+accepts canonical base64 media in 512 KiB decoded chunks. An upload UUID is bound
+to the project, filename, total byte length and SHA-256; identical chunks can be
+retried, conflicting bytes are rejected. The file limit is 64 MiB. Final import
+uses the existing project Asset service and ownership checks. This transports
+only explicitly supplied bytes and does not expose the blocked host-path import
+tool or change gateway/HTTP authentication. Keep upload receipts for recovery.
+
+`bdesign_audio_generate` accepts `referenceAssetId` plus its verbatim `referenceText`,
+and optional `maxNewTokens` (32–1024), `temperature` (0–2), and `topP` (0–1, exclusive zero).
+Text remains limited to 200 characters per take. Omit both reference fields to
+retain unconditioned generation. UI/API asset-first requests use an `audio_track`
+reference and `reference_text`, `max_new_tokens`, `temperature`, `top_p` parameters.
+The shared preflight enforces project ownership, local audio media and one
+reference. The worker validates a decodable 0–30 second reference and records its
+Asset ID, SHA-256, exact transcript, parameters and input fingerprint for each take.
+It maps Windows drive paths to the existing WSL Drama service. No client-supplied
+filesystem path, remote provider fallback or separate project state is introduced.
+Interrupted/ambiguous TTS requests are not automatically repeated. Restart web/MCP
+after installing this code. Actual voice quality and listening acceptance remain
+distinct from automated request/provenance checks.
+
 The story-production handoff was reviewed separately. The pinned H3 output keeps
 its original audio and native duration; adding narration does not replace that
 source Asset. Do not import the old story scripts as libraries: several execute

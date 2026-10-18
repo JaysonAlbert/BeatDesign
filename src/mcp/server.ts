@@ -1,5 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
+import { audioGenerationInputSchema, compileAudioGeneration } from './audio-generation';
+import { assetUploadInputSchema, uploadProjectAssetChunk } from './asset-upload';
 
 import {
   createMcpHandler,
@@ -685,6 +687,19 @@ export function createBeatDesignMcpServer() {
   );
 
   server.registerTool(
+    'bdesign_asset_upload',
+    {
+      description: 'Upload user-provided media bytes as canonical base64 chunks (512 KiB decoded per part; final part may be smaller). Each uploadId is bound to a project, filename, byte length and SHA-256. Retry identical chunks safely; final assembly imports through the existing project Asset service. Maximum file size 64 MiB. Does not read arbitrary workstation paths.',
+      inputSchema: assetUploadInputSchema,
+      annotations: {destructiveHint:false,idempotentHint:true},
+    },
+    withToolErrors(async input => {
+      const project = await resolveScopedProject(input.projectId);
+      return uploadProjectAssetChunk(project.id,input);
+    })
+  );
+
+  server.registerTool(
     'bdesign_asset_import',
     {
       description:
@@ -930,26 +945,15 @@ export function createBeatDesignMcpServer() {
     'bdesign_audio_generate',
     {
       description:
-        'Generate short local Drama 3 narration into the current project Assets and generation history. Does not change the Canvas or Timeline. Text only; maximum 200 characters.',
-      inputSchema: z.object({
-        projectId: idSchema.optional(),
-        text: z.string().min(1).max(200),
-      }),
+        'Generate local Drama 3 narration into project Assets/history. Maximum 200 characters per take. Optionally supply one project-owned referenceAssetId with its exact referenceText to reuse a fixed voice. Does not change Canvas or Timeline.',
+      inputSchema: audioGenerationInputSchema,
       annotations: { destructiveHint: false, idempotentHint: false },
     },
     withToolErrors(async (input) => {
       const project = await resolveScopedProject(input.projectId);
       return submitAssetFirstGeneration({
         origin: 'mcp',
-        generation: {
-          version: 2,
-          projectId: project.id,
-          mode: 'audio',
-          modelId: 'local-drama3',
-          prompt: input.text,
-          references: [],
-          parameters: {},
-        },
+        generation: compileAudioGeneration(project.id, input),
       });
     })
   );
