@@ -10,9 +10,11 @@ from pathlib import Path
 import sys
 import time
 import traceback
+from contextlib import ExitStack
+from local_worker_schedule import WorkerPolicy, next_group, run_group
 
 
-def main():
+def _run(resources):
     parser = argparse.ArgumentParser()
     parser.add_argument('--jobs', required=True)
     parser.add_argument('--runtime', required=True)
@@ -21,7 +23,7 @@ def main():
     root = Path(args.jobs).resolve()
     root.mkdir(parents=True, exist_ok=True)
     import msvcrt
-    lock = (root / 'worker.lock').open('a+b')
+    lock = resources.enter_context((root / 'worker.lock').open('a+b'))
     if lock.seek(0, 2) == 0:
         lock.write(b'0'); lock.flush()
     lock.seek(0)
@@ -38,6 +40,7 @@ def main():
     from local_narration import execute_narration
     settings = json.loads(Path(args.settings).read_text(encoding='utf8')) if args.settings else {}
     flux_config = settings.get('flux3')
+    policy = WorkerPolicy.from_settings(settings)
 
     def pending():
         jobs = []
@@ -59,61 +62,94 @@ def main():
         try:
             with gpu_batch(lease):
                 flux_url = None
+                prepared = False
+                preparation_seconds = 0
+                def prepare(notify):
+                    nonlocal flux_url, prepared, preparation_seconds
+                    if prepared:
+                        return
+                    began = time.monotonic()
+                    if lease == 'flux3':
+                        stop_owned_drama()
+                        release_flux3(flux_config)
+                        if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
+                            release_comfy()
+                        flux_url = ensure_flux3(flux_config, notify)
+                    elif lease == 'h3':
+                        release_flux3(flux_config)
+                        stop_owned_drama()
+                        ensure_comfy(notify)
+                    else:
+                        release_flux3(flux_config)
+                        cfg = bootstrap()
+                        # Driver-wide free VRAM includes a resident Drama model.
+                        # Only require H3's cold-switch threshold before loading TTS.
+                        if not _ready(cfg['drama3_url'] + '/health') and _ready(cfg['comfyui_url'] + '/system_stats'):
+                            release_comfy()
+                        ensure_drama(notify)
+                    preparation_seconds = time.monotonic() - began
+                    prepared = True
+
                 while True:
-                    group = [item for item in pending() if item[1]['model'] == model]
+                    def resident_idle():
+                        write_json(root / 'worker-status.json', {'state': 'resident_idle', 'model': model,
+                                   'idle_seconds': policy.idle_seconds, 'pid': os.getpid()})
+                    group = next_group(model, pending, policy.idle_seconds if prepared else 0, resident_idle)
                     if not group:
                         break
-                    path, job = group[0]
-                    def notify(message):
-                        job['message'] = message
-                        write_json(path, job)
+                    selected = group[:policy.tts_concurrency if lease == 'drama3' else 1]
+                    was_prepared = prepared
+                    owner_path, owner_job = selected[0]
+                    def preparing(message):
+                        owner_job.update(message=message, phase='model_preparation')
+                        write_json(owner_path, owner_job)
                     try:
-                        job.update(status='processing', startedAt=job.get('startedAt', time.time()))
-                        write_json(path, job)
-                        output = path.parent / ('output.mp4' if lease == 'h3' else 'output.png' if lease == 'flux3' else 'output.wav')
-                        if lease == 'flux3':
-                            if flux_url is None:
-                                stop_owned_drama()
-                                release_flux3(flux_config)
-                                if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
-                                    release_comfy()
-                                flux_url = ensure_flux3(flux_config, notify)
-                            result = execute_flux3(job['input'], output, flux_url)
-                            provenance = result.data
-                        elif model == 'local-h3-ref2va':
-                            release_flux3(flux_config)
-                            stop_owned_drama()
-                            ensure_comfy(notify)
-                            result = execute_ref2va(job['input'], output)
-                            if not result.success:
-                                raise RuntimeError(result.error)
-                            provenance = result.data
-                        elif output.exists():
-                            probe_media(output)
-                            provenance = json.loads(output.with_suffix('.provenance.json').read_text(encoding='utf8'))
-                            if lease == 'h3':
-                                release_flux3(flux_config)
-                                provenance['timing'] = verify_h3_output(output, job['input'].get('wmDuration'))
-                        else:
-                            inputs = job['input']
-                            if lease == 'h3':
-                                release_flux3(flux_config)
-                                stop_owned_drama()
-                                ensure_comfy(notify)
-                                result = execute_h3_with_duration(inputs, output)
-                            else:
-                                release_flux3(flux_config)
-                                if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
-                                    release_comfy()
-                                ensure_drama(notify)
-                                result = execute_narration(inputs, output)
-                            if not result.success:
-                                raise RuntimeError(result.error)
-                            provenance = result.data
-                        job.update(status='succeeded', provenance=provenance, completedAt=time.time())
+                        prepare(preparing)
                     except Exception as exc:
-                        job.update(status='failed', error=str(exc), traceback=traceback.format_exc())
-                    write_json(path, job)
+                        for path, job in selected:
+                            job.update(status='failed', phase='preparation_failed', error=str(exc),
+                                       inference_started=False, completedAt=time.time(), traceback=traceback.format_exc())
+                            write_json(path, job)
+                        continue
+
+                    def execute_one(item):
+                        path, job = item
+                        job.update(status='processing', startedAt=job.get('startedAt', time.time()))
+                        job['phase'] = 'inference'
+                        job['inference_started'] = False
+                        job['timings'] = {'queue_wait_seconds': max(0, time.time() - job['createdAt'] / 1000),
+                                          'preparation_seconds': preparation_seconds if path == owner_path and not was_prepared else 0,
+                                          'model_reused': was_prepared, 'batch_size': len(selected)}
+                        write_json(path, job)
+                        began = time.monotonic()
+                        try:
+                            output = path.parent / ('output.mp4' if lease == 'h3' else 'output.png' if lease == 'flux3' else 'output.wav')
+                            if output.exists() and model != 'local-h3-ref2va':
+                                probe_media(output)
+                                provenance = json.loads(output.with_suffix('.provenance.json').read_text(encoding='utf8'))
+                                if lease == 'h3':
+                                    provenance['timing'] = verify_h3_output(output, job['input'].get('wmDuration'))
+                            else:
+                                job['inference_started'] = True
+                                write_json(path, job)
+                                if lease == 'flux3':
+                                    result = execute_flux3(job['input'], output, flux_url)
+                                elif model == 'local-h3-ref2va':
+                                    result = execute_ref2va(job['input'], output)
+                                elif lease == 'h3':
+                                    result = execute_h3_with_duration(job['input'], output)
+                                else:
+                                    result = execute_narration(job['input'], output)
+                                if not result.success:
+                                    raise RuntimeError(result.error)
+                                provenance = result.data
+                            job['timings']['execution_seconds'] = time.monotonic() - began
+                            provenance['worker_timing'] = dict(job['timings'])
+                            job.update(status='succeeded', phase='completed', provenance=provenance, completedAt=time.time())
+                        except Exception as exc:
+                            job.update(status='failed', phase='failed', error=str(exc), traceback=traceback.format_exc())
+                        write_json(path, job)
+                    run_group(selected, execute_one, policy.tts_concurrency if lease == 'drama3' else 1)
                 if lease == 'h3':
                     release_comfy()
                 elif lease == 'flux3':
@@ -124,6 +160,11 @@ def main():
             # Another integration owns the GPU: keep queued jobs, retry later.
             (root / 'worker-status.json').write_text(json.dumps({'waiting': str(exc)}), encoding='utf8')
             time.sleep(5)
+
+
+def main():
+    with ExitStack() as resources:
+        _run(resources)
 
 
 if __name__ == '__main__':
