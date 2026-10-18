@@ -25,7 +25,10 @@ import {
   buildTextCard,
   resolveCanvasTextReferences,
 } from '@/core/beatcanvas/text-nodes';
-import { buildGenerationTakes } from '@/core/beatcanvas/generation-history';
+import {
+  buildGenerationTakes,
+  resolvePinnedGenerationOutputId,
+} from '@/core/beatcanvas/generation-history';
 import {
   isCanvasDraftCard,
   isCanvasOutputCard,
@@ -192,21 +195,13 @@ export const buildGenerationCardPresentation = ({
         ) || left.id.localeCompare(right.id)
     );
   const latestOutput = orderedOutputs[orderedOutputs.length - 1] ?? null;
-  const pinnedOutput = card.pinnedOutputId
-    ? (orderedOutputs.find(
-        (output) =>
-          output.id === card.pinnedOutputId &&
-          output.status === 'succeeded' &&
-          Boolean(output.url || output.resultText)
-      ) ?? null)
-    : null;
-  const latestSucceededOutput = [...orderedOutputs]
-    .reverse()
-    .find(
-      (output) =>
-        output.status === 'succeeded' &&
-        Boolean(output.url || output.resultText)
-    );
+  const selectedOutputId = resolvePinnedGenerationOutputId({
+    outputs: orderedOutputs,
+    pinnedOutputId: card.pinnedOutputId,
+  });
+  const selectedOutput = orderedOutputs.find(
+    (output) => output.id === selectedOutputId && output.status === 'succeeded'
+  );
   const isAnalysis = card.generationMode === 'analysis';
   const analysisReportCount = isAnalysis
     ? orderedOutputs.filter(
@@ -219,13 +214,10 @@ export const buildGenerationCardPresentation = ({
     isAnalysis,
     latestOutputUrl: isAnalysis
       ? null
-      : (pinnedOutput?.url ?? latestSucceededOutput?.url ?? card.url ?? null),
+      : (selectedOutput?.url ?? card.url ?? null),
     latestOutputText: isAnalysis
       ? null
-      : (pinnedOutput?.resultText ??
-        latestSucceededOutput?.resultText ??
-        card.resultText ??
-        null),
+      : (selectedOutput?.resultText ?? card.resultText ?? null),
     analysisReportCount,
     takes: buildGenerationTakes({
       outputs: orderedOutputs,
@@ -1273,6 +1265,7 @@ export function useBeatCanvasReactFlowAdapter({
       setCanvasCard(completedOutputCard);
       setCanvasCard({
         ...draftCard,
+        pinnedOutputId: outputCardId,
         url: isAnalysisOutput ? null : (url ?? null),
         resultText: isAnalysisOutput ? null : resultText,
       });
