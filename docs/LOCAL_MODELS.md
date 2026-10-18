@@ -340,6 +340,37 @@ placed a pinned output URL on the generation config card. MCP now clears that
 projection on config writes and retains media ownership on the existing output
 node, so refreshing a completed task does not replay a URL without an Asset ID.
 
+## Local worker residency and TTS admission
+
+The workstation worker keeps the current logical model loaded for up to120s
+after its queue becomes empty. A queued different model ends the grace period
+immediately. The existing single-GPU lease remains held throughout; no H3/FLUX
+inference overlaps with TTS. Model preparation runs once per resident group.
+In particular, a resident Drama service must not be passed through H3's
+driver-wide cold-release threshold: its own VRAM is already occupied legitimately.
+
+Optional `worker` settings in the existing local-runtime configuration:
+`{"idleSeconds":120,"ttsConcurrency":1}`. Idle time accepts0..600s; TTS
+concurrency accepts1..4 and defaults to1. Values above1 dispatch independent
+same-model narration requests concurrently to the existing SGLang service; they
+do not combine different texts into one paragraph or change per-take parameters.
+Tune concurrency on the actual GPU before increasing it:32GB hardware may have
+little free memory once weights, KV cache and vocoder are loaded. Input admission
+is distinct from measured GPU batching. No speedup is claimed from configuration.
+
+Each job keeps its own status, output and failure, plus worker_timing provenance
+(queue wait, model preparation, execution, reuse and admitted group size).
+Interrupted in-flight TTS remains failed for explicit reconciliation, never
+automatically sampled again. Submit an approved batch before waiting on its
+individual outputs to amortize initialization; an idle timeout is a fallback for
+short gaps, not a reason to keep changing models between shots.
+
+Worker sources are loaded by newly launched workers; already running workers
+retain their original code. Wait for active jobs and owned workers to finish
+before adopting an update. Web/MCP routes and authentication are unchanged.
+Model-free regression: `python -m unittest discover -s scripts -p test_local_worker.py -v`.
+Real throughput/concurrency, GPU memory peaks and deployment are separate checks.
+
 ## Validation in this installation
 
 The browser submitted one H3 job and one Drama 3 job. The latter waited for H3,
