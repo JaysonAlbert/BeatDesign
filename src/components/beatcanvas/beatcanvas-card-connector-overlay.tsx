@@ -1,5 +1,6 @@
 import type { CanvasCardMediaType } from '@/core/beatcanvas/canvas-types';
-import { ImageIcon, Plus, Upload, Video } from 'lucide-react';
+import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
+import { FileText, ImageIcon, Plus, Upload, Video } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   useCanvasEngine,
@@ -37,6 +38,7 @@ const isCardShapeType = (shapeType: string) =>
   shapeType === GENERATION_CARD_NODE_TYPE;
 
 export function CardConnectorOverlay() {
+  const t = useTranslations('AppShell.studio.textNode');
   const { editor } = useCanvasEngine();
   const {
     cards,
@@ -44,6 +46,7 @@ export function CardConnectorOverlay() {
     onUploadImage,
     onCreateGenerationFromConnector,
     onCreateGenerationAtPoint,
+    onCreateTextNodeAtPoint,
   } = useCanvasFrontLayer();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredConnectorKey, setHoveredConnectorKey] = useState<string | null>(
@@ -487,6 +490,20 @@ export function CardConnectorOverlay() {
             >
               <Video aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
               {labels.videoModeLabel}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              aria-label={t('create')}
+              className={menuItemClassName}
+              onClick={() => {
+                onCreateTextNodeAtPoint(createMenu.pagePoint);
+                setCreateMenu(null);
+              }}
+            >
+              <FileText aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
+              {t('defaultName')}
             </button>
           </div>
           <div role="separator" className="mx-2 my-1.5 h-px bg-white/[0.07]" />

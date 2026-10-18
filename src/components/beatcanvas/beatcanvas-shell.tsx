@@ -754,6 +754,9 @@ export function BeatCanvasShell({
       onUndoCanvas: undoCanvas,
       onRedoCanvas: redoCanvas,
       onCreateImageDraft: () => handleCreatePromptDraft('image'),
+      onCreateTextNodeAtPoint: (pagePoint) => {
+        insertTextCard({ frame: { ...pagePoint, w: 420, h: 360 } });
+      },
       onTextNodeEditStart: recordCanvasHistory,
       onTextNodeChange: (id, patch) => {
         const current = canvasCardsRef.current[id];
@@ -814,6 +817,7 @@ export function BeatCanvasShell({
       handleAttachCanvasReference,
       handleCreateGenerationFromConnector,
       handleCreateGenerationAtPoint,
+      insertTextCard,
       handleDetachCanvasReference,
       handleReorderCanvasReferences,
       handlePinGenerationOutput,
