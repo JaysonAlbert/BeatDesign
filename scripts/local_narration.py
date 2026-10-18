@@ -24,8 +24,11 @@ def describe_narration(inputs, probe):
     text = inputs.get('prompt')
     if not isinstance(text, str) or not text.strip() or len(text) > 200:
         raise ValueError('Narration requires 1-200 characters')
+    tokens=inputs.get('max_new_tokens', 256)
+    if type(tokens) is not int or not 32 <= tokens <= 256:
+        raise ValueError('This pinned Drama service supports 32-256 max_new_tokens')
     payload = {'input': text, 'response_format': 'wav', 'stream': False,
-               'max_new_tokens': inputs.get('max_new_tokens', 512),
+               'max_new_tokens': tokens,
                'temperature': inputs.get('temperature', 0.8), 'top_p': inputs.get('top_p', 0.9)}
     refs = inputs.get('_localReferences', [])
     ref_text = inputs.get('reference_text')

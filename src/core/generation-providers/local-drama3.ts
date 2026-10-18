@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const LOCAL_NARRATION_MAX_TEXT = 200;
 export const localNarrationParameters = z.object({
   reference_text: z.string().trim().min(1).max(4000).optional(),
-  max_new_tokens: z.number().int().min(32).max(1024).optional(),
+  max_new_tokens: z.number().int().min(32).max(256).optional(),
   temperature: z.number().min(0).max(2).optional(),
   top_p: z.number().gt(0).max(1).optional(),
 }).strict();

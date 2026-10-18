@@ -29,6 +29,8 @@ class NarrationTests(unittest.TestCase):
             path.write_bytes(b'changed');self.assertNotEqual(describe_narration(inputs, self.probe)[2], fingerprint)
 
     def test_reference_limits_and_pairing(self):
+        with self.assertRaises(ValueError):describe_narration({'prompt':'Hi','max_new_tokens':257},self.probe)
+        self.assertEqual(describe_narration({'prompt':'Hi'},self.probe)[0]['max_new_tokens'],256)
         with self.assertRaises(ValueError):describe_narration({'prompt':'Hello', 'reference_text':'Ref'}, self.probe)
         with self.assertRaises(ValueError):describe_narration({'prompt':'x'*201}, self.probe)
         with tempfile.TemporaryDirectory() as root:
