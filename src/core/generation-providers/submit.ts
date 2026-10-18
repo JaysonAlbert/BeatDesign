@@ -270,9 +270,11 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   for (const [assetId, asset] of uniqueAssets) {
     if (!asset)
       throw new Error(`Asset ${assetId} does not belong to this project.`);
-    if (['local-h3-ref2va', 'local-flux3-klein'].includes(generation.modelId)) {
+    if (['local-h3-ref2va', 'local-flux3-klein', 'local-drama3'].includes(generation.modelId)) {
       if (generation.modelId === 'local-flux3-klein' && asset.type !== 'image')
         throw new Error('Local FLUX 3 accepts image references only.');
+      if (generation.modelId === 'local-drama3' && asset.type !== 'audio')
+        throw new Error('Local Drama 3 accepts audio references only.');
       if (asset.storageProvider !== 'local') throw new Error('Import local model references into local project storage first.');
       const file = await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
       const candidate = { name: asset.filename ?? '', type: asset.mimeType ?? '', size: file.size };
@@ -381,7 +383,7 @@ export async function submitAssetFirstGeneration({
         references.push({ assetId: asset.id, type: asset.type, path });
       }
       Object.assign(input, { _localReferencePaths: paths });
-      if (['local-h3-ref2va', 'local-flux3-klein'].includes(generation.modelId)) Object.assign(input, { _localReferences: references });
+      if (['local-h3-ref2va', 'local-flux3-klein', 'local-drama3'].includes(generation.modelId)) Object.assign(input, { _localReferences: references });
     }
     validateGenerationModelInput({ modelId: generation.modelId, input });
     const result = await submitEffectGeneration({

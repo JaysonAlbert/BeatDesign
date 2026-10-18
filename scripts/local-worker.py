@@ -35,7 +35,7 @@ def main():
     from local_h3_duration import execute_h3_with_duration, verify_h3_output
     from local_ref2va import execute_ref2va
     from local_flux3 import ensure_flux3, execute_flux3, release_flux3
-    from tools.audio.drama3_local_tts import Drama3LocalTTS
+    from local_narration import execute_narration
     settings = json.loads(Path(args.settings).read_text(encoding='utf8')) if args.settings else {}
     flux_config = settings.get('flux3')
 
@@ -106,7 +106,7 @@ def main():
                                 if _ready(bootstrap()['comfyui_url'] + '/system_stats'):
                                     release_comfy()
                                 ensure_drama(notify)
-                                result = Drama3LocalTTS().execute({'text': inputs['prompt'], 'output_path': str(output)})
+                                result = execute_narration(inputs, output)
                             if not result.success:
                                 raise RuntimeError(result.error)
                             provenance = result.data

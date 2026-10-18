@@ -49,7 +49,11 @@ export function listGenerationModelDescriptors(): GenerationModelDescriptor[] {
   return provider.modelBindings.flatMap<GenerationModelDescriptor>((binding) => {
     const effect = getRegisteredEffectById(binding.effectId);
     if (!effect) return [];
-    if (effect.type === 4) return [{ id: binding.modelId, name: effect.name, providerId: provider.id, kind: 'audio', available: true, parameterSchema: effect.inputSchema, defaultParameters: {}, referenceSchema: { image: { min: 0, max: 0 }, video: { min: 0, max: 0 }, audio: { min: 0, max: 0 } } }];
+    if (effect.type === 4) return [{ id: binding.modelId, name: effect.name, providerId: provider.id, kind: 'audio', available: true, parameterSchema: effect.inputSchema,
+      defaultParameters: { max_new_tokens: 512, temperature: 0.8, top_p: 0.9 },
+      referenceSchema: { image: { min: 0, max: 0 }, video: { min: 0, max: 0 }, audio: { min: 0, max: 1 },
+        maxTotal: 1, audioDurationSeconds: { minExclusive: 0, max: 30 },
+        requiresReferenceText: true, note: 'One optional project-owned audio Asset and its exact transcript reuse the voice. Omit both for an unconditioned voice.' } }];
     if (binding.modelId === VIDEO_ANALYSIS_MODEL_ID) {
       return [
         {

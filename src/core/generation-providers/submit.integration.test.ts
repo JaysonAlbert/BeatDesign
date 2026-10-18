@@ -337,6 +337,29 @@ test('local narration enforces the short-text boundary and is discoverable as au
   );
 });
 
+test('fixed narration voice uses a project-owned audio Asset and identical UI/MCP compilation', async () => {
+  const { importLocalProjectAsset } = await import('@/core/projects/import-local-asset');
+  const project = await createProject({ name: 'Fixed voice' });
+  const other = await createProject({ name: 'Other voice owner' });
+  const audioPath = join(directory, 'fixed-voice.wav');
+  await writeFile(audioPath, Buffer.from('RIFFfixtureWAVE'));
+  const voice = await importLocalProjectAsset({ projectId: project.id, filePath: audioPath });
+  const foreign = await importLocalProjectAsset({ projectId: other.id, filePath: audioPath });
+  const generation = { version: 2, projectId: project.id, modelId: 'local-drama3', mode: 'audio', prompt: 'Come back, cat!',
+    references: [{assetId: voice.id, role: 'audio_track'}],
+    parameters: {reference_text: 'A lovely day.', max_new_tokens: 512, _localReferences: [{path:'C:/forged.wav',type:'audio'}]} };
+  assert.equal((await preflightAssetFirstGeneration(generation)).expectedUploadCount, 0);
+  await submitAssetFirstGeneration({generation,origin:'ui'});
+  const ui = inputs.at(-1) as Record<string,unknown>;
+  await submitAssetFirstGeneration({generation,origin:'mcp'});
+  assert.deepEqual(inputs.at(-1),ui);
+  const refs = ui._localReferences as Array<{assetId:string;path:string;type:string}>;
+  assert.equal(refs[0].assetId,voice.id); assert.equal(refs[0].type,'audio');
+  assert.ok(!refs[0].path.includes('forged'));
+  await assert.rejects(()=>preflightAssetFirstGeneration({...generation,references:[{assetId:foreign.id,role:'audio_track'}]}), /does not belong/);
+  await assert.rejects(()=>preflightAssetFirstGeneration({...generation,parameters:{}}), /together/);
+});
+
 test('local Ref2VA delivers ordered typed project references identically from UI and MCP without upload', async () => {
   const { importLocalProjectAsset } = await import('@/core/projects/import-local-asset');
   const { copyFile } = await import('node:fs/promises');

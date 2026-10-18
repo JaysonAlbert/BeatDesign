@@ -8,6 +8,7 @@ export const BEATDESIGN_MCP_TOOL_NAMES = [
   'bdesign_project_open',
   'bdesign_asset_list',
   'bdesign_asset_get',
+  'bdesign_asset_upload',
   'bdesign_asset_import',
   'bdesign_asset_extract_frame',
   'bdesign_canvas_get',
