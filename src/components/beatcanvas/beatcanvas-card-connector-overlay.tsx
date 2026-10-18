@@ -1,6 +1,7 @@
 import type { CanvasCardMediaType } from '@/core/beatcanvas/canvas-types';
-import { ImageIcon, Plus, Upload, Video } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
+import { FileText, ImageIcon, Plus, Upload, Video } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   useCanvasEngine,
   useCanvasEngineValue,
@@ -29,7 +30,7 @@ interface CreateMenuState {
 
 const PORT_SIZE = 16;
 const PORT_ACTIVE_SIZE = 22;
-const MENU_WIDTH = 276;
+const MENU_WIDTH = 248;
 
 const isCardShapeType = (shapeType: string) =>
   shapeType === ASSET_CARD_NODE_TYPE ||
@@ -37,6 +38,7 @@ const isCardShapeType = (shapeType: string) =>
   shapeType === GENERATION_CARD_NODE_TYPE;
 
 export function CardConnectorOverlay() {
+  const t = useTranslations('AppShell.studio.textNode');
   const { editor } = useCanvasEngine();
   const {
     cards,
@@ -44,6 +46,7 @@ export function CardConnectorOverlay() {
     onUploadImage,
     onCreateGenerationFromConnector,
     onCreateGenerationAtPoint,
+    onCreateTextNodeAtPoint,
   } = useCanvasFrontLayer();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [hoveredConnectorKey, setHoveredConnectorKey] = useState<string | null>(
@@ -54,6 +57,32 @@ export function CardConnectorOverlay() {
   const [createMenu, setCreateMenu] = useState<CreateMenuState | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Measure the actual panel so every entry stays reachable near canvas edges.
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    const overlay = overlayRef.current;
+    if (!createMenu || !menu || !overlay) return;
+    const previousFocus = document.activeElement;
+    const positionMenu = () => {
+      const { width, height } = overlay.getBoundingClientRect();
+      const inset = 8;
+      menu.style.maxWidth = `${Math.max(0, width - inset * 2)}px`;
+      menu.style.maxHeight = `${Math.max(0, height - inset * 2)}px`;
+      menu.style.left = `${Math.max(inset, Math.min(createMenu.viewportPoint.x + 8, width - menu.offsetWidth - inset))}px`;
+      menu.style.top = `${Math.max(inset, Math.min(createMenu.viewportPoint.y + 8, height - menu.offsetHeight - inset))}px`;
+    };
+    positionMenu();
+    menu.focus({ preventScroll: true });
+    const observer = new ResizeObserver(positionMenu);
+    observer.observe(overlay);
+    return () => {
+      observer.disconnect();
+      if (menu.contains(document.activeElement) && previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+        previousFocus.focus({ preventScroll: true });
+      }
+    };
+  }, [createMenu]);
 
   const selectedIds = useCanvasEngineValue(
     (currentEditor) => currentEditor.getSelectedShapeIds(),
@@ -188,7 +217,8 @@ export function CardConnectorOverlay() {
       if (
         active instanceof HTMLInputElement ||
         active instanceof HTMLTextAreaElement ||
-        active instanceof HTMLSelectElement
+        active instanceof HTMLSelectElement ||
+        (active instanceof HTMLElement && active.isContentEditable)
       ) {
         return;
       }
@@ -392,12 +422,8 @@ export function CardConnectorOverlay() {
     }
   }
 
-  const menuLeft = createMenu
-    ? Math.max(12, createMenu.viewportPoint.x + 14)
-    : 0;
-  const menuTop = createMenu
-    ? Math.max(12, createMenu.viewportPoint.y - 42)
-    : 0;
+  const menuItemClassName =
+    'group flex min-h-10 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-[14px] font-medium leading-5 text-[var(--beat-text-1)] outline-none transition-colors duration-100 hover:bg-white/[0.07] focus-visible:bg-white/[0.07] focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--beat-accent)] motion-reduce:transition-none';
 
   return (
     <div
@@ -410,43 +436,90 @@ export function CardConnectorOverlay() {
       {createMenu && (
         <div
           ref={menuRef}
-          className="pointer-events-auto absolute overflow-hidden rounded-[var(--beat-radius-sm)] border border-white/10 bg-[var(--beat-surface-2)]/95 p-1.5 shadow-[0_24px_64px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+          role="menu"
+          aria-label={labels.createGenerationCardLabel}
+          tabIndex={-1}
+          className="pointer-events-auto absolute overflow-y-auto overscroll-contain rounded-xl border border-white/[0.08] bg-[color-mix(in_srgb,var(--beat-surface-2),white_4%)] p-1.5 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.025)] outline-none"
           style={{
-            left: menuLeft,
-            top: menuTop,
             width: MENU_WIDTH,
           }}
           onPointerDown={(event) => event.stopPropagation()}
+          onDoubleClick={(event) => event.stopPropagation()}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onKeyDown={(event) => {
+            // Menu navigation must not trigger the canvas's node shortcuts.
+            event.stopPropagation();
+            const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+            const index = items.indexOf(document.activeElement as HTMLButtonElement);
+            let nextIndex: number;
+            switch (event.key) {
+              case 'ArrowDown': nextIndex = (index + 1) % items.length; break;
+              case 'ArrowUp': nextIndex = (index <= 0 ? items.length : index) - 1; break;
+              case 'Home': nextIndex = 0; break;
+              case 'End': nextIndex = items.length - 1; break;
+              case 'Tab': setCreateMenu(null); return;
+              default: return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            items[nextIndex]?.focus();
+          }}
         >
-          <div className="grid grid-cols-3 gap-1">
+          <div role="group" className="space-y-0.5">
             <button
               type="button"
+              role="menuitem"
+              tabIndex={-1}
               aria-label={labels.createImageGenerationCardLabel}
-              className="flex h-10 items-center justify-center gap-1.5 rounded-[10px] px-2 text-[12px] font-semibold text-[var(--beat-text-1)] transition hover:bg-[var(--beat-accent)]/10 hover:text-[#ff9a62]"
+              className={menuItemClassName}
               onClick={() => handleCreateFromMenu('image')}
             >
-              <ImageIcon aria-hidden="true" size={15} strokeWidth={2} />
+              <ImageIcon aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
               {labels.imageModeLabel}
             </button>
             <button
               type="button"
+              role="menuitem"
+              tabIndex={-1}
               aria-label={labels.createVideoGenerationCardLabel}
-              className="flex h-10 items-center justify-center gap-1.5 rounded-[10px] px-2 text-[12px] font-semibold text-[var(--beatcanvas-ink)] transition hover:bg-white/[0.06]"
+              className={menuItemClassName}
               onClick={() => handleCreateFromMenu('video')}
             >
-              <Video aria-hidden="true" size={15} strokeWidth={2} />
+              <Video aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
               {labels.videoModeLabel}
             </button>
             <button
               type="button"
+              role="menuitem"
+              tabIndex={-1}
+              aria-label={t('create')}
+              className={menuItemClassName}
+              onClick={() => {
+                onCreateTextNodeAtPoint(createMenu.pagePoint);
+                setCreateMenu(null);
+              }}
+            >
+              <FileText aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
+              {t('defaultName')}
+            </button>
+          </div>
+          <div role="separator" className="mx-2 my-1.5 h-px bg-white/[0.07]" />
+          <div role="group">
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
               aria-label={labels.uploadImageLabel}
-              className="flex h-10 items-center justify-center gap-1.5 rounded-[10px] px-2 text-[12px] font-semibold text-[var(--beatcanvas-ink)] transition hover:bg-white/[0.06]"
+              className={menuItemClassName}
               onClick={() => {
                 onUploadImage();
                 setCreateMenu(null);
               }}
             >
-              <Upload aria-hidden="true" size={15} strokeWidth={2} />
+              <Upload aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
               {labels.connectorUploadLabel}
             </button>
           </div>

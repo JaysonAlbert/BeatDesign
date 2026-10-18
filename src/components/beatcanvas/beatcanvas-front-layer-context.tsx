@@ -136,6 +136,7 @@ export type BeatCanvasFrontLayerValue = {
   onUndoCanvas: () => void;
   onRedoCanvas: () => void;
   onCreateImageDraft: () => void;
+  onCreateTextNodeAtPoint: (pagePoint: { x: number; y: number }) => void;
   onTextNodeChange: (
     id: string,
     patch: {

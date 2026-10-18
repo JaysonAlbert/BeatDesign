@@ -18,6 +18,14 @@ test('normalizes browser media destinations for dynamic project assets', () => {
   assert.equal(normalized.url, request.url);
 });
 
+test('thumbnail images reach the dynamic API handler instead of static-asset handling', () => {
+  const request = new Request('http://127.0.0.1:3020/api/app/projects/project-1/assets/asset-1/thumbnail', {
+    headers: { 'sec-fetch-dest': 'image' },
+  });
+  assert.equal(normalizeProjectAssetMediaRequest(request).headers.get('sec-fetch-dest'), null);
+  assert.equal(shouldNormalizeProjectAssetMediaRequest({ method: 'GET', destination: 'image', url: '/api/app/projects/p/assets/a/anything-else' }), false);
+});
+
 test('leaves ordinary routes and non-media requests unchanged', () => {
   const pageImage = new Request('http://127.0.0.1:3020/logo.png', {
     headers: { 'sec-fetch-dest': 'image' },

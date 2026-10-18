@@ -49,7 +49,7 @@ export function BeatCanvasComposerModelPicker({
       ref={containerRef}
       className={cn(
         composerFieldSlotClassName,
-        !isBatchTone && 'min-w-0 max-w-full',
+        !isBatchTone && 'min-w-0 max-w-full flex-1',
         isBatchTone && 'lg:max-w-none'
       )}
     >
@@ -64,7 +64,7 @@ export function BeatCanvasComposerModelPicker({
           composerFieldButtonClassName,
           isBatchTone
             ? 'min-h-[44px] w-full rounded-none border-0 bg-transparent px-0 py-0 hover:bg-transparent'
-            : 'w-fit max-w-full'
+            : 'w-full max-w-full'
         )}
       >
         <span className="flex min-w-0 items-center gap-2">

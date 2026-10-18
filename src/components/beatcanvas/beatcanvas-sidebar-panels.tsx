@@ -1,3 +1,4 @@
+import { CachedVideoPoster } from './cached-video-poster';
 import {
   type RecentAsset,
   fetchRecentAssets,
@@ -144,12 +145,9 @@ function AssetThumbnail({
       className="group relative aspect-square overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.04] transition-all duration-200 hover:scale-[1.04] hover:border-[var(--beat-graph)] hover:shadow-[0_6px_18px_rgba(0,0,0,0.35)] active:scale-[0.98]"
     >
       {isVideo ? (
-        <video
+        <CachedVideoPoster
           src={src}
-          aria-label={alt}
-          muted
-          playsInline
-          preload="metadata"
+          alt={alt}
           className="h-full w-full object-cover"
         />
       ) : (

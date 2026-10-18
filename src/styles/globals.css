@@ -749,6 +749,46 @@ hr {
   border: 1px solid var(--home-input-hover-bd, #232323) !important;
 }
 
+/* Canvas prompt: quiet dark scrollbar without native arrow buttons. */
+.beat-composer-prompt {
+  color-scheme: dark;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(246, 246, 244, 0.22) transparent;
+}
+
+@supports selector(::-webkit-scrollbar) {
+  .beat-composer-prompt {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+
+  .beat-composer-prompt::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .beat-composer-prompt::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .beat-composer-prompt::-webkit-scrollbar-thumb {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: rgba(246, 246, 244, 0.22);
+    background-clip: padding-box;
+  }
+
+  .beat-composer-prompt::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(246, 246, 244, 0.36);
+  }
+
+  .beat-composer-prompt::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
 /* Scrollbar */
 .scrollbar::-webkit-scrollbar {
   width: 5px;
