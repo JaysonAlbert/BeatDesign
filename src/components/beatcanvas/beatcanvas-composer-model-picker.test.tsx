@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { BeatCanvasComposerModelPicker } from './beatcanvas-composer-model-picker';
 
-test('default canvas model picker follows the selected model label width', () => {
+test('default canvas model picker fits the available footer width', () => {
   const html = renderToStaticMarkup(
     <BeatCanvasComposerModelPicker
       activeDraftId="draft-1"
@@ -27,6 +27,6 @@ test('default canvas model picker follows the selected model label width', () =>
   );
 
   assert.match(html, /min-w-0 max-w-full/);
-  assert.match(html, /w-fit max-w-full/);
+  assert.match(html, /w-full max-w-full/);
   assert.doesNotMatch(html, /lg:min-w-\[196px\]/);
 });
