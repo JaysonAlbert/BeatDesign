@@ -347,7 +347,7 @@ test('fixed narration voice uses a project-owned audio Asset and identical UI/MC
   const foreign = await importLocalProjectAsset({ projectId: other.id, filePath: audioPath });
   const generation = { version: 2, projectId: project.id, modelId: 'local-drama3', mode: 'audio', prompt: 'Come back, cat!',
     references: [{assetId: voice.id, role: 'audio_track'}],
-    parameters: {reference_text: 'A lovely day.', max_new_tokens: 512, _localReferences: [{path:'C:/forged.wav',type:'audio'}]} };
+    parameters: {reference_text: 'A lovely day.', max_new_tokens: 256, _localReferences: [{path:'C:/forged.wav',type:'audio'}]} };
   assert.equal((await preflightAssetFirstGeneration(generation)).expectedUploadCount, 0);
   await submitAssetFirstGeneration({generation,origin:'ui'});
   const ui = inputs.at(-1) as Record<string,unknown>;

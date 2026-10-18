@@ -362,7 +362,7 @@ only explicitly supplied bytes and does not expose the blocked host-path import
 tool or change gateway/HTTP authentication. Keep upload receipts for recovery.
 
 `bdesign_audio_generate` accepts `referenceAssetId` plus its verbatim `referenceText`,
-and optional `maxNewTokens` (32–1024), `temperature` (0–2), and `topP` (0–1, exclusive zero).
+and optional `maxNewTokens` (32–256, default 256), `temperature` (0–2), and `topP` (0–1, exclusive zero).
 Text remains limited to 200 characters per take. Omit both reference fields to
 retain unconditioned generation. UI/API asset-first requests use an `audio_track`
 reference and `reference_text`, `max_new_tokens`, `temperature`, `top_p` parameters.

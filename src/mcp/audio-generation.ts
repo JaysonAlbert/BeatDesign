@@ -6,7 +6,7 @@ export const audioGenerationInputSchema = z.object({
   text: z.string().trim().min(1).max(LOCAL_NARRATION_MAX_TEXT),
   referenceAssetId: z.string().min(1).max(200).optional(),
   referenceText: z.string().trim().min(1).max(4000).optional(),
-  maxNewTokens: z.number().int().min(32).max(1024).optional(),
+  maxNewTokens: z.number().int().min(32).max(256).optional(),
   temperature: z.number().min(0).max(2).optional(),
   topP: z.number().gt(0).max(1).optional(),
 }).strict().refine(v => Boolean(v.referenceAssetId) === Boolean(v.referenceText), {

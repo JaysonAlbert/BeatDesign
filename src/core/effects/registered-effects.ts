@@ -57,7 +57,7 @@ const buildLocalAudioEffect = (binding: GenerationProviderModelBinding, provider
   inputSchema: {
     prompt: { type: 'string', required: true, maxLength: 200 },
     reference_text: { type: 'string', required: false, maxLength: 4000 },
-    max_new_tokens: { type: 'number', required: false, minimum: 32, maximum: 1024 },
+    max_new_tokens: { type: 'number', required: false, minimum: 32, maximum: 256 },
     temperature: { type: 'number', required: false, minimum: 0, maximum: 2 },
     top_p: { type: 'number', required: false, exclusiveMinimum: 0, maximum: 1 },
   },
