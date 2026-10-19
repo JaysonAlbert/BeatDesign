@@ -4,6 +4,7 @@ This feature uses the existing local Project, Assets and Command Kernel. It adds
 organization metadata; it does not migrate production projects or run generation.
 The approved specification and plan are in `specs/001-canvas-project-organization/`.
 General upstream tracking: [Issue 29](https://github.com/BeatAPI/BeatDesign/issues/29).
+Implementation review: [fork draft PR 16](https://github.com/JaysonAlbert/BeatDesign/pull/16).
 
 ## User controls
 

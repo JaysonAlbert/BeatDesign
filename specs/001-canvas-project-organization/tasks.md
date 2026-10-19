@@ -65,7 +65,7 @@ Independent test: 两次独立实例、同键重试、跨项目拒绝、缺槽�
 - [X] T027 在 src/core/organization/persistence.test.ts、src/mcp/server.runtime.test.ts 验证跨进程 CAS、故障回滚、同键异内容、旧操作/undo 与删除竞态、MCP→UI revision。
 - [X] T028 在 scripts/seed-organization-fixture.ts、tests/e2e/organization.spec.ts 和 start-e2e.mjs 建独立 140 卡/双语键盘/缺槽示例，Windows 后台不闪窗。
 - [X] T029 运行 quickstart.md 的 typecheck/test/i18n/build、独立 MCP/浏览器/迁移检查，记录实际覆盖；组织过程 generation/upload/provider 计数为零。
-- [ ] T030 更新 docs/PROJECT_ORGANIZATION.md、PRODUCT_PLAN_AND_STATUS.md、SPEC_KIT.md 和 tasks.md，提交自有草稿 PR并附上验证；主实例/真实影片不迁移，视觉验收与合入部署分开。
+- [X] T030 更新 docs/PROJECT_ORGANIZATION.md、PRODUCT_PLAN_AND_STATUS.md、SPEC_KIT.md 和 tasks.md，提交自有草稿 PR并附上验证；主实例/真实影片不迁移，视觉验收与合入部署分开。
 
 ## Dependencies and parallel execution
 
