@@ -4,7 +4,10 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft — awaiting specification review
+**Status**: Approved for planning — 2026-10-20
+
+**Specification Review**: 用户明确回复“批准需求，进入技术方案”。此批准覆盖本需求范围和
+plan 阶段；不代表技术方案、实现、真实影片迁移或部署已经批准。
 
 **Input**: User description: "装一下spec-kit，然后按照spec-kit的流程来继续开发上述功能"。
 上述功能指 Assets 文件夹、Elements 共享参考、按镜头展开的 Canvas、版本收纳及工作流模板。
