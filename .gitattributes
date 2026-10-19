@@ -1,0 +1,3 @@
+# Preserve the official Spec Kit byte hashes across Windows checkouts.
+/.agents/skills/speckit-*/SKILL.md text eol=lf
+/.specify/** text eol=lf
