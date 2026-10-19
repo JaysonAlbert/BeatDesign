@@ -1,3 +1,12 @@
+import { createHash } from 'node:crypto';
+import { withDatabaseTransaction } from '@/core/db/transaction-context';
+import { requiresExplicitEnvelope } from '@/core/organization/command-contract';
+import {
+  saveOrganizationOperations,
+  prepareCanvasOrganizationOperations,
+} from '@/core/organization/service';
+import { applyWorkflowCommand } from '@/core/workflows/service';
+import { OrganizationValidationError } from '@/core/organization/organization-document';
 import {
   loadProjectTimeline,
   saveProjectTimeline,
@@ -44,6 +53,7 @@ const inFlightCommands = new Map<
   {
     commandId: string;
     commandType: BeatDesignCommand['type'];
+    requestHash: string;
     promise: Promise<BeatDesignCommandResult<BeatDesignCommandData>>;
   }
 >();
@@ -71,8 +81,9 @@ type PersistCommandInput = {
   command: BeatDesignCommand;
 };
 
-const timelineClipCount = (document: NonNullable<BeatDesignCommandData['timeline']>) =>
-  document.tracks.reduce((count, track) => count + track.clips.length, 0);
+const timelineClipCount = (
+  document: NonNullable<BeatDesignCommandData['timeline']>
+) => document.tracks.reduce((count, track) => count + track.clips.length, 0);
 
 async function syncExistingTimelineCanvasCard({
   projectId,
@@ -84,7 +95,8 @@ async function syncExistingTimelineCanvasCard({
   const cardId = timelineCanvasCardId(timeline.id);
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const state = await loadProjectWithLatestSnapshot({ projectId });
-    if (!state || !state.snapshot.cards.some((card) => card.id === cardId)) return null;
+    if (!state || !state.snapshot.cards.some((card) => card.id === cardId))
+      return null;
     const commandId = createCommandId();
     const envelope: BeatDesignCommandEnvelope<BeatDesignCommand> = {
       commandId,
@@ -112,7 +124,9 @@ async function syncExistingTimelineCanvasCard({
       documents: { canvas: state.snapshot },
     });
     if (!executed.ok || !executed.data.canvas) {
-      return executed.ok ? 'Canvas timeline node could not be synchronized.' : executed.message;
+      return executed.ok
+        ? 'Canvas timeline node could not be synchronized.'
+        : executed.message;
     }
     try {
       await saveProjectSnapshot({
@@ -143,13 +157,14 @@ export function validateExternalCommandAssetReferences({
   if (command.type !== 'canvas.apply') return;
 
   for (const operation of command.operations) {
+    if (operation.type === 'set_canvas_organization')
+      throw new BeatDesignCommandError(
+        'INVALID_COMMAND',
+        'External agents must use semantic Canvas organization operations.'
+      );
     if (operation.type === 'upsert_card') {
       const { card } = operation;
-      if (
-        card.kind === 'asset' &&
-        card.type !== 'timeline' &&
-        !card.assetId
-      ) {
+      if (card.kind === 'asset' && card.type !== 'timeline' && !card.assetId) {
         throw new BeatDesignCommandError(
           'INVALID_COMMAND',
           'External Canvas asset cards require a project assetId. Import or generate the asset first.'
@@ -186,11 +201,19 @@ async function persistBeatDesignCommandOnce({
 }: PersistCommandInput): Promise<
   BeatDesignCommandResult<BeatDesignCommandData>
 > {
+  const requestHash = commandFingerprint({
+    projectId,
+    origin,
+    commandId,
+    expectedRevision,
+    command,
+  });
   const cached = await loadCommandReceiptRecord({ projectId, idempotencyKey });
   if (cached) {
     if (
       cached.commandId !== commandId ||
-      cached.commandType !== command.type
+      cached.commandType !== command.type ||
+      (requiresExplicitEnvelope(command) && cached.requestHash !== requestHash)
     ) {
       return createCommandFailure({
         commandId,
@@ -234,9 +257,50 @@ async function persistBeatDesignCommandOnce({
     };
 
     let result: BeatDesignCommandResult<BeatDesignCommandData>;
-    if (normalizedCommand.type === 'project.update') {
-      const settings = await updateProjectSettings({ projectId, patch: normalizedCommand.patch, expectedRevision });
-      result = createCommandSuccess({ commandId, projectId, origin, changedIds: [projectId], revision: settings.settingsRevision, data: { projectSettings: settings } });
+    if (normalizedCommand.type === 'organization.apply') {
+      const saved = await saveOrganizationOperations(
+        projectId,
+        normalizedCommand.operations,
+        expectedRevision!
+      );
+      result = createCommandSuccess({
+        commandId,
+        projectId,
+        origin,
+        changedIds: saved.changedIds,
+        revision: saved.revision,
+        data: {
+          organization: saved.document,
+          organizationRevision: saved.revision,
+        },
+      });
+    } else if (normalizedCommand.type.startsWith('workflow.template.')) {
+      const saved = await applyWorkflowCommand(
+        projectId,
+        commandId,
+        normalizedCommand as import('@/core/organization/command-contract').WorkflowCommand,
+        expectedRevision!
+      );
+      result = createCommandSuccess<BeatDesignCommandData>({
+        commandId,
+        projectId,
+        origin,
+        ...saved,
+      });
+    } else if (normalizedCommand.type === 'project.update') {
+      const settings = await updateProjectSettings({
+        projectId,
+        patch: normalizedCommand.patch,
+        expectedRevision,
+      });
+      result = createCommandSuccess({
+        commandId,
+        projectId,
+        origin,
+        changedIds: [projectId],
+        revision: settings.settingsRevision,
+        data: { projectSettings: settings },
+      });
     } else if (normalizedCommand.type === 'canvas.apply') {
       const state = await loadProjectWithLatestSnapshot({ projectId });
       if (!state) {
@@ -248,8 +312,19 @@ async function persistBeatDesignCommandOnce({
           message: 'Project not found',
         });
       }
+      const preparedEnvelope = {
+        ...envelope,
+        command: {
+          ...normalizedCommand,
+          operations: await prepareCanvasOrganizationOperations(
+            projectId,
+            state.snapshot,
+            normalizedCommand.operations
+          ),
+        },
+      };
       const executed = executeBeatDesignCommand({
-        envelope,
+        envelope: preparedEnvelope,
         documents: { canvas: state.snapshot },
       });
       if (!executed.ok || !executed.data.canvas) return executed;
@@ -260,7 +335,9 @@ async function persistBeatDesignCommandOnce({
           typeof expectedRevision === 'number'
             ? expectedRevision
             : state.snapshotVersion,
-        allowEmpty: normalizedCommand.operations.some((operation) => operation.type === 'remove_card'),
+        allowEmpty: normalizedCommand.operations.some(
+          (operation) => operation.type === 'remove_card'
+        ),
       });
       result = { ...executed, revision: saved.version };
     } else {
@@ -306,21 +383,26 @@ async function persistBeatDesignCommandOnce({
       }
     }
 
-    return storeCommandReceipt({
+    return await storeCommandReceipt({
       projectId,
       idempotencyKey,
       commandId,
       origin,
       commandType: normalizedCommand.type,
+      requestHash,
       result,
     });
   } catch (error) {
-    if (error instanceof BeatDesignCommandError) {
+    if (
+      error instanceof BeatDesignCommandError ||
+      error instanceof OrganizationValidationError
+    ) {
       return createCommandFailure({
         commandId,
         projectId,
         origin,
         code: error.code,
+        revision: getConflictRevision(error),
         message: error.message,
       });
     }
@@ -337,8 +419,8 @@ async function persistBeatDesignCommandOnce({
           command.type === 'project.update'
             ? 'Project settings changed. Reload before saving.'
             : command.type === 'canvas.apply'
-            ? 'Project snapshot version conflict'
-            : 'Timeline version conflict',
+              ? 'Project snapshot version conflict'
+              : 'Timeline version conflict',
       });
     }
     if (error instanceof Error && error.message === 'Project not found') {
@@ -356,7 +438,9 @@ async function persistBeatDesignCommandOnce({
       origin,
       code: 'COMMAND_FAILED',
       message:
-        error instanceof Error ? error.message : 'The command could not be saved.',
+        error instanceof Error
+          ? error.message
+          : 'The command could not be saved.',
     });
   }
 }
@@ -364,7 +448,7 @@ async function persistBeatDesignCommandOnce({
 export function persistBeatDesignCommand({
   projectId,
   origin,
-  commandId = createCommandId(),
+  commandId,
   expectedRevision,
   idempotencyKey,
   command,
@@ -376,6 +460,31 @@ export function persistBeatDesignCommand({
   idempotencyKey?: string | null;
   command: BeatDesignCommand;
 }): Promise<BeatDesignCommandResult<BeatDesignCommandData>> {
+  if (
+    requiresExplicitEnvelope(command) &&
+    (!commandId?.trim() ||
+      !idempotencyKey?.trim() ||
+      !Number.isSafeInteger(expectedRevision) ||
+      expectedRevision! < 0)
+  )
+    return Promise.resolve(
+      createCommandFailure({
+        commandId: commandId ?? '',
+        projectId,
+        origin,
+        code: 'INVALID_COMMAND',
+        message:
+          'Organization commands require commandId, idempotencyKey and expectedRevision.',
+      })
+    );
+  commandId ??= createCommandId();
+  const requestHash = commandFingerprint({
+    projectId,
+    origin,
+    commandId,
+    expectedRevision,
+    command,
+  });
   if (
     command.type === 'editor.replace_document' &&
     origin !== 'ui' &&
@@ -414,7 +523,9 @@ export function persistBeatDesignCommand({
   if (existing) {
     if (
       existing.commandId !== commandId ||
-      existing.commandType !== command.type
+      existing.commandType !== command.type ||
+      (requiresExplicitEnvelope(command) &&
+        existing.requestHash !== requestHash)
     ) {
       return Promise.resolve(
         createCommandFailure({
@@ -429,15 +540,25 @@ export function persistBeatDesignCommand({
     return existing.promise;
   }
 
-  const run = () => persistBeatDesignCommandOnce({
-    projectId,
-    origin,
-    commandId,
-    expectedRevision,
-    idempotencyKey: stableIdempotencyKey,
-    command,
-  });
-  const promise = (command.type === 'project.update' ? enqueueSettingsCommand(run) : run()).finally(() => {
+  const run = () =>
+    withDatabaseTransaction(async () => {
+      const result = await persistBeatDesignCommandOnce({
+        projectId,
+        origin,
+        commandId,
+        expectedRevision,
+        idempotencyKey: stableIdempotencyKey,
+        command,
+      });
+      if (!result.ok) throw new CommandRollback(result);
+      return result;
+    }).catch((error) => {
+      if (error instanceof CommandRollback) return error.result;
+      throw error;
+    });
+  const promise = (
+    command.type === 'project.update' ? enqueueSettingsCommand(run) : run()
+  ).finally(() => {
     if (inFlightCommands.get(lockKey)?.promise === promise) {
       inFlightCommands.delete(lockKey);
     }
@@ -445,7 +566,30 @@ export function persistBeatDesignCommand({
   inFlightCommands.set(lockKey, {
     commandId,
     commandType: command.type,
+    requestHash,
     promise,
   });
   return promise;
+}
+
+class CommandRollback extends Error {
+  constructor(readonly result: BeatDesignCommandResult<BeatDesignCommandData>) {
+    super('Command rolled back');
+  }
+}
+function commandFingerprint(value: unknown): string {
+  const canonical = (v: any): any =>
+    Array.isArray(v)
+      ? v.map(canonical)
+      : v && typeof v === 'object'
+        ? Object.fromEntries(
+            Object.keys(v)
+              .sort()
+              .filter((k) => v[k] !== undefined)
+              .map((k) => [k, canonical(v[k])])
+          )
+        : v;
+  return createHash('sha256')
+    .update(JSON.stringify(canonical(value)))
+    .digest('hex');
 }

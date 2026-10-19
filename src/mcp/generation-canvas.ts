@@ -274,6 +274,8 @@ export function prepareCanvasGenerationSubmission({
     outputCard,
     request: {
       version: GENERATION_REQUEST_VERSION,
+      sourceSurface: 'canvas' as const,
+      sourceCardId: sourceCard.id,
       mode: reviewedMode,
       modelId: sourceCard.modelId,
       prompt: sourceCard.prompt,

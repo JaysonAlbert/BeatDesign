@@ -1,6 +1,6 @@
 # Command and Query Contracts
 
-2026-10-20，拟议接口；本阶段未注册任何新 API/MCP 工具。
+2026-10-20，当前特性接口约定；实现与实际验证见 ../verification.md。
 类型、字段和资源约束以 [data-model.md](../data-model.md) 为准。
 
 ## 1. 公共边界
@@ -92,7 +92,7 @@ instantiate 事务中核对明确 templateRevision、目标项目绑定、卡片
 | UI query | 关键输入/输出 |
 |---|---|
 | GET /api/app/projects/:id/organization | document + organizationRevision，未初始化为空 0，不写库 |
-| GET /api/app/projects/:id/organization/preview | 明确 operation 与 folderId/elementId；影响、冲突及相关 revision |
+| GET /api/app/projects/:id/organization-preview | 明确 operation 与 folderId/elementId；影响、冲突及相关 revision |
 | GET /api/app/projects/:id/assets | 新 GET；folderId、scope、query、cursor、limit → 去重 assets + nextCursor + revision |
 | GET /api/app/projects/:id/timeline-usage | timelineRevision、真实使用片段、采用来源与候选来源区分 |
 | GET /api/app/workflow-templates | 模板摘要列表 + ETag，支持可见面板条件刷新 |

@@ -5,6 +5,15 @@ import { normalizeTimelineDocument } from '@/core/editor/timeline-document';
 
 import { repairCanvasCardInput } from './canvas-card-repair';
 import { projectSettingsPatchSchema } from '@/core/projects/project-settings-contract';
+import {
+  canvasOrganizationOperationSchema,
+  canvasOrganizationSchema,
+} from '@/core/organization/canvas-organization';
+import {
+  organizationCommandSchema,
+  workflowCommandSchema,
+  requiresExplicitEnvelope,
+} from '@/core/organization/command-contract';
 import type { BeatDesignCommand } from './executor';
 
 const commandIdSchema = z.string().trim().min(1).max(200);
@@ -220,7 +229,7 @@ const timelineDocumentSchema = z.unknown().transform((value, context) => {
   }
 });
 
-export const canvasOperationSchema = z.discriminatedUnion('type', [
+const legacyCanvasOperationSchema = z.discriminatedUnion('type', [
   z
     .object({
       type: z.literal('upsert_text'),
@@ -308,6 +317,17 @@ export const canvasOperationSchema = z.discriminatedUnion('type', [
       lastRenderUrl: z.string().trim().max(4096).nullable().optional(),
       referenceCardIds: z.array(commandIdSchema).max(20).optional(),
       frame: frameSchema.optional(),
+    })
+    .strict(),
+]);
+
+export const canvasOperationSchema = z.union([
+  legacyCanvasOperationSchema,
+  canvasOrganizationOperationSchema,
+  z
+    .object({
+      type: z.literal('set_canvas_organization'),
+      organization: canvasOrganizationSchema.nullable(),
     })
     .strict(),
 ]);
@@ -499,29 +519,39 @@ export const editorOperationSchema = z.discriminatedUnion('type', [
     .strict(),
 ]);
 
-export const beatDesignCommandSchema: z.ZodType<BeatDesignCommand> =
-  z.discriminatedUnion('type', [
-    z.object({ type: z.literal('project.update'), patch: projectSettingsPatchSchema }).strict(),
-    z
-      .object({
-        type: z.literal('canvas.apply'),
-        operations: z.array(canvasOperationSchema).min(1).max(500),
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal('editor.apply'),
-        operations: z.array(editorOperationSchema).min(1).max(500),
-      })
-      .strict(),
-    z
-      .object({
-        type: z.literal('editor.replace_document'),
-        document: timelineDocumentSchema,
-      })
-      .strict(),
-    z.object({ type: z.literal('editor.validate') }).strict(),
-  ]);
+const legacyBeatDesignCommandSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('project.update'),
+      patch: projectSettingsPatchSchema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('canvas.apply'),
+      operations: z.array(canvasOperationSchema).min(1).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('editor.apply'),
+      operations: z.array(editorOperationSchema).min(1).max(500),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('editor.replace_document'),
+      document: timelineDocumentSchema,
+    })
+    .strict(),
+  z.object({ type: z.literal('editor.validate') }).strict(),
+]);
+
+export const beatDesignCommandSchema: z.ZodType<BeatDesignCommand> = z.union([
+  legacyBeatDesignCommandSchema,
+  organizationCommandSchema,
+  workflowCommandSchema,
+]);
 
 const commandRequestBaseSchema = z
   .object({
@@ -530,7 +560,30 @@ const commandRequestBaseSchema = z
     idempotencyKey: commandIdSchema.nullable().optional(),
     command: beatDesignCommandSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((request, context) => {
+    if (!requiresExplicitEnvelope(request.command)) return;
+    if (!request.commandId)
+      context.addIssue({
+        code: 'custom',
+        path: ['commandId'],
+        message: 'New organization commands require an explicit commandId.',
+      });
+    if (!request.idempotencyKey)
+      context.addIssue({
+        code: 'custom',
+        path: ['idempotencyKey'],
+        message:
+          'New organization commands require an explicit idempotencyKey.',
+      });
+    if (typeof request.expectedRevision !== 'number')
+      context.addIssue({
+        code: 'custom',
+        path: ['expectedRevision'],
+        message:
+          'New organization commands require an explicit expectedRevision.',
+      });
+  });
 
 /**
  * Public UI requests never choose their own origin. The transport boundary

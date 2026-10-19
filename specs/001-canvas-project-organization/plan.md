@@ -4,7 +4,8 @@
 **Spec**: [spec.md](spec.md)
 
 **Input**: 已于 2026-10-20 批准的四条用户故事。
-**Status**: Plan complete; awaiting review-plan. 仅方案，尚未实现。
+**Status**: Approved for tasks and implementation — 2026-10-20。
+用户回复“批准方案，继续任务拆解与实现”；不代表合入、部署或真实影片迁移获准。
 **Baseline**: `168bd75`；工作目录为当前独立 worktree。
 
 ## Summary

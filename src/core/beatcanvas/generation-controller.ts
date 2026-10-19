@@ -535,6 +535,7 @@ type RunDraftGenerationParams = {
     suppressFocus?: boolean;
   }) => string | null;
   suppressResultFocus?: boolean;
+  beforeGenerate?: () => Promise<void>;
   setStatusMessage: (message: string) => void;
   setErrorMessage: (message: string | null) => void;
   getStatusLabel: (status: StudioJobStatus) => string;
@@ -560,6 +561,7 @@ export const runDraftGeneration = async ({
   updateGenerationOutput,
   completeGenerationOutput,
   suppressResultFocus = false,
+  beforeGenerate,
   setStatusMessage,
   setErrorMessage,
   getStatusLabel,
@@ -570,7 +572,7 @@ export const runDraftGeneration = async ({
   generateEffectImpl = defaultGenerateEffect,
   pollEffectUntilCompleteImpl,
 }: RunDraftGenerationParams) => {
-  const currentCard = getCurrentCard(draftId);
+  let currentCard = getCurrentCard(draftId);
   if (
     !isCanvasDraftCard(currentCard) ||
     isDraftBusyStatus(currentCard.status)
@@ -581,6 +583,13 @@ export const runDraftGeneration = async ({
   let outputCardId: string | null = null;
 
   try {
+    await beforeGenerate?.();
+    currentCard = getCurrentCard(draftId);
+    if (
+      !isCanvasDraftCard(currentCard) ||
+      isDraftBusyStatus(currentCard.status)
+    )
+      return false;
     const initialRequest = await buildEffectInput(currentCard);
     const { modelId, model } = initialRequest;
     const input = initialRequest.input;
@@ -613,6 +622,8 @@ export const runDraftGeneration = async ({
         ? normalizeAssetFirstGenerationRequest({
             version: GENERATION_REQUEST_VERSION,
             projectId,
+            sourceSurface: 'canvas',
+            sourceCardId: submittedCard.id,
             mode: isCanvasAnalysisCard(submittedCard)
               ? 'analysis'
               : submittedCard.type,

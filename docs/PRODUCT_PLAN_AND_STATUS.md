@@ -15,6 +15,18 @@
 - Studio / Canvas / Editor redo 与 MCP 共用 asset-first 服务端预检及提交；浏览器接口使用逻辑 model ID，Provider 状态同步集中到服务端。
 - 本地 SQLite 启用 WAL 和 busy timeout；MCP 版本读取根 package 元数据。浏览器与 MCP 联动测试使用独立临时数据库，不调用付费 Provider。
 
+### Canvas 项目组织（独立特性分支，尚未合入/部署）
+
+2026-10-20 已按批准的 Spec Kit 需求和方案实现命名可折叠组、逻辑素材目录、
+固定版本的共享参考和本机工作流模板。它们与 UI/MCP 共用项目、素材、事务命令和
+revision；Timeline usage 读取真实采用，整理和实例化不会运行生成。
+支持英文/中文键盘入口，提供八镜 140 卡、505 素材的独立合成示例。
+
+功能说明和边界见 [PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md)，
+本次实际验证见 [verification.md](../specs/001-canvas-project-organization/verification.md)。
+源码实现、自动检查、浏览器验证、用户视觉验收、合入和部署分别记录。
+该分支没有整理真实影片，不代表正式发布或上游已接受。
+
 ## 1. BeatDesign 是什么
 
 BeatDesign 是一个免费、开源、本地优先的 AI 图片/视频创作工作台。它把 Studio、节点 Canvas、项目 Assets、本地视频 Editor、生成历史和 BeatAPI 连接放在同一个 Project 中。

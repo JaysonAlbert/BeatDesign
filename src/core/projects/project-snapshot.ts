@@ -1,4 +1,9 @@
 import type { CanvasCard } from '@/core/beatcanvas/canvas-types';
+import {
+  normalizeCanvasOrganization,
+  validateCanvasOrganization,
+  type CanvasOrganization,
+} from '@/core/organization/canvas-organization';
 
 export const MAX_PROJECT_SNAPSHOT_BYTES = 2 * 1024 * 1024;
 const MAX_PROJECT_SNAPSHOT_CARDS = 200;
@@ -50,7 +55,8 @@ export type ProjectSnapshotActiveTemplateWorkflow = {
 };
 
 export type ProjectSnapshotDocument = {
-  version: 3;
+  version: 3 | 4;
+  organization?: CanvasOrganization;
   cards: CanvasCard[];
   frames: Record<string, ProjectSnapshotShapeFrame>;
   camera?: ProjectSnapshotCamera;
@@ -323,7 +329,7 @@ export const normalizeProjectSnapshotCard = (value: unknown) =>
   normalizeCard(value);
 
 export const createEmptyProjectSnapshot = (): ProjectSnapshotDocument => ({
-  version: 3,
+  version: 4,
   cards: [],
   frames: {},
 });
@@ -342,6 +348,14 @@ export const normalizeProjectSnapshotDocument = (
   if (!isRecord(value)) {
     return createEmptyProjectSnapshot();
   }
+
+  if (
+    value.version !== undefined &&
+    ![1, 2, 3, 4].includes(value.version as number)
+  )
+    throw new ProjectSnapshotValidationError(
+      'Unsupported Canvas document version.'
+    );
 
   if (
     Array.isArray(value.cards) &&
@@ -384,10 +398,13 @@ export const normalizeProjectSnapshotDocument = (
   };
   const camera = normalizeCamera(value.camera);
 
-  return {
-    version: 3,
+  const document: ProjectSnapshotDocument = {
+    version: 4,
     cards,
     frames,
+    ...(value.organization
+      ? { organization: normalizeCanvasOrganization(value.organization) }
+      : {}),
     ...(camera ? { camera } : {}),
     ...(Object.keys(normalizedWorkflows).length > 0
       ? {
@@ -395,4 +412,11 @@ export const normalizeProjectSnapshotDocument = (
         }
       : {}),
   };
+  validateCanvasOrganization(document);
+  if (
+    new TextEncoder().encode(JSON.stringify(document)).byteLength >
+    MAX_PROJECT_SNAPSHOT_BYTES
+  )
+    throw new ProjectSnapshotValidationError('Canvas document exceeds 2 MiB.');
+  return document;
 };

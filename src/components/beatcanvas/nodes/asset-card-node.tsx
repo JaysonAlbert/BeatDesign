@@ -1,14 +1,5 @@
-import {
-  Handle,
-  NodeResizer,
-  Position,
-  type NodeProps,
-} from '@xyflow/react';
-import {
-  useEffect,
-  useState,
-  type MouseEvent,
-} from 'react';
+import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 
 import { CachedVideoPoster } from '../cached-video-poster';
 import { getBeatCanvasNodeCopy } from './beatcanvas-node-copy';
@@ -43,8 +34,16 @@ export function AssetCardNode({
   const [mediaStatus, setMediaStatus] = useState<
     'idle' | 'loading' | 'ready' | 'error'
   >(thumbnailUrl ? 'loading' : 'idle');
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
+    // A cached image may finish before passive effects run. Do not overwrite
+    // its onLoad result with a loading state that can never receive another event.
+    const image = imageRef.current;
+    if (cardMediaType === 'image' && thumbnailUrl && image?.complete) {
+      setMediaStatus(image.naturalWidth > 0 ? 'ready' : 'error');
+      return;
+    }
     setMediaStatus(thumbnailUrl ? 'loading' : 'idle');
   }, [cardMediaType, thumbnailUrl]);
   const canPreviewMedia =
@@ -99,9 +98,7 @@ export function AssetCardNode({
           width: w,
           height: h,
           borderRadius: CARD_RADIUS,
-          background: hasOuterChrome
-            ? 'var(--beat-surface)'
-            : 'transparent',
+          background: hasOuterChrome ? 'var(--beat-surface)' : 'transparent',
           border: selected
             ? '2px solid var(--beat-graph)'
             : hasOuterChrome
@@ -117,36 +114,42 @@ export function AssetCardNode({
           boxSizing: 'border-box',
         }}
       >
-        {!thumbnailUrl && cardMediaType !== 'audio' && cardMediaType !== 'timeline' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 5,
-              left: 5,
-              zIndex: 3,
-              fontSize: 9,
-              fontWeight: 500,
-              color: 'var(--beat-text-3)',
-              padding: '1px 6px',
-              borderRadius: 3,
-              lineHeight: '14px',
-            }}
-          >
-            {title ||
-              (cardMediaType === 'video' ? shapeCopy.video : shapeCopy.image)}
-          </div>
-        )}
+        {!thumbnailUrl &&
+          cardMediaType !== 'audio' &&
+          cardMediaType !== 'timeline' && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 5,
+                left: 5,
+                zIndex: 3,
+                fontSize: 9,
+                fontWeight: 500,
+                color: 'var(--beat-text-3)',
+                padding: '1px 6px',
+                borderRadius: 3,
+                lineHeight: '14px',
+              }}
+            >
+              {title ||
+                (cardMediaType === 'video' ? shapeCopy.video : shapeCopy.image)}
+            </div>
+          )}
         {cardMediaType === 'audio' ? (
           <div className="flex size-full flex-col justify-between px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[12px] font-semibold text-white">{title}</p>
+                <p className="truncate text-[12px] font-semibold text-white">
+                  {title}
+                </p>
                 <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-white/38">
                   {audioRole?.replace('_', ' ') || 'audio'}
                 </p>
               </div>
               <span className="font-mono text-[10px] tabular-nums text-white/45">
-                {typeof durationSec === 'number' ? `${durationSec.toFixed(2)}s` : '—'}
+                {typeof durationSec === 'number'
+                  ? `${durationSec.toFixed(2)}s`
+                  : '—'}
               </span>
             </div>
             <div className="flex h-7 items-center gap-[3px]" aria-hidden="true">
@@ -194,15 +197,25 @@ export function AssetCardNode({
             </div>
             <div className="border-t border-white/10 px-3 py-2.5">
               <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-[12px] font-semibold text-white">{title}</p>
+                <p className="truncate text-[12px] font-semibold text-white">
+                  {title}
+                </p>
                 <span className="font-mono text-[10px] tabular-nums text-white/40">
-                  {typeof durationSec === 'number' ? `${durationSec.toFixed(1)}s` : '0.0s'}
+                  {typeof durationSec === 'number'
+                    ? `${durationSec.toFixed(1)}s`
+                    : '0.0s'}
                 </span>
               </div>
               <div className="mt-2 flex h-2 gap-1 rounded-sm bg-white/[0.04] p-px">
-                {Array.from({ length: Math.max(1, Math.min(8, clipCount ?? 1)) }, (_, index) => (
-                  <span key={index} className="flex-1 rounded-[2px] bg-[var(--beat-graph)]/55" />
-                ))}
+                {Array.from(
+                  { length: Math.max(1, Math.min(8, clipCount ?? 1)) },
+                  (_, index) => (
+                    <span
+                      key={index}
+                      className="flex-1 rounded-[2px] bg-[var(--beat-graph)]/55"
+                    />
+                  )
+                )}
               </div>
             </div>
           </button>
@@ -231,7 +244,7 @@ export function AssetCardNode({
                 boxSizing: 'border-box',
               }}
             />
-            {(
+            {
               <button
                 type="button"
                 aria-label={`${shapeCopy.viewResult}: ${
@@ -245,10 +258,11 @@ export function AssetCardNode({
                   ▶
                 </span>
               </button>
-            )}
+            }
           </>
         ) : thumbnailUrl ? (
           <img
+            ref={imageRef}
             src={thumbnailUrl}
             alt={title}
             draggable={false}
@@ -284,7 +298,9 @@ export function AssetCardNode({
               : `🖼 ${shapeCopy.image}`}
           </div>
         )}
-        {thumbnailUrl && cardMediaType === 'image' && mediaStatus === 'loading' ? (
+        {thumbnailUrl &&
+        cardMediaType === 'image' &&
+        mediaStatus === 'loading' ? (
           <div
             className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25 px-3 text-center text-[11px] text-white/80"
             role="status"

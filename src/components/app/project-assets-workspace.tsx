@@ -1,4 +1,5 @@
 import { LocalTtsComposer } from './local-tts-composer';
+import { ProjectOrganizationWorkspace } from './project-organization-workspace';
 import { ProjectAssetsLibrary } from '@/components/app/project-assets-dialog';
 import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 
@@ -17,6 +18,7 @@ export function ProjectAssetsWorkspace({ projectId }: { projectId: string }) {
             {t('description')}
           </p>
           <LocalTtsComposer projectId={projectId} />
+          <ProjectOrganizationWorkspace key={projectId} projectId={projectId} />
           <div className="mt-8">
             <ProjectAssetsLibrary projectId={projectId} />
           </div>

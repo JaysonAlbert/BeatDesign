@@ -18,7 +18,7 @@ const draftCard: CanvasGenerationCard = {
   workflowTemplateId: null,
   status: 'idle',
   error: null,
-    modelId: 'nano-banana-pro',
+  modelId: 'nano-banana-pro',
   aspectRatio: '1:1',
   outputQuality: '1k',
   duration: '5s',
@@ -230,4 +230,38 @@ test('composer keeps the generate arrow after the first take exists', () => {
   assert.match(html, /aria-label="Generate"/);
   assert.match(html, /lucide-arrow-up/);
   assert.doesNotMatch(html, /lucide-rotate-cw/);
+});
+
+test('unbound workflow inputs disable generation and explain the blocker accessibly without invoking actions', () => {
+  let submissions = 0;
+  const html = renderToStaticMarkup(
+    <BeatCanvasComposerShell
+      activeDraftCard={draftCard}
+      composerRef={{ current: null }}
+      isDraftBusy={false}
+      isPromptComposing={false}
+      labels={labels}
+      generationBlockers={['请先绑定角色参考。']}
+      onActiveComposerCardIdChange={() => {}}
+      onPromptChange={() => {}}
+      onPromptCommit={() => {}}
+      onGenerateDraft={() => {
+        submissions++;
+      }}
+      onPromptCompositionChange={() => {}}
+      promptCharacterCount={0}
+      promptCharacterLimit={1000}
+      promptInputValue=""
+      promptPlaceholder="Prompt"
+    >
+      <div>controls</div>
+    </BeatCanvasComposerShell>
+  );
+  assert.match(html, /<button[^>]*disabled=""[^>]*aria-label="Generate"/);
+  const description = html.match(/aria-describedby="([^"]+)"/)?.[1];
+  assert.ok(description);
+  assert.ok(html.includes(`id="${description}"`));
+  assert.match(html, /role="status"/);
+  assert.match(html, /请先绑定角色参考。/);
+  assert.equal(submissions, 0);
 });

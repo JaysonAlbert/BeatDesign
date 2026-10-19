@@ -14,6 +14,7 @@ import {
   issueGenerationUploadIntent,
   releaseGenerationUploadSlot,
   getGenerationUploadIntentEffectId,
+  getGenerationUploadIntentSourceContext,
 } from '@/core/effects/generation-upload-intent';
 import { submitEffectGeneration } from '@/core/effects/submit-generation';
 import { resolveLocalProjectAssetPath } from '@/core/projects/local-project-assets';
@@ -27,6 +28,7 @@ import {
   loadProjectWithLatestSnapshot,
 } from '@/core/projects/projects';
 import { resolveCanvasTextReferences } from '@/core/beatcanvas/text-nodes';
+import { assertCanvasGenerationSource } from '@/core/organization/generation-source';
 import {
   getGenerationPromptConstraints,
   validateGenerationPrompt,
@@ -184,12 +186,30 @@ async function prepareGenerationReferences({
 
 export async function preflightAssetFirstGeneration(source: unknown) {
   let generation = normalizeAssetFirstGenerationRequest(source);
+  const reviewedSourceGeneration = generation;
+  const sourceContext = generation.sourceCardId
+    ? await assertCanvasGenerationSource(
+        generation.projectId,
+        generation.sourceCardId,
+        generation
+      )
+    : undefined;
+  if (sourceContext)
+    generation = {
+      ...generation,
+      references: sourceContext.references,
+      parameters: sourceContext.parameters,
+    };
   if (['local-h3-ref2va', 'local-flux3-klein'].includes(generation.modelId)) {
     const seen = new Set<string>();
-    generation = { ...generation, references: generation.references.filter(ref => {
-      if (seen.has(ref.assetId)) return false;
-      seen.add(ref.assetId); return true;
-    }) };
+    generation = {
+      ...generation,
+      references: generation.references.filter((ref) => {
+        if (seen.has(ref.assetId)) return false;
+        seen.add(ref.assetId);
+        return true;
+      }),
+    };
   }
   const originalPrompt = generation.prompt;
   if (generation.textReferences?.length) {
@@ -270,18 +290,41 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   for (const [assetId, asset] of uniqueAssets) {
     if (!asset)
       throw new Error(`Asset ${assetId} does not belong to this project.`);
-    if (['local-h3-ref2va', 'local-flux3-klein', 'local-drama3'].includes(generation.modelId)) {
+    if (
+      ['local-h3-ref2va', 'local-flux3-klein', 'local-drama3'].includes(
+        generation.modelId
+      )
+    ) {
       if (generation.modelId === 'local-flux3-klein' && asset.type !== 'image')
         throw new Error('Local FLUX 3 accepts image references only.');
       if (generation.modelId === 'local-drama3' && asset.type !== 'audio')
         throw new Error('Local Drama 3 accepts audio references only.');
-      if (asset.storageProvider !== 'local') throw new Error('Import local model references into local project storage first.');
-      const file = await stat(resolveLocalProjectAssetPath({ objectKey: asset.objectKey }));
-      const candidate = { name: asset.filename ?? '', type: asset.mimeType ?? '', size: file.size };
-      const valid = asset.type === 'image' ? validateUploadedImageFile(candidate)
-        : asset.type === 'video' ? validateUploadedVideoFile(candidate) : validateUploadedAudioFile(candidate);
-      if (!valid.ok) throw new Error('Local model reference type or size is not supported.');
-      if (generation.references.some(ref => ref.assetId === assetId && ref.role === 'audio_track') && asset.type !== 'audio')
+      if (asset.storageProvider !== 'local')
+        throw new Error(
+          'Import local model references into local project storage first.'
+        );
+      const file = await stat(
+        resolveLocalProjectAssetPath({ objectKey: asset.objectKey })
+      );
+      const candidate = {
+        name: asset.filename ?? '',
+        type: asset.mimeType ?? '',
+        size: file.size,
+      };
+      const valid =
+        asset.type === 'image'
+          ? validateUploadedImageFile(candidate)
+          : asset.type === 'video'
+            ? validateUploadedVideoFile(candidate)
+            : validateUploadedAudioFile(candidate);
+      if (!valid.ok)
+        throw new Error('Local model reference type or size is not supported.');
+      if (
+        generation.references.some(
+          (ref) => ref.assetId === assetId && ref.role === 'audio_track'
+        ) &&
+        asset.type !== 'audio'
+      )
         throw new Error('An audio_track reference must be an audio asset.');
     }
     if (needsManagedGenerationReferenceUpload(asset)) {
@@ -315,7 +358,14 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   await provider.assertConfigured?.(
     getRegisteredEffectById(binding.effectId) ?? undefined
   );
-  return { generation, binding, expectedUploadCount, originalPrompt };
+  return {
+    generation,
+    binding,
+    expectedUploadCount,
+    originalPrompt,
+    sourceContext,
+    reviewedSourceGeneration,
+  };
 }
 
 export async function createAssetFirstGenerationIntent(source: unknown) {
@@ -324,6 +374,12 @@ export async function createAssetFirstGenerationIntent(source: unknown) {
     projectId: prepared.generation.projectId,
     effectId: prepared.binding.effectId,
     expectedUploadCount: prepared.expectedUploadCount,
+    ...(prepared.sourceContext
+      ? {
+          sourceCardId: prepared.sourceContext.sourceCardId,
+          sourceContextDigest: prepared.sourceContext.sourceContextDigest,
+        }
+      : {}),
   });
 }
 
@@ -336,14 +392,26 @@ export async function submitAssetFirstGeneration({
   origin: 'ui' | 'mcp' | 'cli' | 'system';
   generationIntentId?: string;
 }) {
-  const { generation, binding, expectedUploadCount, originalPrompt } =
-    await preflightAssetFirstGeneration(source);
+  const {
+    generation,
+    binding,
+    expectedUploadCount,
+    originalPrompt,
+    sourceContext,
+    reviewedSourceGeneration,
+  } = await preflightAssetFirstGeneration(source);
   const intentId =
     generationIntentId ||
     (await issueGenerationUploadIntent({
       projectId: generation.projectId,
       effectId: binding.effectId,
       expectedUploadCount,
+      ...(sourceContext
+        ? {
+            sourceCardId: sourceContext.sourceCardId,
+            sourceContextDigest: sourceContext.sourceContextDigest,
+          }
+        : {}),
     }));
   if (
     (await getGenerationUploadIntentEffectId({
@@ -355,6 +423,19 @@ export async function submitAssetFirstGeneration({
       'Generation authorization does not match this project and model.'
     );
   }
+  const reviewedIntent = await getGenerationUploadIntentSourceContext({
+    intentId,
+    projectId: generation.projectId,
+  });
+  if (
+    (reviewedIntent?.sourceCardId ?? null) !==
+      (sourceContext?.sourceCardId ?? null) ||
+    (reviewedIntent?.sourceContextDigest ?? null) !==
+      (sourceContext?.sourceContextDigest ?? null)
+  )
+    throw new Error(
+      'Canvas generation configuration or bindings changed after precheck; review and precheck again.'
+    );
   try {
     const prepared = await prepareGenerationReferences({
       generation,
@@ -378,14 +459,32 @@ export async function submitAssetFirstGeneration({
         });
         if (!asset || asset.storageProvider !== 'local')
           throw new Error('Local reference unavailable');
-        const path = resolveLocalProjectAssetPath({ objectKey: asset.objectKey });
+        const path = resolveLocalProjectAssetPath({
+          objectKey: asset.objectKey,
+        });
         paths.push(path);
         references.push({ assetId: asset.id, type: asset.type, path });
       }
       Object.assign(input, { _localReferencePaths: paths });
-      if (['local-h3-ref2va', 'local-flux3-klein', 'local-drama3'].includes(generation.modelId)) Object.assign(input, { _localReferences: references });
+      if (
+        ['local-h3-ref2va', 'local-flux3-klein', 'local-drama3'].includes(
+          generation.modelId
+        )
+      )
+        Object.assign(input, { _localReferences: references });
     }
     validateGenerationModelInput({ modelId: generation.modelId, input });
+    if (sourceContext) {
+      const latest = await assertCanvasGenerationSource(
+        generation.projectId,
+        sourceContext.sourceCardId,
+        reviewedSourceGeneration
+      );
+      if (latest.sourceContextDigest !== sourceContext.sourceContextDigest)
+        throw new Error(
+          'Canvas generation configuration or bindings changed before submission; review and precheck again.'
+        );
+    }
     const result = await submitEffectGeneration({
       effectId: binding.effectId,
       input,
@@ -396,6 +495,12 @@ export async function submitAssetFirstGeneration({
         origin,
         requestVersion: generation.version,
         logicalModelId: generation.modelId,
+        ...(sourceContext
+          ? {
+              canvasSource: sourceContext.provenance,
+              sourceContextDigest: sourceContext.sourceContextDigest,
+            }
+          : {}),
         ...(generation.textReferences?.length
           ? { originalPrompt, textReferences: generation.textReferences }
           : {}),

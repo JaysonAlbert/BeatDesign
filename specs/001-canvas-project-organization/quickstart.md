@@ -1,7 +1,7 @@
 # Quickstart: 实现后的独立验证
 
-本页是待实现功能的验证指南，不是本阶段已执行的验证回执。
-计划审核通过并完成相应代码后再执行。不要把真实影片或主 data/ 作为测试输入。
+本页是实现后的复现指南；实际执行结果见 [verification.md](verification.md)。
+不要把真实影片或主 data/ 作为测试输入。
 
 ## 1. 环境与边界
 
@@ -30,7 +30,7 @@ pnpm test:e2e
 原 `scripts/start-e2e.mjs` 在 Windows 的子进程启动需在实现阶段覆盖，再执行 E2E。
 
 预期：共置测试覆盖纯操作、严格 schema、投影、持久化和多进程竞态；E2E 覆盖新组织入口。
-当前没有创建业务源码或这些测试，不能仅运行旧测试就宣布新功能通过。
+已有共置领域/持久化测试和 organization.spec.ts；不能仅运行旧测试就宣布新功能通过。
 
 ## 3. 合成 fixture 与人工预览
 
@@ -59,7 +59,9 @@ pnpm exec vite dev --host 127.0.0.1 --port 3050 --strictPort
 
 MCP 使用相同环境和值在另一个本任务终端运行 `pnpm exec tsx scripts/mcp-server.ts --http`。
 不得把 token 打印到回执、提交到 Git 或复制生产配置。此处端口是拟议预览值，非已运行实例。
-fixture 的最终 CLI 在 implement 阶段写入本页并实际运行，不能在它尚不存在时伪报成功。
+建表后执行 `node --import tsx scripts/seed-organization-fixture.ts`。
+脚本强制显式隔离数据目录，写入 `organization-fixture.json` manifest 并输出合成项目 ID。
+Windows 已有 Chrome 时 E2E 自动使用独立测试配置，无需更换用户浏览器登录会话。
 
 ## 4. 用户故事验证
 

@@ -11,7 +11,10 @@ import {
   isPublicHttpMediaUrl,
 } from '@/core/effects/beatapi-media-url';
 import { VIDEO_ANALYSIS_DEFAULT_OUTPUT_TOKENS } from '@/core/effects/video-analysis';
-import { getConfig } from '@/modules/config/service';
+import { createServerOnlyFn } from '@tanstack/react-start';
+const getConfig = createServerOnlyFn(async (key: string) =>
+  (await import('@/modules/config/service')).getConfig(key)
+);
 import { BaseAdapter, type GenerationResult } from './base-adapter';
 
 const IMAGE_MODELS = new Set([
@@ -214,11 +217,7 @@ const resolveExplicitFrameImages = ({
     role: 'last',
     imageCount: images.length,
   });
-  if (
-    firstIndex === null ||
-    lastIndex === null ||
-    firstIndex === lastIndex
-  ) {
+  if (firstIndex === null || lastIndex === null || firstIndex === lastIndex) {
     return null;
   }
   return [images[firstIndex], images[lastIndex]];
@@ -239,12 +238,26 @@ const resolveVideoReferenceFields = ({
 }) => {
   if (model === 'wan-3.0' || model === 'wan-3.0-prime') {
     const contract = getBeatApiVideoReferenceContract(model)!;
-    assertAtMost(`${model} image input`, images.length, contract.maxReferenceImages);
-    assertAtMost(`${model} video references`, videoUrls.length, contract.maxReferenceVideos);
-    assertAtMost(`${model} audio references`, audioUrls.length, contract.maxReferenceAudios);
+    assertAtMost(
+      `${model} image input`,
+      images.length,
+      contract.maxReferenceImages
+    );
+    assertAtMost(
+      `${model} video references`,
+      videoUrls.length,
+      contract.maxReferenceVideos
+    );
+    assertAtMost(
+      `${model} audio references`,
+      audioUrls.length,
+      contract.maxReferenceAudios
+    );
     return {
       mode:
-        images.length || videoUrls.length || audioUrls.length ? 'reference' : 'text',
+        images.length || videoUrls.length || audioUrls.length
+          ? 'reference'
+          : 'text',
       fields: {
         ...(images.length ? { images } : {}),
         ...(videoUrls.length ? { reference_videos: videoUrls } : {}),
@@ -270,14 +283,17 @@ const resolveVideoReferenceFields = ({
       throw new Error(`${model} does not support reference video or audio`);
     }
     return {
-      mode: images.length === 2 ? 'frames' : images.length === 1 ? 'image' : 'text',
+      mode:
+        images.length === 2 ? 'frames' : images.length === 1 ? 'image' : 'text',
       fields: images.length ? { images } : {},
     } as const;
   }
 
   const frameImages = resolveExplicitFrameImages({ prompt, images });
   if (frameImages && (videoUrls.length || audioUrls.length)) {
-    throw new Error('Frame input cannot be combined with reference video or audio');
+    throw new Error(
+      'Frame input cannot be combined with reference video or audio'
+    );
   }
 
   if (model === 'kling-3') {
@@ -451,7 +467,9 @@ export const buildBeatApiTaskRequest = ({
       (input.sourceVideoDurationSeconds < 3 ||
         input.sourceVideoDurationSeconds > 30)
     ) {
-      throw new Error('Kling Motion Control video must be between 3 and 30 seconds');
+      throw new Error(
+        'Kling Motion Control video must be between 3 and 30 seconds'
+      );
     }
     const characterOrientation = input.characterOrientation ?? 'video';
     if (
@@ -492,9 +510,7 @@ export const buildBeatApiTaskRequest = ({
     input.wmOutputQuality === '1080p' &&
     images.length > 1
   ) {
-    throw new Error(
-      'Grok Imagine Video 1.5 1080p accepts at most one image'
-    );
+    throw new Error('Grok Imagine Video 1.5 1080p accepts at most one image');
   }
   const aspectRatio =
     model === 'minimax-h3' &&
@@ -537,10 +553,7 @@ export const buildBeatApiTaskRequest = ({
 
   if (model === 'minimax-h3') {
     body.resolution = mapMinimaxResolution(input.wmOutputQuality);
-  } else if (
-    model === 'minimax-h3-max' ||
-    model === 'minimax-h3-max-turbo'
-  ) {
+  } else if (model === 'minimax-h3-max' || model === 'minimax-h3-max-turbo') {
     body.resolution = mapMinimaxMaxResolution(input.wmOutputQuality);
     if (input.seed !== undefined) body.seed = input.seed;
   } else if (
@@ -575,10 +588,15 @@ export const buildBeatApiTaskRequest = ({
   return { path: '/v1/videos/tasks', body };
 };
 
-export const normalizeBeatApiTaskResult = (task: BeatApiTask): GenerationResult => {
+export const normalizeBeatApiTaskResult = (
+  task: BeatApiTask
+): GenerationResult => {
   const taskId = readString(task.id);
   if (!taskId) {
-    return { status: 'failed', error: 'BeatAPI response did not include a task id' };
+    return {
+      status: 'failed',
+      error: 'BeatAPI response did not include a task id',
+    };
   }
 
   const status = readString(task.status)?.toLowerCase() || 'queued';
@@ -774,7 +792,8 @@ export class BeatApiAdapter extends BaseAdapter {
     } catch (error) {
       return {
         status: 'failed',
-        error: error instanceof Error ? error.message : 'BeatAPI request failed',
+        error:
+          error instanceof Error ? error.message : 'BeatAPI request failed',
       };
     }
   }
@@ -787,7 +806,8 @@ export class BeatApiAdapter extends BaseAdapter {
     } catch (error) {
       return {
         status: 'failed',
-        error: error instanceof Error ? error.message : 'BeatAPI request failed',
+        error:
+          error instanceof Error ? error.message : 'BeatAPI request failed',
       };
     }
   }

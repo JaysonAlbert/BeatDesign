@@ -1,6 +1,14 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 test.use({ locale: 'en-US' });
+
+async function waitForClientMount(page: Page) {
+  // This suite uses Vite DEV. Its client-only devtools mount after hydration;
+  // SSR buttons can otherwise receive a click before React installs handlers.
+  await expect(
+    page.getByRole('button', { name: 'Open Tanstack query devtools' })
+  ).toBeVisible();
+}
 
 for (const mode of ['canvas', 'studio'] as const) {
   test(`choosing ${mode} creates one project and opens it without a second chooser`, async ({
@@ -16,6 +24,7 @@ for (const mode of ['canvas', 'studio'] as const) {
       }
     });
     await page.goto('/projects');
+    await waitForClientMount(page);
     await page
       .getByRole('button', { name: 'New project', exact: true })
       .first()
@@ -47,6 +56,7 @@ test('failed Canvas creation retries in Canvas', async ({ page }) => {
     return route.continue();
   });
   await page.goto('/projects');
+  await waitForClientMount(page);
   await page
     .getByRole('button', { name: 'New project', exact: true })
     .first()
@@ -74,6 +84,7 @@ test('direct Canvas entry requires one explicit create action and retains entry 
   await page.goto(
     '/canvas?target=image&model=nano-banana-pro&prompt=Entry+test'
   );
+  await waitForClientMount(page);
   const create = page.getByRole('button', {
     name: 'Create in Canvas',
     exact: true,
