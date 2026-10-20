@@ -4,7 +4,7 @@
 
 ## 源码与环境
 
-- worktree：`D:/Projects/BeatDesign-worktrees/canvas-project-organization`；实际分支 `codex/canvas-project-organization`，实现起点 `41f5d30`，002独立规格目录；Fork草稿PR16。
+- worktree：`D:/Projects/BeatDesign-worktrees/canvas-project-organization`；实际分支 `codex/canvas-project-organization`，实现起点 `41f5d30`，实现提交 `35765d4`；002独立规格目录，[Fork草稿PR16](https://github.com/JaysonAlbert/BeatDesign/pull/16)已更新并推送，未合并。
 - Windows、Node v24.14.1、Chrome 155.0.8059.80；复用现有node_modules junction，未重新安装依赖。
 - 单文档仍为200卡/2MiB/64组。默认正文保留在旧project_canvas_state，非默认正文独立存储及CAS；打开旧项目不自动拆场或写回。
 - 源码与UI/MCP使用同一事务内核及14张新增组织/时钟元数据表，没有独立后端或媒体副本。

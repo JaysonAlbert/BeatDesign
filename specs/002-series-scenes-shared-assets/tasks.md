@@ -73,7 +73,7 @@ Independent test: 合成2000媒体，无生成网络。
 - [x] T035 双连接升级、文档CAS/receipt故障、删除/归档并发和旧客户端覆盖测试，路径 src/core/series/cross-process.test.ts。
 - [x] T036 验证SC-001–006、UI/MCP零任务上传、热缓存p95及浏览器截图，路径 tests/e2e/series.spec.ts、specs/002-series-scenes-shared-assets/verification.md。
 - [x] T037 执行typecheck、全部Node测试、i18n、build及E2E，修复后记录实际结果于 specs/002-series-scenes-shared-assets/verification.md。
-- [ ] T038 更新状态、可运行指南与PR，按明确文件提交推送，路径 docs/SPEC_KIT.md、docs/PRODUCT_PLAN_AND_STATUS.md、specs/002-series-scenes-shared-assets/quickstart.md。
+- [x] T038 更新状态、可运行指南与PR，按明确文件提交推送，路径 docs/SPEC_KIT.md、docs/PRODUCT_PLAN_AND_STATUS.md、specs/002-series-scenes-shared-assets/quickstart.md。
 
 ## Dependencies / Execution
 
