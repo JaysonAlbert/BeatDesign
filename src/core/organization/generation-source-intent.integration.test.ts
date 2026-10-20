@@ -39,6 +39,32 @@ provider.createAdapter = () => {
   adapterCalls++;
   throw new Error('No provider calls permitted in source-intent fixture.');
 };
+
+test('an intent for a scene Canvas cannot be submitted against the default or another document', async () => {
+  const project = await createProject({ name: 'Document-scoped source' });
+  const { applyNarrativeCommand } = await import('@/core/series/narrative');
+  await applyNarrativeCommand({ projectId: project.id, commandId: 'doc-create', idempotencyKey: 'doc-create', expectedRevision: 0, command: { type: 'create_canvas', canvasId: 'scoped-source-canvas', name: 'Scene work' } });
+  const loaded = (await loadProjectWithLatestSnapshot({ projectId: project.id, canvasId: 'scoped-source-canvas' }))!;
+  const card = { ...buildTextCard({ id: 'scene-generation', name: 'Reviewed scene step' }), kind: 'generation', type: 'image', modelId: 'local-flux3-klein', prompt: 'Synthetic fixture' } as CanvasCard;
+  await saveProjectSnapshot({ projectId: project.id, canvasId: 'scoped-source-canvas', document: { ...loaded.snapshot, cards: [card] }, baseVersion: loaded.snapshotVersion });
+  const request = { version: 2, projectId: project.id, canvasId: 'scoped-source-canvas', sourceSurface: 'canvas', sourceCardId: card.id, mode: 'image', modelId: card.modelId, prompt: card.prompt, references: [], parameters: { aspect_ratio: '1:1' } };
+  const intent = await createAssetFirstGenerationIntent(request);
+  const context = await getGenerationUploadIntentSourceContext({ intentId: intent, projectId: project.id });
+  assert.equal(context?.sourceCardId, card.id);
+  assert.equal(typeof context?.sourceContextDigest, 'string');
+  await applyNarrativeCommand({ projectId: project.id, commandId: 'target-create', idempotencyKey: 'target-create', expectedRevision: 1, command: { type: 'create_canvas', canvasId: 'intent-target', name: 'Transfer target' } });
+  const { previewCanvasTransfer } = await import('@/core/series/canvas-transfer');
+  const { getDb } = await import('@/core/workspace-lib/db-adapter');
+  const { generationHistory } = await import('@/config/db/schema');
+  await (await getDb()).insert(generationHistory).values({ id: 'synthetic-running-job', projectId: project.id, effectId: 1, status: 'processing', input: { _source: { canvasSource: { sourceCardId: card.id, canvasId: 'scoped-source-canvas' } } } });
+  const transfer = await previewCanvasTransfer({ projectId: project.id, sourceCanvasId: 'scoped-source-canvas', targetCanvasId: 'intent-target', selectedCardIds: [card.id], includeDependencies: true });
+  assert.ok(transfer.blockers.some(b => /unexpired/.test(b)));
+  assert.ok(transfer.blockers.some(b => /running generation jobs/.test(b)));
+
+
+  await assert.rejects(() => submitAssetFirstGeneration({ generation: { ...request, canvasId: undefined }, origin: 'ui', generationIntentId: intent }), /source|precheck|changed|found/i);
+  assert.equal(adapterCalls, 0);
+});
 after(async () => {
   provider.assertConfigured = configured;
   provider.createAdapter = createAdapter;

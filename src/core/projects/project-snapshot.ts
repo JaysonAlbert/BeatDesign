@@ -55,7 +55,7 @@ export type ProjectSnapshotActiveTemplateWorkflow = {
 };
 
 export type ProjectSnapshotDocument = {
-  version: 3 | 4;
+  version: 3 | 4 | 5;
   organization?: CanvasOrganization;
   cards: CanvasCard[];
   frames: Record<string, ProjectSnapshotShapeFrame>;
@@ -351,7 +351,7 @@ export const normalizeProjectSnapshotDocument = (
 
   if (
     value.version !== undefined &&
-    ![1, 2, 3, 4].includes(value.version as number)
+    ![1, 2, 3, 4, 5].includes(value.version as number)
   )
     throw new ProjectSnapshotValidationError(
       'Unsupported Canvas document version.'
@@ -398,13 +398,13 @@ export const normalizeProjectSnapshotDocument = (
   };
   const camera = normalizeCamera(value.camera);
 
+  const organization = value.organization ? normalizeCanvasOrganization(value.organization) : undefined;
+  const hasSharedReferences = organization && (Object.values(organization.elementBindings).some(binding => binding.scope === 'series') || Object.values(organization.templateInstances).some(instance => Object.values(instance.slotBindings).some(binding => binding.scope === 'series')));
   const document: ProjectSnapshotDocument = {
-    version: 4,
+    version: value.version === 5 || hasSharedReferences ? 5 : 4,
     cards,
     frames,
-    ...(value.organization
-      ? { organization: normalizeCanvasOrganization(value.organization) }
-      : {}),
+    ...(organization ? { organization } : {}),
     ...(camera ? { camera } : {}),
     ...(Object.keys(normalizedWorkflows).length > 0
       ? {

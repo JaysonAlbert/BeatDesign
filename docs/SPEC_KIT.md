@@ -22,14 +22,14 @@ Git 只放行这些官方技能目录；其他 `.agents/` 内容继续忽略。
 ## 当前设计特性：002 分集、场次与共享资产
 
 用户于 2026-10-20 要求“先用 spec-kit 把分集、场次导航和跨集共享资产的方案设计出来”。
-本轮据此联合准备需求与技术设计草稿；没有把 001 的批准套用到新特性。
+2026-10-21 用户回复“评审通过，继续吧”，明确批准002需求与方案，继续tasks、analyze、implement和converge；见002/approval.md。
 
 - [需求](../specs/002-series-scenes-shared-assets/spec.md)：四故事、24FR、6SC。
 - [技术方案](../specs/002-series-scenes-shared-assets/plan.md)：Series 聚合集项目，
   场次独立画布，跨集固定版本参考和分类素材板；含研究、数据模型、UI/命令约定及验证指南。
 - [需求质量](../specs/002-series-scenes-shared-assets/checklists/requirements.md)与
   [设计审阅](../specs/002-series-scenes-shared-assets/checklists/design-review.md)：
-  文档自查通过，用户需求/方案审阅待定。没有 tasks、应用实现或迁移。
+  原设计审阅记录保留；审批记录、任务清单及实现验证分别在002目录维护，不把技术检查当用户视觉验收。
 - 分支继续使用 `codex/canvas-project-organization`，002 为独立规格目录。
   本 worktree 忽略的 `.specify/feature.json` 当前指向 002；新 checkout 可显式设置
   `$env:SPECIFY_FEATURE_DIRECTORY = 'specs/002-series-scenes-shared-assets'`。
@@ -49,9 +49,9 @@ Git 只放行这些官方技能目录；其他 `.agents/` 内容继续忽略。
 
 1. `$speckit-constitution`：读取既有规则，形成项目原则。
 2. `$speckit-specify`：整理用户需求和可验证结果。
-3. `review-spec`：用户审核需求；001 已回复“批准需求，进入技术方案”，002 待审阅。
+3. `review-spec`：用户审核需求；001 已回复“批准需求，进入技术方案”，002 已于2026-10-21批准。
 4. `$speckit-plan`：研究、技术方案、数据模型、接口约定、验证指南。
-5. `review-plan`：用户审核技术方案；001 已回复“批准方案，继续任务拆解与实现”，002 待审阅。
+5. `review-plan`：用户审核技术方案；001 已回复“批准方案，继续任务拆解与实现”，002 已于2026-10-21批准。
 6. `$speckit-tasks`：按用户故事拆解可执行任务。
 7. `$speckit-analyze`：检查规范、方案和任务的一致性。
 8. `$speckit-implement`：按任务实现并验证。
@@ -71,3 +71,8 @@ Git 只放行这些官方技能目录；其他 `.agents/` 内容继续忽略。
 未改动主实例或真实影片，未批准合入和部署。
 
 此安装不更改全局 Codex 设置；新会话从本 worktree 打开项目时使用项目技能。
+
+## 002 实现入口
+
+[任务](../specs/002-series-scenes-shared-assets/tasks.md)、[验证](../specs/002-series-scenes-shared-assets/verification.md)、[复现指南](../specs/002-series-scenes-shared-assets/quickstart.md)。
+隔离预览使用3060/3061，3050/3051仍为旧001；主3020/3031未更新。新能力复用同一项目、素材和事务命令，无真实影片迁移或生成。

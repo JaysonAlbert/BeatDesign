@@ -9,9 +9,12 @@ import {
   type WorkflowTemplateSummary,
 } from './workflow-template-panel';
 import type { WorkflowTemplateDefinition } from '@/core/workflows/workflow-template';
+import { SharedCanvasReferences } from './shared-canvas-references';
+import { CanvasTransferPanel } from './canvas-transfer-panel';
 
 type Props = {
   projectId: string;
+  canvasId?: string;
   selectedCardIds: string[];
   getDocument: () => ProjectSnapshotDocument;
   flush: () => Promise<void>;
@@ -122,10 +125,11 @@ export function CanvasOrganizationPanel(props: Props) {
     if (pending) throw new Error(t('retryPending'));
     await props.flush();
     const expectedRevision =
-      revision ?? (await readJson(`${base}/snapshot`)).version;
+      revision ?? (await readJson(`${base}/snapshot${props.canvasId ? `?canvasId=${encodeURIComponent(props.canvasId)}` : ''}`)).version;
     const commandId = crypto.randomUUID();
     const body = JSON.stringify({
       commandId,
+      canvasId: props.canvasId,
       idempotencyKey: commandId,
       expectedRevision,
       command,
@@ -227,10 +231,6 @@ export function CanvasOrganizationPanel(props: Props) {
     const group = groups.find(
       (group) => group.id === id || group.memberCardIds.includes(targetId)
     );
-    if (group?.collapsed)
-      await apply([
-        { type: 'set_group_collapsed', groupId: group.id, collapsed: false },
-      ]);
     requestAnimationFrame(() =>
       requestAnimationFrame(() =>
         props.onLocate(group?.id === id ? group.memberCardIds[0] : targetId)
@@ -627,6 +627,8 @@ export function CanvasOrganizationPanel(props: Props) {
             </div>
           ))}
         </section>
+        <SharedCanvasReferences {...props} />
+        <CanvasTransferPanel {...props} />
         <section
           className="space-y-2 border-t border-white/10 pt-3"
           aria-label={t('elements')}
@@ -710,7 +712,7 @@ export function CanvasOrganizationPanel(props: Props) {
           >
             {t('bindElement')}
           </button>
-          {Object.values(canvas.organization?.elementBindings ?? {}).map(
+          {Object.values(canvas.organization?.elementBindings ?? {}).filter(binding => binding.scope !== 'series').map(
             (binding) => {
               const current = organization?.elements[binding.elementId];
               const needsReview =
@@ -925,7 +927,7 @@ export function CanvasOrganizationPanel(props: Props) {
           onPreviewCapture={async () => {
             const selectedCardIds = [...props.selectedCardIds];
             await props.flush();
-            const data = await readJson(`${base}/template-preview`, {
+            const data = await readJson(`${base}/template-preview${props.canvasId ? `?canvasId=${encodeURIComponent(props.canvasId)}` : ''}`, {
               method: 'POST',
               headers,
               body: JSON.stringify({ selectedCardIds }),

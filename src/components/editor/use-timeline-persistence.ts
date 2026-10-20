@@ -98,8 +98,20 @@ export function useTimelinePersistence(options: Options) {
       }
     };
     const visibility = () => globalThis.document.visibilityState === 'hidden' ? flush() : refresh();
+    const beforeScopeChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ waitUntil: (save: Promise<void>) => void }>).detail;
+      detail.waitUntil((async () => {
+        const started = Date.now();
+        while (busy.current && Date.now() - started < 10000) await new Promise(resolve => setTimeout(resolve, 25));
+        if (busy.current) throw new Error('Timeline is still saving. Try navigation again.');
+        await save();
+        const o = latest.current;
+        if (o.hydrated && o.documentRef.current && (!o.savedRef.current || !equal(o.documentRef.current, o.savedRef.current))) throw new Error('Timeline changes could not be saved. Your draft remains open.');
+      })());
+    };
     const timer = window.setInterval(refresh, 2_000);
     window.addEventListener('focus', refresh);
+    window.addEventListener('beatdesign:before-scope-change', beforeScopeChange);
     window.addEventListener('pagehide', flush);
     window.addEventListener('beforeunload', beforeUnload);
     globalThis.document.addEventListener('visibilitychange', visibility);
@@ -107,6 +119,7 @@ export function useTimelinePersistence(options: Options) {
       active = false;
       window.clearInterval(timer);
       window.removeEventListener('focus', refresh);
+      window.removeEventListener('beatdesign:before-scope-change', beforeScopeChange);
       window.removeEventListener('pagehide', flush);
       window.removeEventListener('beforeunload', beforeUnload);
       globalThis.document.removeEventListener('visibilitychange', visibility);

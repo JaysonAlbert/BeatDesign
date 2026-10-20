@@ -2,9 +2,14 @@ import { LocalTtsComposer } from './local-tts-composer';
 import { ProjectOrganizationWorkspace } from './project-organization-workspace';
 import { ProjectAssetsLibrary } from '@/components/app/project-assets-dialog';
 import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
+import { ScopedAssetsBoard } from './scoped-assets-board';
+import { useState } from 'react';
 
 export function ProjectAssetsWorkspace({ projectId }: { projectId: string }) {
   const t = useTranslations('AppShell.header.projectAssets');
+  const seriesT = useTranslations('Series');
+  const [managementOpen, setManagementOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
 
   return (
     <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--beat-bg)] text-[var(--beat-text-1)]">
@@ -18,10 +23,9 @@ export function ProjectAssetsWorkspace({ projectId }: { projectId: string }) {
             {t('description')}
           </p>
           <LocalTtsComposer projectId={projectId} />
-          <ProjectOrganizationWorkspace key={projectId} projectId={projectId} />
-          <div className="mt-8">
-            <ProjectAssetsLibrary projectId={projectId} />
-          </div>
+          <ScopedAssetsBoard projectId={projectId} />
+          <details className="mt-8 border-t border-white/10 pt-3" open={managementOpen} onToggle={event => setManagementOpen(event.currentTarget.open)}><summary className="min-h-11 cursor-pointer py-3">{seriesT('manageProjectAssets')}</summary>{managementOpen && <ProjectOrganizationWorkspace key={projectId} projectId={projectId} />}</details>
+          <details className="mt-5 border-t border-white/10 pt-3" open={toolsOpen} onToggle={event => setToolsOpen(event.currentTarget.open)}><summary className="min-h-11 cursor-pointer py-3">{seriesT('projectAssetTools')}</summary>{toolsOpen && <ProjectAssetsLibrary projectId={projectId} />}</details>
         </div>
       </div>
     </section>

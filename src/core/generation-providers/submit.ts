@@ -1,3 +1,4 @@
+import { withCanvasScope } from '@/core/projects/canvas-scope';
 import { LOCAL_MODELS } from './local-provider';
 import { getRegisteredEffectById } from '@/core/effects/registered-effects';
 import { readFile, stat } from 'node:fs/promises';
@@ -215,6 +216,7 @@ export async function preflightAssetFirstGeneration(source: unknown) {
   if (generation.textReferences?.length) {
     const state = await loadProjectWithLatestSnapshot({
       projectId: generation.projectId,
+      canvasId: generation.canvasId ?? `default:${generation.projectId}`,
     });
     const cards = Object.fromEntries(
       (state?.snapshot.cards ?? []).map((card) => [card.id, card])
@@ -485,7 +487,7 @@ export async function submitAssetFirstGeneration({
           'Canvas generation configuration or bindings changed before submission; review and precheck again.'
         );
     }
-    const result = await submitEffectGeneration({
+    const result = await withCanvasScope(generation.projectId, generation.canvasId ?? `default:${generation.projectId}`, () => submitEffectGeneration({
       effectId: binding.effectId,
       input,
       projectId: generation.projectId,
@@ -505,7 +507,7 @@ export async function submitAssetFirstGeneration({
           ? { originalPrompt, textReferences: generation.textReferences }
           : {}),
       },
-    });
+    }));
     const generationId =
       typeof result.body.wmTaskId === 'string' ? result.body.wmTaskId : null;
     if (result.status < 400 && generationId) {

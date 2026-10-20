@@ -29,6 +29,7 @@ try {
     ['--import', 'tsx', 'scripts/seed-organization-fixture.ts'],
     { env, stdio: 'inherit', windowsHide: true }
   );
+  execFileSync(process.execPath, ['--import', 'tsx', 'scripts/seed-series-fixture.ts'], { env, stdio: 'inherit', windowsHide: true });
   children.push(
     spawn(
       process.execPath,

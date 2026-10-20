@@ -42,6 +42,8 @@ export const workflowCommandSchema = z.discriminatedUnion('type', [
           z
             .object({
               assetId: id,
+              scope: z.enum(['project', 'series']).optional(),
+              ownerId: id.optional(),
               elementId: id.optional(),
               versionId: id.optional(),
             })

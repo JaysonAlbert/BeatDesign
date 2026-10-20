@@ -119,8 +119,8 @@ test('Canvas UI commands and MCP edits share durable state; unchanged polling is
   await expect(page.locator('textarea').first()).toHaveValue('Agent revised prompt');
   reads.length = 0;
   await page.waitForTimeout(4500);
-  expect(reads.some((url) => url.endsWith('/revision'))).toBe(true);
-  expect(reads.filter((url) => url.endsWith('/snapshot'))).toHaveLength(0);
+  expect(reads.some((url) => new URL(url).pathname.endsWith('/revision'))).toBe(true);
+  expect(reads.filter((url) => new URL(url).pathname.endsWith('/snapshot'))).toHaveLength(0);
   await page.screenshot({ path: 'test-results/canvas-desktop.png' });
   await page.reload();
   await expect(node).toBeVisible();

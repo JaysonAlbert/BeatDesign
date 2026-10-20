@@ -4,6 +4,7 @@
  */
 
 import { sql } from 'drizzle-orm';
+export * from './series-schema';
 import {
   type AnySQLiteColumn,
   index,

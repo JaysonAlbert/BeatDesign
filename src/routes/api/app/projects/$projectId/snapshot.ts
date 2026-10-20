@@ -1,3 +1,4 @@
+import { ScopeError } from '@/core/series/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import {
   MAX_PROJECT_SNAPSHOT_BYTES,
@@ -17,14 +18,17 @@ import {
 } from '@/lib/request-body-limit';
 
 type SaveProjectSnapshotRequest = {
+  canvasId?: string;
   document?: ProjectSnapshotDocument;
   baseVersion?: number | null;
   allowEmpty?: boolean;
 };
 
-async function GET({ params }: { params: { projectId: string } }) {
+async function GET({ params, request }: { params: { projectId: string }; request: Request }) {
+  try {
   const state = await loadProjectWithLatestSnapshot({
     projectId: params.projectId,
+    canvasId: new URL(request.url).searchParams.get('canvasId'),
   });
   if (!state) {
     return Response.json({ error: 'Project not found' }, { status: 404 });
@@ -34,6 +38,7 @@ async function GET({ params }: { params: { projectId: string } }) {
     version: state.snapshotVersion,
     document: state.snapshot,
   });
+  } catch (error) { if (error instanceof ScopeError) return Response.json({ error: error.message, code: error.code }, { status: 404 }); throw error; }
 }
 
 async function PUT({
@@ -81,7 +86,9 @@ async function PUT({
   try {
     const result = await saveProjectSnapshot({
       projectId,
+      canvasId: payload.canvasId,
       document: payload.document,
+      allowRestoreDeleted: true,
       baseVersion:
         typeof payload.baseVersion === 'number' ? payload.baseVersion : null,
       allowEmpty: payload.allowEmpty === true,
@@ -92,6 +99,7 @@ async function PUT({
       version: result.version,
     });
   } catch (error) {
+    if (error instanceof ScopeError) return Response.json({ error: error.message, code: error.code }, { status: error.code === 'NOT_FOUND' ? 404 : 409 });
     const detail =
       error instanceof Error ? error.message : 'Unknown save failure';
 

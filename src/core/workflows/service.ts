@@ -51,6 +51,7 @@ function assembleInstantiationCanvas(
       const order = card.referenceCardIds.indexOf(binding.referenceCardId);
       const bindingId = `${draft.instance.id}:${slot.id}:${consumer.stepId}`;
       metadata.elementBindings[bindingId] = {
+        ...(binding.scope ? { scope: binding.scope, ownerId: binding.ownerId } : {}),
         id: bindingId,
         consumerCardId,
         elementId: binding.elementId,
@@ -65,7 +66,7 @@ function assembleInstantiationCanvas(
   }
   return normalizeProjectSnapshotDocument({
     ...source,
-    version: 4,
+    version: source.version === 5 ? 5 : 4,
     cards: [...source.cards, ...draft.cards],
     frames: { ...source.frames, ...draft.frames },
     organization: metadata,
@@ -139,31 +140,24 @@ export async function previewWorkflowInstantiation(
   const organization = await getOrganization(projectId);
   const bindings: Record<string, WorkflowTemplateBinding> = {};
   for (const [slotId, binding] of Object.entries(input.bindings)) {
-    const asset = await getProjectAssetById({
-      projectId,
-      assetId: binding.assetId,
-    });
+    const { resolveElementReference, getSeriesAsset } = await import('@/core/series/shared-assets');
+    if (binding.scope === 'series' && binding.elementId && binding.versionId) await resolveElementReference(projectId, { ...binding, elementId: binding.elementId, versionId: binding.versionId }, { forNewUse: true, preview: true, checkFile: true });
+    const asset = binding.scope === 'series' && binding.ownerId
+      ? await getSeriesAsset(binding.ownerId, binding.assetId)
+      : await getProjectAssetById({ projectId, assetId: binding.assetId });
     if (!asset || !['image', 'video', 'audio'].includes(asset.type))
       throw new BeatDesignCommandError(
         'INVALID_COMMAND',
         'Template slot requires a target-project media Asset'
       );
     if (binding.elementId || binding.versionId) {
-      const element = organization.document.elements[binding.elementId ?? ''];
-      if (
-        !element ||
-        element.deletedAt ||
-        element.versions[binding.versionId ?? '']?.assetId !== asset.id
-      )
-        throw new BeatDesignCommandError(
-          'INVALID_COMMAND',
-          'Template Element version is unavailable'
-        );
+      const { resolveElementReference } = await import('@/core/series/shared-assets');
+      await resolveElementReference(projectId, { ...binding, elementId: binding.elementId ?? '', versionId: binding.versionId ?? '' }, { forNewUse: true, preview: binding.scope === 'series', checkFile: true });
     }
     bindings[slotId] = {
       ...binding,
       mediaType: asset.type as 'image' | 'video' | 'audio',
-      url: asset.publicUrl,
+      url: binding.scope === 'series' && binding.ownerId && asset.storageProvider === 'local' ? `/api/app/series/${encodeURIComponent(binding.ownerId)}/assets/${encodeURIComponent(asset.id)}` : asset.publicUrl,
     };
   }
   const draft = instantiateTemplate({
@@ -304,6 +298,10 @@ export async function applyWorkflowCommand(
   const bindings: Record<string, WorkflowTemplateBinding> = {};
   const organization = await getOrganization(projectId);
   for (const [slotId, input] of Object.entries(command.bindings)) {
+    if (input.scope === 'series' && input.elementId && input.versionId) {
+      const { resolveElementReference } = await import('@/core/series/shared-assets');
+      await resolveElementReference(projectId, { ...input, elementId: input.elementId, versionId: input.versionId }, { forNewUse: true, grant: true, checkFile: true });
+    }
     const asset = await getProjectAssetById({
       projectId,
       assetId: input.assetId,
@@ -314,16 +312,8 @@ export async function applyWorkflowCommand(
         'Template slot requires a target-project media Asset'
       );
     if (input.elementId || input.versionId) {
-      const element = organization.document.elements[input.elementId ?? ''];
-      if (
-        !element ||
-        element.deletedAt ||
-        element.versions[input.versionId ?? '']?.assetId !== asset.id
-      )
-        throw new BeatDesignCommandError(
-          'INVALID_COMMAND',
-          'Template Element version is unavailable'
-        );
+      const { resolveElementReference } = await import('@/core/series/shared-assets');
+      await resolveElementReference(projectId, { ...input, elementId: input.elementId ?? '', versionId: input.versionId ?? '' }, { forNewUse: true, checkFile: true });
     }
     bindings[slotId] = {
       ...input,

@@ -9,6 +9,7 @@ import {
   gt,
   or,
 } from 'drizzle-orm';
+import type { ProjectOrganizationDocument } from './organization-document';
 import {
   projectOrganizationState,
   projectAssetMembership,
@@ -157,21 +158,19 @@ export async function queryOrganizationAssets(
   };
 }
 
-export async function organizationConsumers(
-  projectId: string,
-  supplied?: ProjectSnapshotDocument
-) {
-  const canvas =
-    supplied ?? (await loadProjectWithLatestSnapshot({ projectId }))?.snapshot;
-  return Object.values(canvas?.organization?.elementBindings ?? {}).map(
-    (binding: any) => ({
-      elementId: binding.elementId,
-      consumerCardId: binding.consumerCardId,
-      name:
-        canvas?.cards.find((card) => card.id === binding.consumerCardId)
-          ?.name ?? binding.consumerCardId,
-    })
-  );
+export async function organizationConsumers(projectId: string, supplied?: ProjectSnapshotDocument) {
+  const { getNarrative } = await import('@/core/series/narrative');
+  const documents = supplied ? [supplied] : [];
+  if (!supplied) {
+    const directory = await getNarrative(projectId);
+    for (const entry of directory.canvases) {
+      const state = await loadProjectWithLatestSnapshot({ projectId, canvasId: entry.id, allowArchivedCanvas: true });
+      if (state) documents.push(state.snapshot);
+    }
+  }
+  return documents.flatMap(canvas => Object.values(canvas.organization?.elementBindings ?? {})
+    .filter(binding => binding.scope !== 'series').map(binding => ({ elementId: binding.elementId, consumerCardId: binding.consumerCardId,
+      name: canvas.cards.find(card => card.id === binding.consumerCardId)?.name ?? binding.consumerCardId })));
 }
 
 export async function validateOrganizationBindings(
@@ -184,17 +183,8 @@ export async function validateOrganizationBindings(
   ).flatMap((instance) => Object.values(instance.slotBindings));
   for (const slot of slots) {
     if (slot.elementId || slot.versionId) {
-      const { document } = await getOrganization(projectId);
-      const element = document.elements[slot.elementId ?? ''];
-      if (
-        !element ||
-        element.deletedAt ||
-        element.versions[slot.versionId ?? '']?.assetId !== slot.assetId
-      )
-        throw new BeatDesignCommandError(
-          'INVALID_COMMAND',
-          'Template Element version is unavailable'
-        );
+      const { resolveElementReference } = await import('@/core/series/shared-assets');
+      await resolveElementReference(projectId, { ...slot, elementId: slot.elementId ?? '', versionId: slot.versionId ?? '' });
     }
     if (!(await getProjectAssetById({ projectId, assetId: slot.assetId })))
       throw new BeatDesignCommandError(
@@ -206,13 +196,8 @@ export async function validateOrganizationBindings(
   const { document } = await getOrganization(projectId);
   const db = await getDb();
   for (const binding of bindings) {
-    const element = document.elements[binding.elementId];
-    const version = element?.versions[binding.versionId];
-    if (!element || element.deletedAt || version?.assetId !== binding.assetId)
-      throw new BeatDesignCommandError(
-        'INVALID_COMMAND',
-        'Element binding changed or is unavailable'
-      );
+    const { resolveElementReference } = await import('@/core/series/shared-assets');
+    await resolveElementReference(projectId, binding);
     const [member] = await db
       .select({ id: projectAssetMembership.id })
       .from(projectAssetMembership)
@@ -272,22 +257,15 @@ export async function prepareCanvasOrganizationOperations(
   };
   for (const operation of operations) {
     if (operation.type === 'bind_element') {
-      const element = state.document.elements[operation.elementId];
-      if (
-        !element ||
-        element.deletedAt ||
-        element.versions[operation.versionId]?.assetId !== operation.assetId
-      )
-        throw new BeatDesignCommandError(
-          'INVALID_COMMAND',
-          'Element version is unavailable'
-        );
+      const { resolveElementReference } = await import('@/core/series/shared-assets');
+      await resolveElementReference(projectId, operation, { forNewUse: true, grant: operation.scope === 'series', checkFile: true });
       await mediaCard(operation.referenceCardId, operation.assetId);
     }
     if (operation.type === 'review_element_binding') {
       const previous =
         canvas.organization?.elementBindings[operation.bindingId];
-      const element = previous && state.document.elements[previous.elementId];
+      const { resolveElementReference } = await import('@/core/series/shared-assets');
+      const element = previous && await resolveElementReference(projectId, previous);
       if (
         !element ||
         element.currentVersionId !== operation.observedCurrentVersionId
@@ -313,6 +291,11 @@ export async function prepareCanvasOrganizationOperations(
       }
     }
     if (operation.type === 'bind_template_slot') {
+      const binding = operation.binding;
+      if (binding.elementId && binding.versionId) {
+        const { resolveElementReference } = await import('@/core/series/shared-assets');
+        await resolveElementReference(projectId, { ...binding, elementId: binding.elementId, versionId: binding.versionId }, { forNewUse: true, grant: binding.scope === 'series', checkFile: true });
+      }
       await mediaCard(
         operation.binding.referenceCardId,
         operation.binding.assetId
@@ -356,36 +339,30 @@ export async function saveOrganizationOperations(
     );
   const result = applyOrganizationOperations(state.document, operations, {
     assets: new Map(rows.map((a: any) => [a.id, { type: a.type }])),
-    consumers: await organizationConsumers(projectId),
+    consumers: operations.some(op => op.type === 'remove_element') ? await organizationConsumers(projectId) : [],
     revision: state.revision,
   });
-  const revision = state.revision + 1;
-  if (!state.revision)
-    await db
-      .insert(projectOrganizationState)
-      .values({ projectId, documentJson: result.document, version: revision });
-  else {
-    const updated = await db
-      .update(projectOrganizationState)
-      .set({
-        documentJson: result.document,
-        version: revision,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(projectOrganizationState.projectId, projectId),
-          eq(projectOrganizationState.version, state.revision)
-        )
-      )
-      .returning({ version: projectOrganizationState.version });
-    if (!updated.length)
-      throw new BeatDesignCommandError(
-        'REVISION_CONFLICT',
-        'Organization changed'
-      );
+  const saved = await saveOrganizationDocument(projectId, result.document, state.revision);
+  return { ...result, revision: saved.revision };
+}
+
+/** Internal Command Kernel persistence shared by semantic operations and reviewed localization. */
+export async function saveOrganizationDocument(projectId: string, document: ProjectOrganizationDocument, expectedRevision: number) {
+  const state = await getOrganization(projectId);
+  if (state.revision !== expectedRevision) throw new BeatDesignCommandError('REVISION_CONFLICT', 'Organization changed.');
+  const normalized = normalizeOrganizationDocument(document);
+  for (const element of Object.values(normalized.elements)) for (const version of Object.values(element.versions)) {
+    if (!await getProjectAssetById({ projectId, assetId: version.assetId })) throw new BeatDesignCommandError('INVALID_COMMAND', 'Element Asset is outside this Project.');
   }
-  return { ...result, revision };
+  const db = await getDb();
+  const revision = state.revision + 1;
+  if (!state.revision) await db.insert(projectOrganizationState).values({ projectId, documentJson: normalized, version: revision });
+  else {
+    const updated = await db.update(projectOrganizationState).set({ documentJson: normalized, version: revision, updatedAt: new Date() })
+      .where(and(eq(projectOrganizationState.projectId, projectId), eq(projectOrganizationState.version, state.revision))).returning({ version: projectOrganizationState.version });
+    if (!updated.length) throw new BeatDesignCommandError('REVISION_CONFLICT', 'Organization changed.');
+  }
+  return { document: normalized, revision };
 }
 
 export async function organizationPreview(

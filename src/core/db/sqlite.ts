@@ -1,6 +1,7 @@
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { setTimeout as delay } from 'node:timers/promises';
+import { seriesSchemaStatements, assetClockTables } from '@/config/db/series-schema';
 
 import type { DbConfig } from './types';
 
@@ -62,6 +63,13 @@ export async function configureLocalSqlite(
                   await tx.execute(
                     `ALTER TABLE ${table} ADD COLUMN ${field} TEXT`
                   );
+          }
+          for (const statement of seriesSchemaStatements) await tx.execute(statement);
+          for (const table of assetClockTables) {
+            if (!(await tx.execute(`PRAGMA table_info(${table})`)).rows.length) continue;
+            for (const operation of ['INSERT', 'UPDATE', 'DELETE']) await tx.execute(
+              `CREATE TRIGGER IF NOT EXISTS bdesign_asset_clock_${table}_${operation.toLowerCase()} AFTER ${operation} ON ${table} BEGIN UPDATE workspace_asset_revision SET revision=revision+1 WHERE id='assets'; END`
+            );
           }
           await tx.commit();
         } catch (error) {

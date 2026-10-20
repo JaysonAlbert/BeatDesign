@@ -1,3 +1,5 @@
+import { queryScopedAssets } from '@/core/series/asset-query';
+import { withCanvasScope } from '@/core/projects/canvas-scope';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { persistBeatDesignCommand } from '@/core/commands/persist';
@@ -36,7 +38,7 @@ type RegistrationContext = {
   withToolErrors: ErrorWrapper;
 };
 const id = z.string().trim().min(1).max(200);
-const projectScope = z.object({ projectId: id.optional() });
+const projectScope = z.object({ projectId: id.optional(), canvasId: id.optional() });
 const explicitEnvelope = z.object({
   commandId: id,
   idempotencyKey: id,
@@ -112,7 +114,13 @@ export function registerOrganizationTools(
       inputSchema: projectScope
         .extend({
           folderId: id.nullable().optional(),
-          scope: z.enum(['current', 'project']).default('project'),
+          scope: z.enum(['current', 'project', 'scene', 'episode', 'series']).default('project'),
+          sceneId: id.optional(),
+          seriesId: id.optional(),
+          mediaType: z.enum(['image', 'video', 'audio']).optional(),
+          includeArchived: z.boolean().optional(),
+          elementKind: z.enum(['character', 'scene', 'prop', 'voice', 'other']).optional(),
+          usage: z.enum(['reference', 'candidate', 'timeline', 'unassigned']).optional(),
           query: z.string().max(500).default(''),
           cursor: z.string().min(1).max(8192).optional(),
           limit: z.number().int().min(1).max(500).default(100),
@@ -122,7 +130,11 @@ export function registerOrganizationTools(
     },
     withToolErrors(async ({ projectId, ...query }) => {
       const project = await resolveScopedProject(projectId);
-      return queryOrganizationAssets(project.id, query);
+      if (query.scope === 'scene' || query.scope === 'episode' || query.scope === 'series') {
+        const { canvasId, ...filters } = query;
+        return queryScopedAssets({ ...filters, scope: query.scope, projectId: project.id });
+      }
+      return queryOrganizationAssets(project.id, { ...query, scope: query.scope });
     })
   );
   server.registerTool(
@@ -155,11 +167,11 @@ export function registerOrganizationTools(
         .strict(),
       annotations: { readOnlyHint: true },
     },
-    withToolErrors(async ({ projectId, preview }) => {
+    withToolErrors(async ({ projectId, canvasId, preview }) => {
       const project = await resolveScopedProject(projectId);
-      return 'selectedCardIds' in preview
+      return withCanvasScope(project.id, canvasId, () => 'selectedCardIds' in preview
         ? previewWorkflowTemplate(project.id, preview.selectedCardIds)
-        : previewWorkflowInstantiation(project.id, preview);
+        : previewWorkflowInstantiation(project.id, preview));
     })
   );
   server.registerTool(

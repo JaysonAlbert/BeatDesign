@@ -14,16 +14,22 @@ const buildViewUrl = ({
   view,
   focusCardId,
   time,
+  canvasId,
+  sceneId,
 }: {
   projectId: string;
   view: WorkspaceMode;
   focusCardId?: string | null;
+  canvasId?: string | null;
+  sceneId?: string | null;
   time?: number | null;
 }) => {
-  const baseUrl = appConfig.app_url.replace(/\/$/, '');
+  const baseUrl = (process.env.BEATDESIGN_WORKSPACE_URL?.trim() || appConfig.app_url).replace(/\/$/, '');
   const url = new URL(
     `${baseUrl}${workspaceModePath(view)}/${encodeURIComponent(projectId)}`
   );
+  if (canvasId) url.searchParams.set('canvasId', canvasId);
+  if (sceneId) url.searchParams.set('sceneId', sceneId);
   if (view === 'canvas' && focusCardId?.trim()) {
     url.searchParams.set('focus', focusCardId.trim());
   }
@@ -39,23 +45,29 @@ export function buildBeatDesignWorkspaceHandoff({
   view,
   focusCardId,
   time,
+  canvasId,
+  sceneId,
 }: {
   projectId: string;
   name: string;
   view?: WorkspaceMode | string | null;
   focusCardId?: string | null;
+  canvasId?: string | null;
+  sceneId?: string | null;
   time?: number | null;
 }) {
   const activeView = resolveWorkspaceMode(view);
   const urls = {
-    studio: buildViewUrl({ projectId, view: 'studio' }),
+    studio: buildViewUrl({ projectId, view: 'studio', canvasId, sceneId }),
     canvas: buildViewUrl({
       projectId,
       view: 'canvas',
       focusCardId,
+      canvasId,
+      sceneId,
     }),
-    editor: buildViewUrl({ projectId, view: 'editor', time }),
-    assets: buildViewUrl({ projectId, view: 'assets' }),
+    editor: buildViewUrl({ projectId, view: 'editor', time, canvasId, sceneId }),
+    assets: buildViewUrl({ projectId, view: 'assets', canvasId, sceneId }),
   };
   const workspaceUrl = urls[activeView];
   const browserUrl = new URL(workspaceUrl);

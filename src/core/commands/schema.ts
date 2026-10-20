@@ -556,13 +556,14 @@ export const beatDesignCommandSchema: z.ZodType<BeatDesignCommand> = z.union([
 const commandRequestBaseSchema = z
   .object({
     commandId: commandIdSchema.optional(),
+    canvasId: commandIdSchema.optional(),
     expectedRevision: z.number().int().min(0).nullable().optional(),
     idempotencyKey: commandIdSchema.nullable().optional(),
     command: beatDesignCommandSchema,
   })
   .strict()
   .superRefine((request, context) => {
-    if (!requiresExplicitEnvelope(request.command)) return;
+    if (!requiresExplicitEnvelope(request.command) && !request.canvasId) return;
     if (!request.commandId)
       context.addIssue({
         code: 'custom',

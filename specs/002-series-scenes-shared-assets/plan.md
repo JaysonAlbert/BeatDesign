@@ -2,7 +2,7 @@
 
 **Branch**: `codex/canvas-project-organization` | **Date**: 2026-10-20 | **Spec**: [spec.md](spec.md)
 **Feature directory**: `specs/002-series-scenes-shared-assets`
-**Status**: Phase 0 research / Phase 1 design complete as drafts; pending user review. No tasks or implementation.
+**Status**: Approved 2026-10-21; implementation and isolated verification in progress. See approval.md, tasks.md and verification.md.
 
 ## Summary
 
@@ -14,7 +14,7 @@ Higgsfield 参考项目与 Elements 的身份复用；LibTV 参考分类素材�
 
 ## 授权与阶段
 
-用户原话见 spec。授权同时产出需求和技术设计供审阅，不是新需求/方案的正式批准。既有 workflow 的 review-spec/review-plan 在本轮以联合设计稿待审方式呈现；001 的批准不延伸到 002。本轮到 Phase 1 停止，没有 tasks.md、应用代码、迁移、影片变更、生成、合入或部署。
+2026-10-21 用户批准002联合需求/方案并要求继续，授权任务拆解和隔离实现。审批原话和边界见 [approval.md](approval.md)。未授权真实影片迁移、生成、主实例更新、合入或部署。
 
 依赖 001 尚未合入的组织实现，研究基线 a7d57c1；当前 530/22 的历史测试结果只属于 001，不能证明 002。setup-plan 输出的 BRANCH=002-series-scenes-shared-assets 是 feature resolver 的逻辑特性名；实际 Git 分支如页首，独立目录不等于另建分支。
 
@@ -167,4 +167,4 @@ Series发布存唯一权威身份及不可变版本；Asset文件仍原地。只
 
 ## Review state and hooks
 
-详见 [设计审阅清单](checklists/design-review.md)。文档质量通过不等于用户批准或功能验收。没有 .specify/extensions.yml，因此 before/after specify、before/after plan hooks均不适用。Phase 1后宪法复查无例外；停止，等用户审阅后再决定任务拆解。
+详见 [设计审阅清单](checklists/design-review.md)。文档质量通过不等于用户批准或功能验收。没有 .specify/extensions.yml，因此 before/after hooks均不适用。需求/方案批准与实现回执分别保留；Phase 1后宪法复查无例外。

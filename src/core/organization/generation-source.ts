@@ -1,3 +1,4 @@
+import type { ReusableElement } from './organization-document';
 import { createHash } from 'node:crypto';
 import type { CanvasCard } from '@/core/beatcanvas/canvas-types';
 import { getCanvasGenerationMode } from '@/core/beatcanvas/canvas-types';
@@ -135,7 +136,8 @@ export function assertCanvasGenerationSourceDocument(
   document: SourceDocument,
   organization: ProjectOrganizationDocument,
   request: AssetFirstGenerationRequest,
-  modelMetadata?: SourceModelMetadata
+  modelMetadata?: SourceModelMetadata,
+  sharedElements: Record<string, ReusableElement> = {}
 ) {
   if (!request.sourceCardId)
     throw new Error('Canvas generation requires a sourceCardId.');
@@ -202,6 +204,8 @@ export function assertCanvasGenerationSourceDocument(
     throw new Error('Canvas text references changed; review the node again.');
 
   const fixedElements: Array<{
+    scope?: 'series' | 'project';
+    ownerId?: string;
     elementId: string;
     versionId: string;
     assetId: string;
@@ -213,7 +217,9 @@ export function assertCanvasGenerationSourceDocument(
   for (const binding of Object.values(
     document.organization?.elementBindings ?? {}
   ).filter((item) => item.consumerCardId === card.id)) {
-    const element = organization.elements[binding.elementId];
+    const element = binding.scope === 'series'
+      ? sharedElements[JSON.stringify([binding.ownerId, binding.elementId])]
+      : organization.elements[binding.elementId];
     const version = element?.versions[binding.versionId];
     if (
       !element ||
@@ -227,6 +233,7 @@ export function assertCanvasGenerationSourceDocument(
         'Element reference version or binding changed; review the node again.'
       );
     fixedElements.push({
+      ...(binding.scope ? { scope: binding.scope, ownerId: binding.ownerId } : {}),
       elementId: binding.elementId,
       versionId: binding.versionId,
       assetId: binding.assetId,
@@ -270,7 +277,9 @@ export function assertCanvasGenerationSourceDocument(
         });
       }
       if (!binding.elementId) continue;
-      const element = organization.elements[binding.elementId];
+      const element = binding.scope === 'series'
+      ? sharedElements[JSON.stringify([binding.ownerId, binding.elementId])]
+      : organization.elements[binding.elementId];
       const version = binding.versionId
         ? element?.versions[binding.versionId]
         : undefined;
@@ -283,6 +292,7 @@ export function assertCanvasGenerationSourceDocument(
         throw new Error('Element template reference version is unavailable.');
       for (const consumer of consumers) {
         const fixed = {
+          ...(binding.scope ? { scope: binding.scope, ownerId: binding.ownerId } : {}),
           elementId: binding.elementId,
           versionId: binding.versionId!,
           assetId: binding.assetId,
@@ -358,6 +368,7 @@ export function assertCanvasGenerationSourceDocument(
       JSON.stringify(
         canonical({
           projectId: request.projectId,
+          canvasId: request.canvasId ?? `default:${request.projectId}`,
           sourceCardId: card.id,
           configuration,
           references: references.map(({ assetId, role }) => ({
@@ -378,6 +389,7 @@ export function assertCanvasGenerationSourceDocument(
     references,
     parameters,
     provenance: {
+      canvasId: request.canvasId ?? `default:${request.projectId}`,
       sourceCardId: card.id,
       elementBindings: fixedElements,
       templateSlots,
@@ -399,13 +411,31 @@ export async function assertCanvasGenerationSource(
     import('./service'),
     import('@/core/generation-providers/model-catalog'),
   ]);
-  const state = await loadProjectWithLatestSnapshot({ projectId });
+  const state = await loadProjectWithLatestSnapshot({ projectId, canvasId: request.canvasId ?? `default:${projectId}` });
   if (!state) throw new Error('Canvas project is unavailable.');
+  const { getCanvasEntry, requireScene } = await import('@/core/series/narrative');
+  const entry = await getCanvasEntry(projectId, request.canvasId ?? `default:${projectId}`);
+  if (entry.sceneId) await requireScene(projectId, entry.sceneId);
   const organization = await getOrganization(projectId);
+  const { resolveElementReference } = await import('@/core/series/shared-assets');
+  const sharedElements: Record<string, ReusableElement> = {};
+  const bindings = Object.values(state.snapshot.organization?.elementBindings ?? {}).filter(b => b.consumerCardId === sourceCardId);
+  for (const binding of bindings) if (binding.scope === 'series') {
+    sharedElements[JSON.stringify([binding.ownerId, binding.elementId])] = await resolveElementReference(projectId, binding, { checkFile: true });
+  }
+  for (const instance of Object.values(state.snapshot.organization?.templateInstances ?? {})) {
+    for (const [slotId, binding] of Object.entries(instance.slotBindings)) {
+      if (binding.scope !== 'series' || !binding.elementId || !binding.versionId) continue;
+      const slot = instance.slotDefinitions.find(s => s.id === slotId);
+      if (!slot?.consumers.some(c => instance.stepCardIds[c.stepId] === sourceCardId)) continue;
+      sharedElements[JSON.stringify([binding.ownerId, binding.elementId])] = await resolveElementReference(projectId, { ...binding, elementId: binding.elementId, versionId: binding.versionId }, { checkFile: true });
+    }
+  }
   return assertCanvasGenerationSourceDocument(
     state.snapshot,
     organization.document,
     { ...request, sourceCardId },
-    getGenerationModelDescriptor(request.modelId) ?? undefined
+    getGenerationModelDescriptor(request.modelId) ?? undefined,
+    sharedElements
   );
 }

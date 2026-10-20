@@ -218,6 +218,8 @@ export type WorkflowTemplateDefinition = z.infer<
 export const workflowTemplateBindingSchema = z
   .object({
     assetId: id,
+    scope: z.enum(['project', 'series']).optional(),
+    ownerId: id.optional(),
     mediaType,
     url: z.string().trim().min(1).max(4096),
     elementId: id.optional(),
@@ -244,6 +246,8 @@ export type WorkflowTemplateInstance = {
     string,
     {
       assetId: string;
+      scope?: 'project' | 'series';
+      ownerId?: string;
       referenceCardId: string;
       elementId?: string;
       versionId?: string;
@@ -583,6 +587,7 @@ export function instantiateTemplate(input: InstantiateTemplateInput) {
     };
     slotBindings[slot.id] = {
       assetId: binding.assetId,
+      ...(binding.scope ? { scope: binding.scope, ownerId: binding.ownerId } : {}),
       referenceCardId,
       ...(binding.elementId
         ? { elementId: binding.elementId, versionId: binding.versionId }

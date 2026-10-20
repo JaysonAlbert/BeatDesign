@@ -21,7 +21,7 @@ export async function loadWorkspaceProjectRoute({
   const { target, model, prompt, focus } = parseProjectEntryIntent(search);
 
   const projectState = await loadProjectWithLatestSnapshotFn({
-    data: { projectId },
+    data: { projectId, sceneId: search.sceneId, canvasId: search.canvasId },
   });
 
   if (!projectState) throw notFound();
@@ -31,6 +31,11 @@ export async function loadWorkspaceProjectRoute({
     project: projectState.project,
     snapshot: projectState.snapshot,
     snapshotVersion: projectState.snapshotVersion,
+    narrative: projectState.narrative,
+    canvasId: projectState.canvasId,
+    sceneId: projectState.sceneId,
+    scopeError: projectState.scopeError,
+    focusClipId: search.clipId ?? null,
     target: target ?? null,
     modelId: model ?? null,
     prompt: prompt ?? null,

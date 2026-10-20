@@ -6,8 +6,10 @@ import {
   projectOrganizationState,
 } from '@/config/db/schema';
 import { getDb } from '@/core/workspace-lib/db-adapter';
+import { scopedCanvasId } from './canvas-scope';
+import { getCanvasEntry } from '@/core/series/narrative';
 
-export async function loadProjectRevision(projectId: string) {
+export async function loadProjectRevision(projectId: string, canvasId?: string | null) {
   const db = await getDb();
   const [row] = await db
     .select({
@@ -28,9 +30,10 @@ export async function loadProjectRevision(projectId: string) {
     )
     .where(eq(project.id, projectId))
     .limit(1);
+  const entry = row?.status === 'active' ? await getCanvasEntry(projectId, scopedCanvasId(projectId, canvasId)) : null;
   return row?.status === 'active'
     ? {
-        canvas: row.canvas ?? 1,
+        canvas: entry?.storageKind === 'document' ? entry.version ?? 1 : row.canvas ?? 1,
         timeline: row.timeline,
         organization: row.organization ?? 0,
       }

@@ -510,6 +510,7 @@ type BuildGenerationEffectInputResult = Awaited<
 type RunDraftGenerationParams = {
   draftId: string;
   projectId?: string;
+  canvasId?: string;
   getCurrentCard: (draftId: string) => CanvasCard | null | undefined;
   buildEffectInput: (
     draftCard: CanvasDraftCard,
@@ -554,6 +555,7 @@ type RunDraftGenerationParams = {
 export const runDraftGeneration = async ({
   draftId,
   projectId,
+  canvasId,
   getCurrentCard,
   buildEffectInput,
   updateDraftCard,
@@ -623,6 +625,7 @@ export const runDraftGeneration = async ({
             version: GENERATION_REQUEST_VERSION,
             projectId,
             sourceSurface: 'canvas',
+            canvasId,
             sourceCardId: submittedCard.id,
             mode: isCanvasAnalysisCard(submittedCard)
               ? 'analysis'

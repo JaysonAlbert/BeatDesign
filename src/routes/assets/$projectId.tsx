@@ -5,10 +5,12 @@ import { loadWorkspaceProjectRoute } from '@/core/projects/workspace-project-rou
 
 export const Route = createFileRoute('/assets/$projectId')({
   ssr: 'data-only',
-  loader: ({ params }) =>
+  validateSearch: (search: Record<string, unknown>) => Object.fromEntries(['sceneId', 'canvasId', 'scope', 'q', 'mediaType', 'elementKind', 'usage', 'folderId', 'includeArchived'].map(key => [key, typeof search[key] === 'string' || typeof search[key] === 'number' || typeof search[key] === 'boolean' ? String(search[key]) : undefined])) as Record<string, string | undefined>,
+  loaderDeps: ({ search }) => ({ search: { sceneId: search.sceneId, canvasId: search.canvasId } }),
+  loader: ({ params, deps }) =>
     loadWorkspaceProjectRoute({
       projectId: params.projectId,
-      search: {},
+      search: deps.search,
       workspaceMode: 'assets',
     }),
   component: AssetsProjectRouteComponent,

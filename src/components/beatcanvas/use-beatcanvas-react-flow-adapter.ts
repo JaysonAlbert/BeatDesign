@@ -525,6 +525,7 @@ export function useBeatCanvasReactFlowAdapter({
   setActiveComposerCardId: (cardId: string | null) => void;
 }) {
   const editorRef = useRef<BeatCanvasEditor | null>(null);
+  const canvasSchemaVersionRef = useRef<4 | 5>(4);
   const canvasOrganizationRef = useRef<CanvasOrganization | undefined>(
     undefined
   );
@@ -626,12 +627,14 @@ export function useBeatCanvasReactFlowAdapter({
       : undefined;
     canvasOrganizationRef.current = organization;
 
-    return buildProjectSnapshotDocumentFromCards({
+    const captured = buildProjectSnapshotDocumentFromCards({
       cardsById: canvasCardsRef.current,
       framesById: frames,
       camera: editor?.getCamera(),
       organization,
     });
+    if (captured.version === 5) canvasSchemaVersionRef.current = 5;
+    return { ...captured, version: canvasSchemaVersionRef.current };
   }, [canvasCardsRef]);
 
   const recordCanvasHistory = useCallback(() => {
@@ -1585,6 +1588,7 @@ export function useBeatCanvasReactFlowAdapter({
 
   const restoreProjectSnapshot = useCallback(
     (document: ProjectSnapshotDocument) => {
+      if (document.version === 5) canvasSchemaVersionRef.current = 5;
       const editor = editorRef.current;
       if (!editor) return;
       canonicalFramesRef.current = structuredClone(document.frames);
@@ -1737,6 +1741,7 @@ export function useBeatCanvasReactFlowAdapter({
 
   const applyHistoryDocument = useCallback(
     (document: ProjectSnapshotDocument) => {
+      if (document.version === 5) canvasSchemaVersionRef.current = 5;
       const editor = editorRef.current;
       if (!editor) return;
 

@@ -30,8 +30,9 @@ const readProjectIds = (value: unknown) =>
         .filter((item) => item.length > 0)
     : [];
 
-async function GET() {
-  const projects = await loadProjects({});
+async function GET({ request }: { request: Request }) {
+  const requested = Number(new URL(request.url).searchParams.get('limit'));
+  const projects = await loadProjects({ limit: requested > 0 ? Math.min(500, Math.floor(requested)) : 24 });
   return Response.json({ projects: projects.map(serializeProjectCenterCard) });
 }
 
@@ -95,8 +96,8 @@ async function DELETE({ request }: { request: Request }) {
     );
   }
 
-  await deleteProjects({ projectIds });
-  return Response.json({ success: true });
+  try { await deleteProjects({ projectIds }); return Response.json({ success: true }); }
+  catch (error) { const { ScopeError } = await import('@/core/series/contracts'); if (error instanceof ScopeError) return Response.json({ error: error.message, code: error.code }, { status: 409 }); throw error; }
 }
 
 export const Route = createFileRoute('/api/app/projects/')({

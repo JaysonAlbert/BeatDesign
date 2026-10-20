@@ -1,5 +1,5 @@
 # Proposed Command / Query Contracts
-设计约定，当前没有这些新接口。所有写入复用 Command Kernel，不从 UI/MCP 直接写数据库。
+设计约定及已实现的接口边界；实际参数映射见下方“实现映射”。所有写入复用 Command Kernel，不从 UI/MCP 直接写数据库。
 详见 [数据模型](../data-model.md) 与 [交互约定](ui.md)。
 
 ## 1. Envelope、版本与回执
@@ -61,7 +61,7 @@ publish、adopt、detach 会触及项目边界：事务内重新确认项目归�
 
 只读 preview 不写文档、membership 或生成 intent。类型包括 adopt、localize、detach_episode、archive、transfer、legacy_migration。本地化以源Series身份/版本建立稳定映射并复用本集同源副本，不按同名合并，不改历史；同时更新绑定、模板槽与消费者索引并失效未提交intent。
 
-返回 previewToken（有界缓存或签名摘要，建议 10 分钟）、operation、规范化 payloadDigest、expectedRevisions、精确目标列表、版本/Asset 差异、阻塞原因、影响及 limits。Token 必须绑定完整参数、所有目标 revision、目标当前推荐版本；apply 再查可用性、关系与正文，任何不符 PREVIEW_STALE。不通过仅客户端传入的 consumers 信任范围。
+返回 previewToken（10分钟有效的无状态乐观前置条件摘要）、operation、规范化 payloadDigest、expectedRevisions、精确目标列表、版本/Asset 差异、阻塞原因、影响及 limits。Token 必须绑定完整参数、所有目标 revision、目标当前推荐版本；apply 再查可用性、关系与正文，任何不符 PREVIEW_STALE。不通过仅客户端传入的 consumers 信任范围。
 
 adopt 例：
 ```json
@@ -103,3 +103,13 @@ MCP active project 仍为一个集；active canvasId 是可选导航上下文，
 - 上传/导入成功总是先成为本项目 Asset；创建卡片须显式目标 Canvas，并确认目标仍活跃、revision 合法。目标关闭/归档时 Asset 保留在项目素材库并返回可恢复提示，不丢文件。
 - 已运行任务输出仍入原 Project Asset/History；用户切场不重定向 placement，不自动追加到当前场。若原文档已归档，结果在素材库可找，来源保持。
 - Studio 生成可带 sceneId 作归场上下文，但不冒充 Canvas source；Editor 只通过本集 membership 的具体 Asset。
+
+## 实现映射（2026-10-21）
+
+- 语义名称在 `src/core/series/{service,narrative,shared-assets,reference-review,canvas-transfer}.ts` 中以严格判别联合实现。Series/场次写使用 `commandId/idempotencyKey/expectedRevision/command`；多文档revision向量在preview token中捕获并由apply重读验证，响应逐文档返回新revision。
+- HTTP：`/api/app/series/`、`/:seriesId`、`/commands`、`/shared`、`/consumers`、`/archive-preview`、`/reference-review`、`/assets/:assetId`；Project路径下 `/narrative`、`/canvas-transfer`、`/scoped-assets`、`/asset-details/:assetId`。
+- Canvas snapshot/revision GET的`canvasId`为query，PUT/commands为body；生成请求显式canvasId进入source digest及历史provenance。upload intent沿用现有sourceCardId+sourceContextDigest存储，摘要包含实际canvasId；不另建不受校验的intent存储。
+- `narrative` 命令为 `create_scene/update_scene/set_scene_order/set_scene_archived/create_canvas/update_canvas/assign_scene_assets/set_clip_scene`。场次/文档归档UI先展示数量与影响并固定narrative revision确认；不删除正文或文件。共享素材/Element归档强制服务端preview token。
+- 预览摘要是并发前置条件，**不是授权凭证**：每次apply重新检查所属、媒体、推荐版本、全部正文和revision。不得将其描述为签名认证。
+- 共享使用位置按100条分页；Elements列表保留有界消费者摘要与准确总数。素材查询默认100、上限500，`includeArchived=true`可发现共享软归档素材；过期cursor返回冲突，重新查询。
+- MCP入口在 `src/mcp/series-tools.ts`；清单以 `src/mcp/tools.ts` 为准。`bdesign_shared_consumers`与`bdesign_shared_archive_preview`补充分页和归档预览。旧 `bdesign_asset_query` 的current/project语义保留，scene/episode/series走同一范围查询服务。

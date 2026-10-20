@@ -18,14 +18,14 @@ const apiConfigSource = readFileSync(
 
 test('workspace header keeps mode switching, shared assets, and API configuration actions', () => {
   assert.match(shellSource, /WorkspaceApiConfigDialog/);
-  assert.match(shellSource, /\/assets\//);
+  assert.match(shellSource, /workspaceHref\('assets'\)/);
   assert.match(shellSource, /header\.studio/);
   assert.match(shellSource, /header\.canvas/);
   assert.match(shellSource, /header\.editor/);
   assert.match(shellSource, /header\.assets/);
-  assert.match(shellSource, /href=\{`\/studio\/\$\{projectId\}`\}/);
-  assert.match(shellSource, /href=\{`\/canvas\/\$\{projectId\}`\}/);
-  assert.match(shellSource, /href=\{`\/editor\/\$\{projectId\}`\}/);
+  assert.match(shellSource, /href=\{workspaceHref\('studio'\)\}/);
+  assert.match(shellSource, /href=\{workspaceHref\('canvas'\)\}/);
+  assert.match(shellSource, /href=\{workspaceHref\('editor'\)\}/);
   assert.match(shellSource, /aria-current=\{workspaceMode === 'studio'/);
   assert.match(shellSource, /aria-current=\{workspaceMode === 'canvas'/);
   assert.match(shellSource, /aria-current=\{workspaceMode === 'editor'/);

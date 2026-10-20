@@ -83,6 +83,7 @@ type CanvasComponents = {
 };
 
 interface BeatCanvasReactFlowEditorProps {
+  transientFocusCardId?: string | null;
   organization?: CanvasOrganization;
   canvasCards?: Record<string, CanvasCard>;
   timelineUsage?: Array<{ assetId: string | null }>;
@@ -294,6 +295,7 @@ const shapeRecordFromNode = (node: BeatCanvasFlowNode): CanvasShapeRecord => ({
 
 function BeatCanvasReactFlowCanvas({
   organization,
+  transientFocusCardId,
   canvasCards,
   timelineUsage,
   getCanvasDocument,
@@ -1186,7 +1188,11 @@ function BeatCanvasReactFlowCanvas({
       { cards: Object.values(canvasCards), frames, organization },
       metadataIds.filter((id) => !known.has(id))
     );
-    const projection = projectCanvasOrganization(cleanDocument, {
+    const projectedDocument = structuredClone(cleanDocument);
+    const focusCard = transientFocusCardId ? canvasCards[transientFocusCardId] : undefined;
+    const focusId = focusCard?.kind === 'output' ? focusCard.sourceConfigCardId : transientFocusCardId;
+    for (const group of Object.values(projectedDocument.organization.groups)) if (focusId && group.memberCardIds.includes(focusId)) group.collapsed = false;
+    const projection = projectCanvasOrganization(projectedDocument, {
       selectedGroupId,
     });
     displayedGroupFramesRef.current = Object.fromEntries(
@@ -1205,7 +1211,7 @@ function BeatCanvasReactFlowCanvas({
     const groups: BeatCanvasFlowNode[] = projection.nodes
       .filter((node) => node.kind === 'group')
       .map((node) => {
-        const group = cleanDocument.organization.groups[node.id];
+        const group = projectedDocument.organization.groups[node.id];
         const frame = node.frame!;
         const result = group.resultCardId
           ? canvasCards[group.resultCardId]
@@ -1341,6 +1347,7 @@ function BeatCanvasReactFlowCanvas({
     organization,
     revision,
     timelineUsage,
+    transientFocusCardId,
   ]);
 
   const lineagePresentation = useMemo(() => {

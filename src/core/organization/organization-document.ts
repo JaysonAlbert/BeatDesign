@@ -29,6 +29,7 @@ const elementVersionSchema = z
   .strict();
 const elementSchema = z
   .object({
+    seriesSource: z.object({ seriesId: id, elementId: id, versionIds: z.record(id, id) }).strict().optional(),
     id,
     name,
     kind,

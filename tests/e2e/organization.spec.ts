@@ -41,7 +41,7 @@ async function mcp(
   return data.result.structuredContent.result;
 }
 async function fixture(request: APIRequestContext) {
-  const { projects } = await (await request.get('/api/app/projects')).json();
+  const { projects } = await (await request.get('/api/app/projects?limit=500')).json();
   const source = projects.find(
     (project: { name: string }) =>
       project.name === 'Canvas organization · 8 shot synthetic preview'
@@ -178,6 +178,7 @@ test('Assets folders round trip through keyboard UI, MCP changes preserve dirty 
       blockedRequests.push(req.url());
   });
   await page.goto(`/assets/${id}`);
+  await page.getByText('Manage episode folders and local Elements', { exact: true }).click();
   const panel = page.getByTestId('project-organization-panel');
   await panel.locator('summary').focus();
   await panel.locator('summary').press('Enter');
@@ -202,6 +203,7 @@ test('Assets folders round trip through keyboard UI, MCP changes preserve dirty 
     )
     .toBe(true);
   await page.reload();
+  await page.getByText('Manage episode folders and local Elements', { exact: true }).click();
   await panel.locator('summary').click();
   await expect(
     panel
@@ -280,6 +282,7 @@ test('Chinese organization labels and keyboard creation persist without touching
     await request.get(`/api/app/projects/${id}/snapshot`)
   ).json();
   await page.goto(`/zh/assets/${id}`);
+  await page.getByText('管理本集文件夹与本地参考', { exact: true }).click();
   const panel = page.getByTestId('project-organization-panel');
   await expect(panel.locator('summary')).toHaveText('项目组织');
   await panel.locator('summary').focus();
@@ -560,6 +563,7 @@ for (const locale of ['en', 'zh'] as const) {
       )
       .toBe(1);
     await page.goto(`${prefix}/assets/${id}`);
+    await page.getByText(locale === 'zh' ? '管理本集文件夹与本地参考' : 'Manage episode folders and local Elements', { exact: true }).click();
     const assetsPanel = page.getByTestId('project-organization-panel');
     await assetsPanel.locator('summary').click();
     await assetsPanel
@@ -717,6 +721,7 @@ for (const locale of ['en', 'zh'] as const) {
     expect(response.ok()).toBeTruthy();
     const { id } = await response.json();
     await page.goto(`${locale === 'zh' ? '/zh' : ''}/assets/${id}`);
+    await page.getByText(locale === 'zh' ? '管理本集文件夹与本地参考' : 'Manage episode folders and local Elements', { exact: true }).click();
     // This DEV-only button mounts on the client, after SSR hydration installs
     // handlers for the drawer trigger.
     await expect(

@@ -11,6 +11,7 @@ import {
   RequestBodyTooLargeError,
 } from '@/lib/request-body-limit';
 import { validateTrustedWorkspaceJsonMutation } from '@/lib/trusted-local-request';
+import { withCanvasScope } from '@/core/projects/canvas-scope';
 
 async function POST({
   request,
@@ -46,13 +47,13 @@ async function POST({
     if (!(await getActiveProject({ projectId: params.projectId })))
       throw new BeatDesignCommandError('NOT_FOUND', 'Project not found');
     const preview = parsed.data;
-    const result =
+    const result = await withCanvasScope(params.projectId, new URL(request.url).searchParams.get('canvasId'), async () =>
       'selectedCardIds' in preview
         ? await previewWorkflowTemplate(
             params.projectId,
             preview.selectedCardIds
           )
-        : await previewWorkflowInstantiation(params.projectId, preview);
+        : await previewWorkflowInstantiation(params.projectId, preview));
     return Response.json(result, { headers: { 'cache-control': 'no-store' } });
   } catch (error) {
     if (error instanceof BeatDesignCommandError)

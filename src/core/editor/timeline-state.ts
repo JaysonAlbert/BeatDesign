@@ -1,6 +1,7 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, notInArray, sql } from 'drizzle-orm';
+import { withDatabaseTransaction } from '@/core/db/transaction-context';
 
-import { projectTimelineState } from '@/config/db/schema';
+import { projectTimelineState, projectSceneClip, projectNarrativeState } from '@/config/db/schema';
 import {
   normalizeTimelineDocument,
   type TimelineDocument,
@@ -39,7 +40,7 @@ export async function loadProjectTimeline(projectId: string) {
   };
 }
 
-export async function saveProjectTimeline({
+async function saveProjectTimelineInsideTransaction({
   projectId,
   document,
   baseVersion,
@@ -115,5 +116,10 @@ export async function saveProjectTimeline({
     }
   }
 
+  const clipIds = normalized.tracks.flatMap(track => track.clips.map(clip => clip.id));
+  const removedTags = await db.delete(projectSceneClip).where(and(eq(projectSceneClip.projectId, projectId), clipIds.length ? notInArray(projectSceneClip.clipId, clipIds) : undefined)).returning({ id: projectSceneClip.id });
+  if (removedTags.length) await db.update(projectNarrativeState).set({ revision: sql`${projectNarrativeState.revision} + 1` }).where(eq(projectNarrativeState.projectId, projectId));
   return { document: normalized, version: nextVersion, updatedAt: now };
 }
+
+export const saveProjectTimeline = (input: Parameters<typeof saveProjectTimelineInsideTransaction>[0]) => withDatabaseTransaction(() => saveProjectTimelineInsideTransaction(input));

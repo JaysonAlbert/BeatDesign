@@ -14,15 +14,16 @@ import { listGenerationModelDescriptors } from '@/core/generation-providers';
 
 import { BEATDESIGN_MCP_TOOL_NAMES } from './tools';
 
-test('MCP tool catalog contains exactly 40 uniquely registered tools', () => {
+test('MCP tool catalog matches every uniquely registered tool', () => {
   const source =
     readFileSync(new URL('./server.ts', import.meta.url), 'utf8') +
-    readFileSync(new URL('./organization-tools.ts', import.meta.url), 'utf8');
+    readFileSync(new URL('./organization-tools.ts', import.meta.url), 'utf8') +
+    readFileSync(new URL('./series-tools.ts', import.meta.url), 'utf8');
   const registered = [
     ...source.matchAll(/server\.registerTool\(\s*'([^']+)'/g),
   ].map((match) => match[1]);
-  assert.equal(BEATDESIGN_MCP_TOOL_NAMES.length, 40);
-  assert.equal(new Set(registered).size, 40);
+  assert.equal(new Set(BEATDESIGN_MCP_TOOL_NAMES).size, BEATDESIGN_MCP_TOOL_NAMES.length);
+  assert.equal(new Set(registered).size, BEATDESIGN_MCP_TOOL_NAMES.length);
   assert.deepEqual(registered.sort(), [...BEATDESIGN_MCP_TOOL_NAMES].sort());
 });
 

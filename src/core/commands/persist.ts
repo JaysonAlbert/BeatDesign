@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { withCanvasScope, scopedCanvasId } from '@/core/projects/canvas-scope';
+import { ScopeError } from '@/core/series/contracts';
 import { withDatabaseTransaction } from '@/core/db/transaction-context';
 import { requiresExplicitEnvelope } from '@/core/organization/command-contract';
 import {
@@ -74,6 +76,7 @@ const getConflictRevision = (error: unknown) => {
 
 type PersistCommandInput = {
   projectId: string;
+  canvasId?: string;
   origin: BeatDesignCommandOrigin;
   commandId: string;
   expectedRevision?: number | null;
@@ -203,6 +206,7 @@ async function persistBeatDesignCommandOnce({
 > {
   const requestHash = commandFingerprint({
     projectId,
+    canvasId: scopedCanvasId(projectId),
     origin,
     commandId,
     expectedRevision,
@@ -213,7 +217,7 @@ async function persistBeatDesignCommandOnce({
     if (
       cached.commandId !== commandId ||
       cached.commandType !== command.type ||
-      (requiresExplicitEnvelope(command) && cached.requestHash !== requestHash)
+      (cached.requestHash != null && cached.requestHash !== requestHash)
     ) {
       return createCommandFailure({
         commandId,
@@ -331,6 +335,7 @@ async function persistBeatDesignCommandOnce({
       const saved = await saveProjectSnapshot({
         projectId,
         document: executed.data.canvas,
+        allowRestoreDeleted: origin === 'ui' || origin === 'system',
         baseVersion:
           typeof expectedRevision === 'number'
             ? expectedRevision
@@ -393,6 +398,8 @@ async function persistBeatDesignCommandOnce({
       result,
     });
   } catch (error) {
+    if (error instanceof ScopeError) return createCommandFailure({ commandId, projectId, origin,
+      code: error.code === 'REVISION_CONFLICT' ? 'REVISION_CONFLICT' : 'INVALID_COMMAND', message: error.message, revision: error.revision });
     if (
       error instanceof BeatDesignCommandError ||
       error instanceof OrganizationValidationError
@@ -447,6 +454,7 @@ async function persistBeatDesignCommandOnce({
 
 export function persistBeatDesignCommand({
   projectId,
+  canvasId,
   origin,
   commandId,
   expectedRevision,
@@ -454,6 +462,7 @@ export function persistBeatDesignCommand({
   command,
 }: {
   projectId: string;
+  canvasId?: string;
   origin: BeatDesignCommandOrigin;
   commandId?: string;
   expectedRevision?: number | null;
@@ -461,7 +470,7 @@ export function persistBeatDesignCommand({
   command: BeatDesignCommand;
 }): Promise<BeatDesignCommandResult<BeatDesignCommandData>> {
   if (
-    requiresExplicitEnvelope(command) &&
+    (requiresExplicitEnvelope(command) || canvasId !== undefined) &&
     (!commandId?.trim() ||
       !idempotencyKey?.trim() ||
       !Number.isSafeInteger(expectedRevision) ||
@@ -480,6 +489,7 @@ export function persistBeatDesignCommand({
   commandId ??= createCommandId();
   const requestHash = commandFingerprint({
     projectId,
+    canvasId: scopedCanvasId(projectId, canvasId),
     origin,
     commandId,
     expectedRevision,
@@ -524,8 +534,7 @@ export function persistBeatDesignCommand({
     if (
       existing.commandId !== commandId ||
       existing.commandType !== command.type ||
-      (requiresExplicitEnvelope(command) &&
-        existing.requestHash !== requestHash)
+      existing.requestHash !== requestHash
     ) {
       return Promise.resolve(
         createCommandFailure({
@@ -541,7 +550,7 @@ export function persistBeatDesignCommand({
   }
 
   const run = () =>
-    withDatabaseTransaction(async () => {
+    withCanvasScope(projectId, canvasId, () => withDatabaseTransaction(async () => {
       const result = await persistBeatDesignCommandOnce({
         projectId,
         origin,
@@ -552,7 +561,7 @@ export function persistBeatDesignCommand({
       });
       if (!result.ok) throw new CommandRollback(result);
       return result;
-    }).catch((error) => {
+    })).catch((error) => {
       if (error instanceof CommandRollback) return error.result;
       throw error;
     });

@@ -66,6 +66,7 @@ async function POST({
   const result = await persistBeatDesignCommand({
     projectId: params.projectId,
     origin: 'ui',
+    canvasId: payload.canvasId,
     commandId,
     expectedRevision: payload.expectedRevision,
     idempotencyKey: payload.idempotencyKey ?? commandId,

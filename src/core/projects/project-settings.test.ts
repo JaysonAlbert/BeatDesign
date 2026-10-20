@@ -165,7 +165,12 @@ test('project settings persist through the command kernel, lock covers and rejec
     ).ok,
     true,
   );
-  await deleteUserAssetById('b-poster');
+  await assert.rejects(() => deleteUserAssetById('b-poster'), /still referenced/i);
+  assert.equal((await getProjectSettings(first.id))?.coverAssetId, 'b-poster');
+  // Simulate a damaged legacy pointer. The production API must preserve in-use media.
+  const legacyClient = createClient({ url: `file:${directory}/local.db` });
+  try { await legacyClient.execute({ sql: 'UPDATE project SET cover_asset_id = ? WHERE id = ?', args: ['missing-legacy-cover', first.id] }); }
+  finally { legacyClient.close(); }
   const fallback = await getProjectSettings(first.id);
   assert.equal(fallback?.coverMode, 'auto');
   assert.equal(fallback?.coverAssetId, 'a-first');

@@ -21,6 +21,7 @@ export const assetFirstGenerationRequestSchema = z
   .object({
     version: z.literal(GENERATION_REQUEST_VERSION),
     projectId: z.string().min(1).max(160),
+    canvasId: z.string().min(1).max(200).optional(),
     sourceSurface: z.enum(['canvas', 'studio', 'editor']).optional(),
     sourceCardId: z.string().min(1).max(200).optional(),
     mode: z.enum(['image', 'video', 'analysis', 'audio']),
@@ -55,6 +56,7 @@ export const assetFirstGenerationRequestSchema = z
   })
   .strict()
   .superRefine((request, context) => {
+    if (request.canvasId && request.sourceSurface !== 'canvas') context.addIssue({ code: 'custom', path: ['canvasId'], message: 'canvasId requires a Canvas source.' });
     if (request.sourceSurface === 'canvas' && !request.sourceCardId)
       context.addIssue({
         code: 'custom',

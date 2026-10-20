@@ -4,6 +4,9 @@ import { BeatStudioWorkspace } from '@/components/studio/beat-studio-workspace';
 import { BeatCanvasShell } from '@/components/beatcanvas/beatcanvas-shell';
 import { VideoEditorWorkspace } from '@/components/editor/video-editor-workspace';
 import type { loadWorkspaceProjectRoute } from '@/core/projects/workspace-project-route-loader';
+import { WorkspaceScopeProvider } from './workspace-scope';
+import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
+import { Link } from '@/core/i18n/navigation';
 
 type WorkspaceProjectRouteData = Awaited<
   ReturnType<typeof loadWorkspaceProjectRoute>
@@ -14,13 +17,15 @@ export function WorkspaceProjectRoutePage({
 }: {
   data: WorkspaceProjectRouteData;
 }) {
+  const t = useTranslations('Series');
   return (
+    <WorkspaceScopeProvider value={{ projectId: data.project.id, canvasId: data.canvasId, sceneId: data.sceneId, narrative: data.narrative }}>
     <ProductPageShell
       workspaceName={data.project.name}
       projectId={data.project.id}
       workspaceMode={data.workspaceMode}
     >
-      {data.workspaceMode === 'studio' ? (
+      {data.scopeError ? <div role="alert" className="m-8 space-y-4"><p>{t('scopeUnavailable')}</p><Link href={`/canvas/${data.project.id}`}>{t('projectCanvas')}</Link></div> : data.workspaceMode === 'canvas' && !data.canvasId ? <div className="m-8"><p>{t('emptyScene')}</p><p>{t('openNavigation')}</p></div> : data.workspaceMode === 'studio' ? (
         <BeatStudioWorkspace
           key={data.project.id}
           projectId={data.project.id}
@@ -35,11 +40,13 @@ export function WorkspaceProjectRoutePage({
           key={data.project.id}
           projectId={data.project.id}
           projectName={data.project.name}
+          initialFocusClipId={data.focusClipId}
         />
       ) : (
         <BeatCanvasShell
-          key={data.project.id}
+          key={`${data.project.id}:${data.canvasId}`}
           projectId={data.project.id}
+          canvasId={data.canvasId ?? undefined}
           projectPath={data.projectPath}
           initialProjectSnapshot={data.snapshot}
           initialProjectSnapshotVersion={data.snapshotVersion}
@@ -50,5 +57,6 @@ export function WorkspaceProjectRoutePage({
         />
       )}
     </ProductPageShell>
+    </WorkspaceScopeProvider>
   );
 }

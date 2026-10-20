@@ -1,4 +1,8 @@
 import { withDatabaseTransaction } from '@/core/db/transaction-context';
+import { scopedCanvasId } from './canvas-scope';
+import { defaultCanvasId } from './canvas-identity';
+import { getCanvasEntry } from '@/core/series/narrative';
+import { saveSceneCanvasSnapshot, updateCanvasLocators } from './canvas-documents';
 
 import { randomUUID } from 'crypto';
 import { resolveProjectCover } from './project-settings';
@@ -149,14 +153,26 @@ export const markProjectOpened = async ({
 
 export const loadProjectWithLatestSnapshot = async ({
   projectId,
+  canvasId,
+  allowArchivedCanvas = false,
 }: {
   projectId: string;
+  canvasId?: string | null;
+  allowArchivedCanvas?: boolean;
 }) => {
   const db = await getDb();
   const currentProject = await getActiveProject({ projectId });
   if (!currentProject) {
     return null;
   }
+
+  const resolvedCanvasId = scopedCanvasId(projectId, canvasId);
+  const entry = await getCanvasEntry(projectId, resolvedCanvasId, allowArchivedCanvas);
+  if (entry.storageKind === 'document') return {
+    project: currentProject,
+    snapshotVersion: entry.version ?? 1,
+    snapshot: normalizeProjectSnapshotDocument(entry.documentJson),
+  };
 
   const snapshotRows = await db
     .select()
@@ -173,7 +189,7 @@ export const loadProjectWithLatestSnapshot = async ({
   };
 };
 
-export const deleteProjects = async ({
+const deleteProjectsInsideTransaction = async ({
   projectIds,
 }: {
   projectIds: string[];
@@ -184,6 +200,8 @@ export const deleteProjects = async ({
   const now = new Date();
 
   for (const projectId of projectIds) {
+    const { assertProjectMayBeRemoved } = await import('@/core/series/deletion-guards');
+    await assertProjectMayBeRemoved(projectId);
     await db
       .update(project)
       .set({
@@ -195,22 +213,36 @@ export const deleteProjects = async ({
   }
 };
 
+export const deleteProjects = (input: Parameters<typeof deleteProjectsInsideTransaction>[0]) => withDatabaseTransaction(() => deleteProjectsInsideTransaction(input));
+
 const saveProjectSnapshotInsideTransaction = async ({
   projectId,
+  canvasId,
   document,
   baseVersion,
   allowEmpty = false,
+  allowArchivedCanvas = false,
+  allowRestoreDeleted = false,
 }: {
   projectId: string;
+  canvasId?: string | null;
   document: ProjectSnapshotDocument;
   baseVersion?: number | null;
   allowEmpty?: boolean;
+  allowArchivedCanvas?: boolean;
+  allowRestoreDeleted?: boolean;
 }) => {
   const db = await getDb();
   const currentProject = await getActiveProject({ projectId });
   if (!currentProject) {
     throw new Error('Project not found');
   }
+
+  const resolvedCanvasId = scopedCanvasId(projectId, canvasId);
+  if (resolvedCanvasId !== defaultCanvasId(projectId)) return saveSceneCanvasSnapshot({
+    projectId, canvasId: resolvedCanvasId, document, baseVersion, allowEmpty, allowArchivedCanvas, allowRestoreDeleted,
+  });
+  await getCanvasEntry(projectId, resolvedCanvasId);
 
   const normalizedDocument = normalizeProjectSnapshotDocument(document);
   const stateRows = await db
@@ -220,8 +252,10 @@ const saveProjectSnapshotInsideTransaction = async ({
     .limit(1);
 
   const currentState = stateRows[0] ?? null;
+  if ((currentState?.documentJson as ProjectSnapshotDocument)?.version === 5 && document.version !== 5)
+    throw new (await import('@/core/series/contracts')).ScopeError('CAPABILITY_REQUIRED', 'This Canvas requires the current v5 client. Reload before saving.');
   if (
-    document.version !== 4 &&
+    document.version !== 4 && document.version !== 5 &&
     (currentState?.documentJson as ProjectSnapshotDocument)?.organization
   )
     throw new Error(
@@ -275,6 +309,7 @@ const saveProjectSnapshotInsideTransaction = async ({
   const now = new Date();
 
   if (previousSerialized !== nextSerialized) {
+    await updateCanvasLocators(projectId, resolvedCanvasId, normalizedDocument, allowRestoreDeleted);
     if (currentState) {
       const updated = await db
         .update(projectCanvasState)
@@ -346,4 +381,9 @@ const saveProjectSnapshotInsideTransaction = async ({
 
 export const saveProjectSnapshot = (
   input: Parameters<typeof saveProjectSnapshotInsideTransaction>[0]
-) => withDatabaseTransaction(() => saveProjectSnapshotInsideTransaction(input));
+) => withDatabaseTransaction(async () => {
+  const result = await saveProjectSnapshotInsideTransaction(input);
+  const { syncSeriesConsumers } = await import('@/core/series/shared-assets');
+  await syncSeriesConsumers(input.projectId, scopedCanvasId(input.projectId, input.canvasId), input.document);
+  return result;
+});

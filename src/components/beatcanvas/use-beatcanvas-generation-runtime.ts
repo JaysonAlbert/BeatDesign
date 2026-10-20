@@ -39,6 +39,7 @@ type GenerateDraftOptions = {
 
 export function useBeatCanvasGenerationRuntime({
   projectId,
+  canvasId,
   studioT,
   canvasCardsRef,
   imageModels,
@@ -54,6 +55,7 @@ export function useBeatCanvasGenerationRuntime({
   beforeGenerate,
 }: {
   projectId: string;
+  canvasId?: string;
   studioT: StudioTranslateFn;
   canvasCardsRef: MutableRefObject<Record<string, CanvasCard>>;
   imageModels: WorkspaceModelOption[];
@@ -175,6 +177,7 @@ export function useBeatCanvasGenerationRuntime({
         beforeGenerate,
         draftId,
         projectId,
+        canvasId,
         getCurrentCard: (nextDraftId) => canvasCardsRef.current[nextDraftId],
         buildEffectInput: async (draftCard) => {
           const result = await buildEffectInput(draftCard);

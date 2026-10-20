@@ -46,7 +46,7 @@ export async function persistExternalCommandWithConflictRetry<TData>({
   maxAttempts?: number;
   persist?: PersistCommand;
 }): Promise<ExternalCommandResult<TData>> {
-  const boundedAttempts = requiresExplicitEnvelope(input.command)
+  const boundedAttempts = input.canvasId || requiresExplicitEnvelope(input.command)
     ? 1
     : Math.max(1, Math.min(3, Math.floor(maxAttempts)));
   const initialExpectedRevision = asRevision(input.expectedRevision);

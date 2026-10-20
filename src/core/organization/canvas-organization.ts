@@ -53,6 +53,8 @@ export type ShotGroup = z.infer<typeof shotGroupSchema>;
 
 export const elementBindingSchema = z
   .object({
+    scope: z.enum(['project', 'series']).optional(),
+    ownerId: id.optional(),
     id,
     consumerCardId: id,
     elementId: id,
@@ -89,6 +91,8 @@ export type TemplateSlotDefinition = z.infer<
 >;
 export const templateSlotBindingSchema = z
   .object({
+    scope: z.enum(['project', 'series']).optional(),
+    ownerId: id.optional(),
     assetId: id,
     referenceCardId: id,
     elementId: id.optional(),
@@ -258,6 +262,8 @@ export function validateCanvasOrganization(
 }
 
 const bindShape = {
+  scope: z.enum(['project', 'series']).optional(),
+  ownerId: id.optional(),
   bindingId: id,
   consumerCardId: id,
   elementId: id,
@@ -527,6 +533,8 @@ export function applyCanvasOrganizationOperations<
     } else if (op.type === 'bind_element') {
       const existing = organization.elementBindings[op.bindingId];
       const next: ElementBinding = {
+        ...(op.scope ? { scope: op.scope } : {}),
+        ...(op.ownerId ? { ownerId: op.ownerId } : {}),
         id: op.bindingId,
         consumerCardId: op.consumerCardId,
         elementId: op.elementId,
@@ -624,6 +632,8 @@ export function applyCanvasOrganizationOperations<
             (card) => card.id === consumerCardId
           );
           organization.elementBindings[bindingId] = {
+            ...(value.scope ? { scope: value.scope } : {}),
+            ...(value.ownerId ? { ownerId: value.ownerId } : {}),
             id: bindingId,
             consumerCardId,
             elementId: value.elementId,

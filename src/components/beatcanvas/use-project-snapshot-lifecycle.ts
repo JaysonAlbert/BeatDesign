@@ -163,6 +163,7 @@ export function buildProjectPathWithoutEntryIntentSearch({
 
 export function useProjectSnapshotLifecycle({
   projectId,
+  canvasId,
   projectPath,
   initialProjectSnapshot,
   initialProjectSnapshotVersion,
@@ -178,6 +179,7 @@ export function useProjectSnapshotLifecycle({
   onProjectSnapshotConflict,
 }: {
   projectId: string;
+  canvasId?: string;
   projectPath: string;
   initialProjectSnapshot: ProjectSnapshotDocument | null;
   initialProjectSnapshotVersion: number | null;
@@ -247,6 +249,7 @@ export function useProjectSnapshotLifecycle({
           if (!operations.length) return null;
           return executeProjectCommand({
             projectId,
+            canvasId,
             expectedRevision: baseVersion,
             command: { type: 'canvas.apply', operations },
           });
@@ -271,7 +274,7 @@ export function useProjectSnapshotLifecycle({
             throw new Error(result.message);
           }
           const latestResponse = await fetch(
-            `/api/app/projects/${encodeURIComponent(projectId)}/snapshot`
+            `/api/app/projects/${encodeURIComponent(projectId)}/snapshot${canvasId ? `?canvasId=${encodeURIComponent(canvasId)}` : ''}`
           );
           if (!latestResponse.ok) throw new Error(result.message);
           const latest = (await latestResponse.json()) as {
@@ -552,12 +555,13 @@ export function useProjectSnapshotLifecycle({
           !(await hasNewProjectRevision(
             projectId,
             'canvas',
-            lastSavedProjectSnapshotVersionRef.current
+            lastSavedProjectSnapshotVersionRef.current,
+            canvasId
           ))
         )
           return;
         const response = await fetch(
-          `/api/app/projects/${encodeURIComponent(projectId)}/snapshot`
+          `/api/app/projects/${encodeURIComponent(projectId)}/snapshot${canvasId ? `?canvasId=${encodeURIComponent(canvasId)}` : ''}`
         );
         if (!response.ok) return;
         const payload = (await response.json()) as {
@@ -657,6 +661,7 @@ export function useProjectSnapshotLifecycle({
             headers: buildProjectSnapshotRequestHeaders(),
             body: JSON.stringify({
               commandId,
+              canvasId,
               idempotencyKey: commandId,
               expectedRevision: lastSavedProjectSnapshotVersionRef.current,
               command: { type: 'canvas.apply', operations },
@@ -692,5 +697,13 @@ export function useProjectSnapshotLifecycle({
     isHydratedFromProject,
     projectId,
   ]);
+  useEffect(() => {
+    const beforeScopeChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ waitUntil: (save: Promise<void>) => void }>).detail;
+      detail.waitUntil(flush());
+    };
+    window.addEventListener('beatdesign:before-scope-change', beforeScopeChange);
+    return () => window.removeEventListener('beatdesign:before-scope-change', beforeScopeChange);
+  }, [flush]);
   return { flush, acceptExternalSnapshot };
 }
