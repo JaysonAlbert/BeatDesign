@@ -73,6 +73,14 @@ Do not embed a proprietary general chatbot. BeatDesign must be complete without 
 - Promotional screenshots must use non-sensitive demo media and must not expose provider keys, cookies, tokens, personal data, private filenames, task IDs, or request IDs. Record the app version, commit, locale, capture date, and verification notes in the local promotion-kit index.
 - Follow `docs/DESIGN.md` and the current product UI when creating promotional visuals. Keep raw captures separate from processed exports, and do not present a concept render as a verified product screenshot.
 
+## Product UI reference archive
+
+- When the user asks to inspect Higgsfield in the browser as a reference, archive several useful screenshots in `docs/references/higgsfield/<YYYY-MM-DD>-<feature>/`, rather than leaving evidence only in chat or temporary QA output.
+- Capture the overall screen, relevant toolbars/context menus, configuration choices and meaningful before/after states. Keep original captures; add later visits as a new dated set instead of overwriting earlier evidence.
+- Add an index with the capture date/timezone, product entry, feature, interaction steps, screenshot purpose and observed result. Clearly separate verified behavior, an entry not found in the inspected UI, documentation claims and our own design proposals.
+- Use non-sensitive test content. Keep account-specific URLs, credentials and personal records out of tracked reference resources. Do not run paid generation merely to obtain a screenshot.
+- Consult [the reference index](docs/references/README.md) before repeating browser research. Refresh live evidence when the UI may have changed; archived screenshots are dated observations, not proof of current capability.
+
 ## Verification and completion language
 
 After code changes, run:

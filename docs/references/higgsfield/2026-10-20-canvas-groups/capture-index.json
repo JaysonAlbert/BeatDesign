@@ -1,0 +1,53 @@
+{
+  "product": "Higgsfield",
+  "captureDate": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "browser": "Connected Chrome",
+  "locale": "en",
+  "entryUrl": "https://higgsfield.ai/canvas-intro",
+  "testCanvasName": "Canvas group behavior test · 2026-10-20",
+  "generationExecuted": false,
+  "uploadPerformed": false,
+  "captures": [
+    {
+      "file": "01-two-groups-row.jpg",
+      "mimeType": "image/jpeg",
+      "width": 2560,
+      "height": 1249,
+      "sizeBytes": 96063,
+      "sha256": "6cbcebec0cde8794b1d97d8911f6fced03599b2cea0f82bb21321057e02e9244"
+    },
+    {
+      "file": "02-group-actions.jpg",
+      "mimeType": "image/jpeg",
+      "width": 2560,
+      "height": 1249,
+      "sizeBytes": 97545,
+      "sha256": "ed09c8de8251904413377b6008884532bcc2adfb5755dc0c1f7eb14e3f71e154"
+    },
+    {
+      "file": "03-arrange-menu.jpg",
+      "mimeType": "image/jpeg",
+      "width": 2560,
+      "height": 1249,
+      "sizeBytes": 100290,
+      "sha256": "18c61cc65d02e01fa41e9208819b34aad06aa9442f9182cb70fd5bf135df1ade"
+    },
+    {
+      "file": "04-group-context-menu.jpg",
+      "mimeType": "image/jpeg",
+      "width": 2560,
+      "height": 1249,
+      "sizeBytes": 111872,
+      "sha256": "552c75ee0192c6552b7f3cc5fb0ff261825ea1c7cd5379cc848bcbc729d36874"
+    },
+    {
+      "file": "05-column-layout.jpg",
+      "mimeType": "image/jpeg",
+      "width": 2560,
+      "height": 1249,
+      "sizeBytes": 95885,
+      "sha256": "026d3b1ec812db5bc94880a325f0b639c0689eb311f6bd41eb23e5e7542576f3"
+    }
+  ]
+}
