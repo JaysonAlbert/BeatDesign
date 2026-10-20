@@ -20,3 +20,7 @@ BeatDesign 的镜头折叠总览、确定版本绑定及一键全组整理属于
 
 本次另查看主菜单：Home、Project Feed View、Create new canvas、Open Project；仅记录入口，
 不据此断言同一项目多画布的层级、嵌套或跨画布引用已验证。
+
+后续补充：用户要求继续找资源后，已实际打开官方 Long Video Example 和 StoryBoard With Elements 模板，
+并找到两分钟短片 Santiago 拆解与 Workflow Lab 课程。见[官方工作流资源](../2026-10-20-official-workflow-resources/README.md)。
+上面的“双组测试”仅记录当次核对范围，不能据此说 Higgsfield 缺少可参考的复杂流程资源。

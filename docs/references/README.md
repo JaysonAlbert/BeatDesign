@@ -7,6 +7,7 @@
 |---|---|---|---|
 | Higgsfield | 2026-10-20 | Canvas 成组、排列与多组共存 | [5 张截图与实测说明](higgsfield/2026-10-20-canvas-groups/README.md) |
 | Higgsfield | 2026-10-20 | 复杂流程复核与整张画布版本 | [2 张截图及证据边界](higgsfield/2026-10-20-complex-workflows/README.md) |
+| Higgsfield | 2026-10-20 | 官方长视频/元素分镜模板、短片拆解与课程 | [6 张截图和可打开的案例](higgsfield/2026-10-20-official-workflow-resources/README.md) |
 | Liblib / LibTV | 2026-10-20 | 公开复杂作品、素材板、多结果与连线显示 | [5 张截图及实测说明](liblib/2026-10-20-complex-workflows/README.md) |
 | BeatDesign 开发预览 | 2026-10-20 | 八组容器与排列验证 | [中英文截图与验证说明](beatdesign/2026-10-20-group-layout/README.md) |
 

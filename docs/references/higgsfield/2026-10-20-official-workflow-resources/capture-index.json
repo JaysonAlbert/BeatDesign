@@ -1,0 +1,43 @@
+{
+  "capturedDate": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "source": "Connected external Chrome; official read-only templates and official guides",
+  "captures": [
+    {
+      "file": "01-template-library.jpg",
+      "width": 2560,
+      "height": 1305,
+      "sha256": "d422c54606d9060d8d00dfaa2f3152668822357482af1b828e418bfb7625628c"
+    },
+    {
+      "file": "02-long-video-template-overview.jpg",
+      "width": 2560,
+      "height": 1305,
+      "sha256": "c6e1e907c409deef95d5e0fb3af00d2b183478b92193c397152378b684b023b1"
+    },
+    {
+      "file": "03-elements-storyboard-overview.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "08a402a69d97b208fa7546d0a19abc987f3392b59494cdd35b3bd61c14dedf10"
+    },
+    {
+      "file": "04-elements-storyboard-fitted.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "156e56fc480b5cc50bc0422570cde9930d1edeadf06cb3e8f53f09d820974acf"
+    },
+    {
+      "file": "05-workflow-lab-week2.jpg",
+      "width": 2545,
+      "height": 1242,
+      "sha256": "eb44b141c841ca1d62939d22b1498ba48bc9170a36c07aaa4bb7bde428d6355c"
+    },
+    {
+      "file": "06-santiago-assets-and-scenes.jpg",
+      "width": 2545,
+      "height": 1242,
+      "sha256": "2c1594d13f5fbd463299696879ee011cf2a69098fe12fe59325557effeb65737"
+    }
+  ]
+}
