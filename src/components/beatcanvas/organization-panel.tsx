@@ -40,6 +40,7 @@ export function CanvasOrganizationPanel(props: Props) {
     definitionDigest: string;
   } | null>(null);
   const [name, setName] = useState('');
+  const [layoutGroupIds, setLayoutGroupIds] = useState<string[]>([]);
   const [role, setRole] = useState<
     'shot' | 'references' | 'sound' | 'packaging' | 'timeline'
   >('shot');
@@ -148,6 +149,9 @@ export function CanvasOrganizationPanel(props: Props) {
     mutate({ type: 'canvas.apply', operations });
   const canvas = props.getDocument();
   const groups = Object.values(canvas.organization?.groups ?? {});
+  const layoutTargets = layoutGroupIds.filter((id) =>
+    groups.some((group) => group.id === id)
+  );
   const selected = props.selectedCardIds
     .map((id) => canvas.cards.find((card) => card.id === id))
     .filter((card) => !!card);
@@ -243,6 +247,7 @@ export function CanvasOrganizationPanel(props: Props) {
       );
   }
   async function createGroup() {
+    const groupId = crypto.randomUUID();
     const ids = preview ?? [];
     const frames = ids.map((id) => canvas.frames[id]).filter(Boolean);
     if (!frames.length) throw new Error(t('chooseNodes'));
@@ -257,13 +262,14 @@ export function CanvasOrganizationPanel(props: Props) {
     await apply([
       {
         type: 'create_group',
-        groupId: crypto.randomUUID(),
+        groupId,
         name: name.trim(),
         role,
         memberCardIds: ids,
         summaryFrame: { x, y, w: 320, h: 160 },
         expandedFrame,
       },
+      { type: 'fit_group', groupId },
     ]);
     setPreview(null);
     setName('');
@@ -299,6 +305,75 @@ export function CanvasOrganizationPanel(props: Props) {
           </button>
         )}
         <section className="space-y-2" aria-label={t('groups')}>
+          <fieldset
+            className="space-y-2 rounded-lg border border-white/10 p-2"
+            disabled={busy || !groups.length}
+          >
+            <legend className="px-1 text-xs">{t('arrangeGroups')}</legend>
+            <p className="text-xs text-[var(--beat-text-3)]">
+              {t('arrangeTargets', {
+                count: layoutTargets.length || groups.length,
+              })}
+            </p>
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label={t('arrangeGroups')}
+            >
+              {(['tidy', 'row', 'column'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  className={control}
+                  onClick={() =>
+                    void run(() =>
+                      apply([
+                        {
+                          type: 'arrange_groups',
+                          groupIds: layoutTargets.length
+                            ? layoutTargets
+                            : groups.map((group) => group.id),
+                          mode,
+                        },
+                      ])
+                    )
+                  }
+                >
+                  {t(`layout_${mode}`)}
+                </button>
+              ))}
+            </div>
+            <button
+              className={`${control} w-full`}
+              onClick={() =>
+                void run(() =>
+                  apply([
+                    ...groups.flatMap((group) => [
+                      {
+                        type: 'set_group_collapsed' as const,
+                        groupId: group.id,
+                        collapsed: false,
+                      },
+                      {
+                        type: 'layout_group' as const,
+                        groupId: group.id,
+                        mode: 'row' as const,
+                      },
+                    ]),
+                    {
+                      type: 'arrange_groups',
+                      groupIds: groups.map((group) => group.id),
+                      mode: 'tidy',
+                    },
+                  ])
+                )
+              }
+            >
+              {t('expandArrangeAll')}
+            </button>
+            <p className="text-xs text-[var(--beat-text-3)]">
+              {t('layoutHelp')}
+            </p>
+          </fieldset>
           <label className="block text-xs">
             {t('groupName')}
             <input
@@ -395,8 +470,23 @@ export function CanvasOrganizationPanel(props: Props) {
           {groups.map((group) => (
             <div
               key={group.id}
+              data-testid={`group-settings-${group.id}`}
               className="space-y-2 rounded-lg border border-white/10 p-2"
             >
+              <label className="flex min-h-11 items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={layoutGroupIds.includes(group.id)}
+                  onChange={(event) =>
+                    setLayoutGroupIds((current) =>
+                      event.target.checked
+                        ? [...current, group.id]
+                        : current.filter((id) => id !== group.id)
+                    )
+                  }
+                />
+                {t('selectLayoutGroup', { name: group.name })}
+              </label>
               <input
                 aria-label={t('groupName')}
                 key={`${group.id}:${group.name}`}
@@ -492,6 +582,30 @@ export function CanvasOrganizationPanel(props: Props) {
                 >
                   {t('ungroup')}
                 </button>
+              </div>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label={t('groupLayout')}
+              >
+                {(['tidy', 'row', 'column', 'fit'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    className={control}
+                    disabled={busy}
+                    onClick={() =>
+                      void run(() =>
+                        apply([
+                          mode === 'fit'
+                            ? { type: 'fit_group', groupId: group.id }
+                            : { type: 'layout_group', groupId: group.id, mode },
+                        ])
+                      )
+                    }
+                  >
+                    {t(`layout_${mode}`)}
+                  </button>
+                ))}
               </div>
               <button
                 className={control}

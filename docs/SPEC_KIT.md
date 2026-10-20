@@ -23,7 +23,7 @@ Git 只放行这些官方技能目录；其他 `.agents/` 内容继续忽略。
 
 - 分支：`codex/canvas-project-organization`。
 - [项目原则](../.specify/memory/constitution.md)：1.0.0，整理既有产品约束。
-- [需求规格](../specs/001-canvas-project-organization/spec.md)：四条用户故事、23 项需求；2026-10-20 用户已批准。
+- [需求规格](../specs/001-canvas-project-organization/spec.md)：四条用户故事、26 项需求；2026-10-20 用户已批准原需求并明确追加组容器与排列。
 - [技术方案](../specs/001-canvas-project-organization/plan.md)：研究、数据模型、操作/UI 约定和独立验证指南；2026-10-20 用户已批准。
 - [质量检查](../specs/001-canvas-project-organization/checklists/requirements.md)：文档检查通过。
 - `.specify/feature.json` 保存本 worktree 的特性目录，按官方规则忽略，不进入 Git。
@@ -49,7 +49,7 @@ Git 只放行这些官方技能目录；其他 `.agents/` 内容继续忽略。
 ## 当前状态
 
 安装、初始化、项目原则、需求和技术方案已批准，任务清单已生成。
-四条用户故事已实现：520 项自动测试、20 项浏览器测试、类型、多语言和生产构建通过。
+四条用户故事及追加的组容器与排列已实现：530 项自动测试、22 项浏览器测试、类型、多语言（每语言 807 项）和生产构建通过。
 收敛检查发现的尺寸恢复、双语交互、采用信息、缺槽阻塞、窄屏抽屉及缓存图片问题均已处理。
 功能说明见 [Project organization](PROJECT_ORGANIZATION.md)，实际证据见
 [verification.md](../specs/001-canvas-project-organization/verification.md)。验证和视觉验收分开记录；

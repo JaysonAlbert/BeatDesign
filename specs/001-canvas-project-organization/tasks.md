@@ -112,3 +112,15 @@ Assets 组织在窄屏仍是内联折叠面板，没有约定的可访问抽屉�
 缓存图片已经解码时，Asset 卡片的 effect 仍可能把预览状态重设为 loading。
 
 - [X] T036 修复缓存图片加载事件与初始化 effect 的竞争，已解码图片不再显示加载遮罩；在八镜浏览器示例断言图片可解码且加载提示消失 per FR-020, FR-023, plan: browser verification (partial)。
+
+## Phase 12: Group containers and arrangement
+
+2026-10-20 用户明确要求优先补齐“组容器、组内整理和组间排列”。
+参考本项目归档的 Higgsfield 实测；保留多组同时显示，不增加强制单组展开。
+布局是显式、可撤销的操作；自动容器显示只包住可见内容，不改变素材或历史输入。
+
+- [X] T037 实现可见成员边界与标题/Take 预留、组内 tidy/row/column、组间排列和适应内容的纯布局模型；覆盖隐藏历史、大小不一、固定障碍与确定性。
+- [X] T038 将 layout_group、fit_group、arrange_groups 接入共享 Canvas 命令，保持事务、revision、UI/MCP 一致性和布局外数据不变。
+- [X] T039 在组标题与组织面板提供双语整理/横排/竖排/适应内容及多组选择排列，修正显示组框的拖动/缩放坐标，沿用 undo/redo。
+- [X] T040 用真实 Chrome 验证多组展开、容器标题/Take 不交叠、组内与组间排列、保存重载和撤销，保存多张预览截图。
+- [X] T041 完成 typecheck/test/i18n/build、隔离预览更新、文档与现有草稿 PR 更新；不整理真实影片或替换主环境。

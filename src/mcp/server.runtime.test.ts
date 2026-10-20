@@ -353,6 +353,7 @@ test('organization MCP round trip persists folders, de-duplicates Assets and cre
               name: 'Reference',
               assetId,
             },
+            frame: { x: 0, y: 0, w: 320, h: 180 },
           },
           {
             type: 'upsert_card',
@@ -365,11 +366,46 @@ test('organization MCP round trip persists folders, de-duplicates Assets and cre
               prompt: 'Local template fixture',
               referenceCardIds: ['reference'],
             },
+            frame: { x: 0, y: 0, w: 320, h: 180 },
           },
         ],
       })
     );
     assert.equal(seeded.ok, true, JSON.stringify(seeded));
+    const laidOut = result(
+      await call('bdesign_canvas_apply', {
+        projectId: project.id,
+        expectedRevision: seeded.revision,
+        commandId: 'layout-shared',
+        idempotencyKey: 'layout-shared',
+        operations: [
+          {
+            type: 'create_group',
+            groupId: 'layout-group',
+            name: 'Layout',
+            role: 'shot',
+            memberCardIds: ['reference', 'generation'],
+            summaryFrame: { x: 0, y: 0, w: 340, h: 210 },
+            expandedFrame: { x: 0, y: 0, w: 1000, h: 1000 },
+          },
+          { type: 'layout_group', groupId: 'layout-group', mode: 'row' },
+          { type: 'fit_group', groupId: 'layout-group' },
+          { type: 'arrange_groups', groupIds: ['layout-group'], mode: 'tidy' },
+        ],
+      })
+    );
+    assert.equal(laidOut.ok, true, JSON.stringify(laidOut));
+    const layoutSnapshot = (await loadProjectWithLatestSnapshot({
+      projectId: project.id,
+    }))!;
+    assert.ok(
+      layoutSnapshot.snapshot.frames.generation.x >
+        layoutSnapshot.snapshot.frames.reference.x + 320
+    );
+    assert.ok(
+      layoutSnapshot.snapshot.organization!.groups['layout-group'].expandedFrame
+        .h < 1000
+    );
     const missingEnvelope = await call('bdesign_canvas_apply', {
       projectId: project.id,
       operations: [

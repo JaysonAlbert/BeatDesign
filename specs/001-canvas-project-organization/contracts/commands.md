@@ -155,3 +155,15 @@ duration、sourceIn/sourceOut、hidden/muted。字幕无媒体 Asset，独立列
 旧 revision、同键异内容、缺显式 envelope、缺 Canvas sourceCardId、配置/绑定变更后的
 旧 intent、缺槽、不可用模型、旧客户端 replacement、activeTake 和边界大小。
 所有组织/模板测试必须断言 provider/upload/job 调用计数为零。
+
+## 10. 组容器与排列（2026-10-20 用户追加）
+
+以下操作通过 `canvas.apply` 的同一显式 commandId/idempotencyKey/expectedRevision 边界：
+
+- `{type: 'layout_group', groupId, mode: 'tidy' | 'row' | 'column'}`：整理可见制作节点，连同隐藏历史按所属步骤平移，适应容器。
+- `{type: 'fit_group', groupId}`：仅调整展开容器到可见内容边界；不移动卡片。
+- `{type: 'arrange_groups', groupIds, mode: 'tidy' | 'row' | 'column'}`：按传入顺序排列 1–64 个不同的有效组，考虑实际尺寸和未参与对象的占位；整组与其历史一起移动。
+
+组内读取缺少位置时拒绝整理，不猜测并覆盖布局。单批校验与回滚仍由原事务处理。
+组容器显示为标题、标签和 Take 条预留空间，不把历史隐藏卡片摊开或作为生成输入。
+排列不产生媒体、上传、任务或新的模板实例；原对象内容和时间线不变。

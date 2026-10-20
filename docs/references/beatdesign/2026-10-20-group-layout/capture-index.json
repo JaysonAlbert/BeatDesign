@@ -1,0 +1,20 @@
+{
+  "capturedDate": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "captures": [
+    {
+      "file": "01-expanded-groups-zh.png",
+      "sha256": "9b9291d636188eff6fd8b833d55e91fc83d4df7ec6a776ddb39043cf32e2a2cc",
+      "width": 1440,
+      "height": 960,
+      "source": "Playwright Chrome full suite; synthetic fixture"
+    },
+    {
+      "file": "02-expanded-groups-en.png",
+      "sha256": "021094b51ac98381acb89db19f05669a41de68479da5896d5afd8bb33dca828b",
+      "width": 1440,
+      "height": 960,
+      "source": "Playwright Chrome full suite; synthetic fixture"
+    }
+  ]
+}

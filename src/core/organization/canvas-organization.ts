@@ -1,6 +1,13 @@
 import { z } from 'zod';
 import type { CanvasCard } from '../beatcanvas/canvas-types';
 import { applyTemplateSlotBinding } from '../workflows/workflow-template';
+import {
+  arrangeGroups,
+  fittedGroupFrame,
+  layoutGroup,
+  visibleGroupCards,
+  groupCardIds,
+} from './group-layout';
 
 const id = z.string().min(1).max(200);
 const title = z.string().trim().min(1).max(200);
@@ -317,6 +324,28 @@ export const canvasOrganizationOperationSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('remove_group'), groupId: id }).strict(),
   z
     .object({
+      type: z.literal('layout_group'),
+      groupId: id,
+      mode: z.enum(['tidy', 'row', 'column']),
+    })
+    .strict(),
+  z.object({ type: z.literal('fit_group'), groupId: id }).strict(),
+  z
+    .object({
+      type: z.literal('arrange_groups'),
+      groupIds: z
+        .array(id)
+        .min(1)
+        .max(64)
+        .refine(
+          (ids) => new Set(ids).size === ids.length,
+          'Group IDs must be unique.'
+        ),
+      mode: z.enum(['tidy', 'row', 'column']),
+    })
+    .strict(),
+  z
+    .object({
       type: z.literal('set_organization_view'),
       historyMode: z.enum(['current', 'all']).optional(),
       referenceMode: z.enum(['focused', 'all']).optional(),
@@ -445,20 +474,20 @@ export function applyCanvasOrganizationOperations<
       for (const frame of [
         target.summaryFrame,
         target.expandedFrame,
-        ...target.memberCardIds.flatMap((cardId) =>
+        ...groupCardIds(document, target).flatMap((cardId) =>
           document.frames[cardId] ? [document.frames[cardId]] : []
         ),
       ]) {
         frame.x += op.deltaX;
         frame.y += op.deltaY;
       }
-      target.memberCardIds.forEach((cardId) => changed.add(cardId));
+      groupCardIds(document, target).forEach((cardId) => changed.add(cardId));
       changed.add(op.groupId);
     } else if (op.type === 'resize_group') {
       const target = group(op.groupId);
       if (op.target === 'expanded') {
-        for (const cardId of target.memberCardIds) {
-          const f = document.frames[cardId];
+        for (const member of visibleGroupCards(document, target)) {
+          const f = document.frames[member.id];
           if (
             f &&
             (f.x < op.frame.x ||
@@ -474,6 +503,19 @@ export function applyCanvasOrganizationOperations<
       target[op.target === 'summary' ? 'summaryFrame' : 'expandedFrame'] =
         op.frame;
       changed.add(op.groupId);
+    } else if (op.type === 'layout_group' || op.type === 'fit_group') {
+      const target = group(op.groupId);
+      if (op.type === 'layout_group') layoutGroup(document, target, op.mode);
+      else target.expandedFrame = fittedGroupFrame(document, target);
+      groupCardIds(document, target).forEach((id) => changed.add(id));
+      changed.add(target.id);
+    } else if (op.type === 'arrange_groups') {
+      const targets = op.groupIds.map(group);
+      arrangeGroups(document, targets, op.mode);
+      targets.forEach((target) => {
+        changed.add(target.id);
+        groupCardIds(document, target).forEach((id) => changed.add(id));
+      });
     } else if (op.type === 'remove_group') {
       delete organization.groups[op.groupId];
       for (const instance of Object.values(organization.templateInstances))

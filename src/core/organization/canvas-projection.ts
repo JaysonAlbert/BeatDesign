@@ -1,4 +1,5 @@
 import type { CanvasCard, CanvasCardStatus } from '../beatcanvas/canvas-types';
+import { displayedGroupFrame } from './group-layout';
 import {
   normalizeCanvasOrganization,
   validateCanvasOrganization,
@@ -80,7 +81,7 @@ export function projectCanvasOrganization(
       id: group.id,
       kind: 'group',
       groupId: group.id,
-      frame: group.collapsed ? group.summaryFrame : group.expandedFrame,
+      frame: displayedGroupFrame(document, group),
       memberCount: group.memberCardIds.length,
       resultCardId: group.resultCardId,
       statuses: statusesByGroup.get(group.id) ?? {},

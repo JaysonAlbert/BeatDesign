@@ -1,24 +1,26 @@
 # Implementation verification
 
 Date: 2026-10-20 (Asia/Shanghai). Branch: `codex/canvas-project-organization`.
-Validated application commit: `e4ae849`.
+Initial validated application commit: `e4ae849`. The group-container/arrangement
+supplement is recorded with the source and updated evidence in this report's commit.
 This report concerns the isolated feature worktree, not a production installation.
 
 ## Checks
 
 | Check | Result |
 |---|---|
-| Complete Node test suite | 520 passed, zero failed/skipped |
+| Complete Node test suite | 530 passed, zero failed/skipped |
 | TypeScript | Passed |
-| Locale consistency | Passed; 797 keys each in English, Chinese and Japanese |
+| Locale consistency | Passed; 807 keys each in English, Chinese and Japanese |
 | Production build | Passed; isolated production preview running on 3050 |
-| Complete Playwright suite | 20 passed, zero failed/skipped; 1.5 minutes |
+| Complete Playwright suite | 22 passed, zero failed/skipped; 1.8 minutes |
 | Diff whitespace | Passed |
 
 The Node suite includes the existing media/export tests. FFmpeg and ffprobe were
 provided through test-process environment variables pointing to existing local
 binaries; no model or production configuration was changed. Raw logs are in the
-ignored worktree `data/organization-tests-final.log` and final build log.
+ignored worktree `data/group-layout-tests.log`, `data/group-layout-e2e-full.log`
+and `data/group-layout-build.log` (the earlier baseline logs remain retained).
 
 ## Material evidence
 
@@ -58,7 +60,7 @@ Scoped browser verification covers English/Chinese keyboard operation, overview
 collapse/expand/reload, original-frame equality, all 112 output records, folders,
 search past 500 results, stale-edit conflicts after an MCP write, Element version
 review, UI template capture/save/insert and visibly blocked incomplete drafts.
-The complete 20-case suite passed after the final cached-image correction. Both
+The original 20 cases cover the final cached-image correction. Both
 English and Chinese narrow-screen drawers were verified for keyboard focus
 confinement, Escape, focus return, saved folders and retained unsaved input.
 The existing Projects creation tests now wait for an observable client-only mount
@@ -71,7 +73,7 @@ Screenshots in the ignored `test-results/` directory were visually inspected:
 The overview contains eight groups plus four support entries and no stuck loading
 overlay. These are synthetic development fixtures, not accepted film artwork.
 
-Final Spec Kit convergence checked 23 functional requirements, seven success
+Initial Spec Kit convergence checked 23 functional requirements, seven success
 criteria, 16 acceptance scenarios, eight technical decisions, five constitution
 principles and all 36 tasks. No remaining actionable gap was found. The final
 assessment left `tasks.md` byte-for-byte unchanged and found no extension hooks.
@@ -90,8 +92,50 @@ remain separate steps.
 
 General upstream tracking: [BeatDesign Issue 29](https://github.com/BeatAPI/BeatDesign/issues/29).
 Implementation review: [fork draft PR 16](https://github.com/JaysonAlbert/BeatDesign/pull/16).
-It has not been merged or accepted upstream. Later commits only complete this
-verification/task record unless explicitly stated otherwise.
+It has not been merged or accepted upstream. The following supplement adds product
+behavior beyond the initial application baseline.
+
+## Group containers and arrangement supplement
+
+User authorization: prioritize group containers, arrangement within groups and
+arrangement between groups. FR-024–026 and tasks T037–T041 record this scope.
+
+- Expanded containers include title/header padding, visible card bounds and Take
+  chrome. Rendering may grow the displayed frame without writing canonical frames.
+  Hidden historical outputs remain preserved without filling the container.
+- Explicit `layout_group` supports tidy/row/column; `fit_group` changes only the
+  container; `arrange_groups` moves chosen groups and their histories while avoiding
+  unselected groups and independent visible cards. UI/MCP share strict,
+  revisioned transactional commands; malformed batches leave source state intact.
+- Group headers and the organization panel expose bilingual controls and group
+  selection. “Expand and arrange all groups” is one undoable action. Multiple groups
+  remain expanded. Merely expanding a group does not automatically rearrange others.
+- Ten new pure-model tests cover all modes, mixed sizes, deterministic layouts,
+  read-only display, hidden outputs, visible analysis reports and fixed obstacles.
+  The HTTP MCP test executes and reads back all three operations without providers.
+- Two new EN/ZH browser cases check eight expanded containers, title/member/Take
+  containment and no group overlap; per-group column/undo; arrangement of only two
+  selected groups with all others unchanged; save/reload; actual pointer drag/undo
+  including hidden outputs. Cards, generation history and Timeline stay unchanged,
+  and generation/upload request counts remain zero.
+
+All 530 Node tests and 22 browser tests passed after the application changes,
+followed by the production build, typecheck and 807-key locale check. Application
+source files were unchanged after these checks. The own isolated 3050 process was
+restarted with that build and the existing synthetic preview data. The user's
+connected Chrome applied “展开并整理全部组” and confirmed all eight expanded groups
+and new controls. Its screenshot endpoint timed out again, so the archived images
+explicitly come from the successful Playwright Chrome run of the same fixture:
+[bilingual overview evidence](../../docs/references/beatdesign/2026-10-20-group-layout/README.md).
+Both images were visually inspected. Spacing around the middle support row is
+intentional obstacle avoidance, not lost groups.
+
+Supplemental Spec Kit assessment covers 26 FR, seven SC, 19 acceptance scenarios,
+the eight original technical decisions plus the layout addendum, five constitution
+principles and all 41 tasks. No actionable implementation gap remains. The final
+converge pass leaves tasks.md byte-for-byte unchanged; no extension hooks exist.
+This remains an isolated technical preview: human visual acceptance, merge,
+deployment and migration of real film projects are pending.
 
 Automatic approval review rejected optional removal of two standalone synthetic
 smoke-test Temp directories with `blocked by policy`. They remain retained; no

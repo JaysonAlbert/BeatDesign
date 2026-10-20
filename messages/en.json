@@ -817,6 +817,16 @@
     "conflict": "Project settings changed elsewhere. Close and reopen settings before saving."
   },
   "Organization": {
+    "groupLayout": "Group contents",
+    "arrangeGroups": "Arrange groups",
+    "arrangeTargets": "Arrange {count} groups. Select groups below to limit the scope.",
+    "expandArrangeAll": "Expand and arrange all groups",
+    "layoutHelp": "Arrangement changes layout only and supports Undo. Media, takes and Timeline stay intact.",
+    "selectLayoutGroup": "Select {name} for arrangement",
+    "layout_tidy": "Tidy up",
+    "layout_row": "Row",
+    "layout_column": "Column",
+    "layout_fit": "Fit contents",
     "title": "Project organization",
     "closePanel": "Close organization",
     "localOnly": "Folders and reusable references stay in this local project.",

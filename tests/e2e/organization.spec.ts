@@ -778,3 +778,216 @@ for (const locale of ['en', 'zh'] as const) {
     });
   });
 }
+
+for (const locale of ['en', 'zh'] as const) {
+  test(`${locale}: multiple group containers arrange contents and groups without overlaps, preserve history, undo and reload`, async ({
+    page,
+    request,
+    context,
+  }) => {
+    const t = JSON.parse(readFileSync(`messages/${locale}.json`, 'utf8'))
+      .Organization as Record<string, string>;
+    await context.addCookies([
+      {
+        name: 'PARAGLIDE_LOCALE',
+        value: locale,
+        domain: '127.0.0.1',
+        path: '/',
+      },
+    ]);
+    const { id } = await fixture(request);
+    const snapshot = async () =>
+      await (await request.get(`/api/app/projects/${id}/snapshot`)).json();
+    const before = await snapshot();
+    const usageBefore = await (
+      await request.get(`/api/app/projects/${id}/timeline-usage`)
+    ).json();
+    const jobs: string[] = [];
+    page.on('request', (req) => {
+      if (
+        req.method() === 'POST' &&
+        /preflight|submit|upload-intent/.test(req.url())
+      )
+        jobs.push(req.url());
+    });
+    await page.goto(`${locale === 'zh' ? '/zh' : ''}/canvas/${id}`);
+    const panel = page.getByTestId('canvas-organization-panel');
+    await panel.locator('summary').first().click();
+    await panel
+      .getByRole('button', { name: t.expandArrangeAll, exact: true })
+      .click();
+    await expect
+      .poll(async () =>
+        Object.values((await snapshot()).document.organization.groups).every(
+          (group: any) => !group.collapsed && group.expandedFrame.h < 1000
+        )
+      )
+      .toBe(true);
+    await panel.locator('summary').first().click();
+    const fit = page.getByRole('button', {
+      name: locale === 'zh' ? '适配全部节点' : 'Fit graph to view',
+      exact: true,
+    });
+    await fit.click();
+    const groupElements = page.locator('[data-organization-group]');
+    await expect(groupElements).toHaveCount(8);
+    // Read all geometry in one browser frame: viewport fitting can otherwise
+    // virtualize a Take button between separate boundingBox round trips.
+    const boxes = await groupElements.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = (node: Element) => {
+          const r = node.getBoundingClientRect();
+          return { x: r.x, y: r.y, w: r.width, h: r.height };
+        };
+        const r = element.getBoundingClientRect();
+        const id = element.getAttribute('data-organization-group')!;
+        return {
+          id,
+          x: r.x,
+          y: r.y,
+          w: r.width,
+          h: r.height,
+          header: rect(element.querySelector('[role="group"]')!),
+          members: ['script', 'image', 'motion'].map((suffix) => {
+            const member = document.querySelector(
+              `[data-card-id="${id}-${suffix}"]`
+            )!;
+            return {
+              ...rect(member),
+              takes: Array.from(
+                member.querySelectorAll('button[aria-label^="Take "]')
+              ).map(rect),
+            };
+          }),
+        };
+      })
+    );
+    for (let i = 0; i < boxes.length; i++) {
+      const box = boxes[i];
+      for (const other of boxes.slice(i + 1))
+        expect(
+          box.x + box.w <= other.x + 1 ||
+            other.x + other.w <= box.x + 1 ||
+            box.y + box.h <= other.y + 1 ||
+            other.y + other.h <= box.y + 1
+        ).toBe(true);
+      for (const member of box.members) {
+        expect(member.w).toBeGreaterThan(0);
+        expect(member.x).toBeGreaterThanOrEqual(box.x);
+        expect(member.y).toBeGreaterThanOrEqual(
+          box.header.y + box.header.h - 1
+        );
+        expect(member.x + member.w).toBeLessThanOrEqual(box.x + box.w + 1);
+        expect(member.y + member.h).toBeLessThanOrEqual(box.y + box.h + 1);
+        for (const take of member.takes) {
+          expect(take.w).toBeGreaterThan(0);
+          expect(take.x + take.w).toBeLessThanOrEqual(box.x + box.w + 1);
+          expect(take.y + take.h).toBeLessThanOrEqual(box.y + box.h + 1);
+        }
+      }
+    }
+    await page.screenshot({
+      path: `test-results/group-layout-overview-${locale}.png`,
+    });
+    const arranged = await snapshot();
+    const first = page.locator('[data-organization-group="shot-1"]');
+    await first
+      .getByRole('button', { name: t.layout_column, exact: true })
+      .click();
+    await expect
+      .poll(async () => JSON.stringify((await snapshot()).document.frames))
+      .not.toBe(JSON.stringify(arranged.document.frames));
+    await page.keyboard.press('Control+z');
+    await expect
+      .poll(async () => JSON.stringify((await snapshot()).document.frames))
+      .toBe(JSON.stringify(arranged.document.frames));
+    await panel.locator('summary').first().click();
+    await panel
+      .getByTestId('group-settings-shot-1')
+      .getByRole('checkbox')
+      .check();
+    await panel
+      .getByTestId('group-settings-shot-2')
+      .getByRole('checkbox')
+      .check();
+    await panel
+      .locator('fieldset')
+      .getByRole('button', { name: t.layout_column, exact: true })
+      .click();
+    await expect
+      .poll(
+        async () =>
+          (await snapshot()).document.organization.groups['shot-2']
+            .expandedFrame.x
+      )
+      .not.toBe(
+        arranged.document.organization.groups['shot-2'].expandedFrame.x
+      );
+    const selectedOnly = await snapshot();
+    for (let index = 3; index <= 8; index++) {
+      const groupId = `shot-${index}`;
+      expect(selectedOnly.document.organization.groups[groupId]).toEqual(
+        arranged.document.organization.groups[groupId]
+      );
+      for (const memberId of arranged.document.organization.groups[groupId]
+        .memberCardIds)
+        expect(selectedOnly.document.frames[memberId]).toEqual(
+          arranged.document.frames[memberId]
+        );
+    }
+    await page.keyboard.press('Control+z');
+    await expect
+      .poll(async () => JSON.stringify((await snapshot()).document.frames))
+      .toBe(JSON.stringify(arranged.document.frames));
+    await panel.locator('summary').first().click();
+    await page.reload();
+    await fit.click();
+    await expect(groupElements).toHaveCount(8);
+    const dragBox = await first.boundingBox();
+    const dragPoint = {
+      x: dragBox!.x + dragBox!.width / 2,
+      y: dragBox!.y + dragBox!.height - 4,
+    };
+    await page.mouse.move(dragPoint.x, dragPoint.y);
+    await page.mouse.down();
+    await page.mouse.move(dragPoint.x + 36, dragPoint.y + 24, { steps: 6 });
+    await page.mouse.up();
+    await expect
+      .poll(async () => (await snapshot()).document.frames['shot-1-script'].x)
+      .not.toBe(arranged.document.frames['shot-1-script'].x);
+    const moved = await snapshot();
+    const dx =
+      moved.document.frames['shot-1-script'].x -
+      arranged.document.frames['shot-1-script'].x;
+    const dy =
+      moved.document.frames['shot-1-script'].y -
+      arranged.document.frames['shot-1-script'].y;
+    for (const memberId of arranged.document.organization.groups['shot-1']
+      .memberCardIds) {
+      expect(
+        moved.document.frames[memberId].x - arranged.document.frames[memberId].x
+      ).toBeCloseTo(dx);
+      expect(
+        moved.document.frames[memberId].y - arranged.document.frames[memberId].y
+      ).toBeCloseTo(dy);
+    }
+    await page.keyboard.press('Control+z');
+    await expect
+      .poll(async () => JSON.stringify((await snapshot()).document.frames))
+      .toBe(JSON.stringify(arranged.document.frames));
+    const after = await snapshot();
+    expect(after.document.frames).toEqual(arranged.document.frames);
+    expect(after.document.cards).toEqual(before.document.cards);
+    expect(
+      (
+        await (
+          await request.get(`/api/app/projects/${id}/timeline-usage`)
+        ).json()
+      ).clips
+    ).toEqual(usageBefore.clips);
+    expect(
+      await mcp(request, 'bdesign_generation_history', { projectId: id })
+    ).toEqual([]);
+    expect(jobs).toEqual([]);
+  });
+}

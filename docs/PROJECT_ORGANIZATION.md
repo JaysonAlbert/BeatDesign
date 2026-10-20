@@ -12,6 +12,15 @@ Implementation review: [fork draft PR 16](https://github.com/JaysonAlbert/BeatDe
   choose its purpose, expand/collapse, change members, choose a displayed result
   or ungroup. Dragging moves the group and its canonical members together;
   resizing changes the frame. Ungrouping keeps cards and source media.
+- Expanded containers reserve space for their title, visible steps and Take strips.
+  **Tidy up / Row / Column** explicitly arrange group contents; **Fit contents**
+  adjusts the container without moving cards. Hidden takes stay in history rather
+  than making the expanded container excessively tall.
+- The organization panel's **Arrange groups** applies to checked groups, or all
+  groups when none are checked. It accounts for current container sizes and avoids
+  unselected groups and standalone media. **Expand and arrange all groups** provides
+  a readable starting layout. Multiple groups remain open independently; layout
+  writes use the shared commands and existing Undo/Redo.
 - **Show all versions** opens the grouped take inspector, including failed
   attempts. Preview is read-only: it does not pin a result or change Timeline.
 - Assets → **Project organization**: logical folders, explicit project/current-folder

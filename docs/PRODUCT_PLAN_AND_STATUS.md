@@ -21,6 +21,9 @@
 固定版本的共享参考和本机工作流模板。它们与 UI/MCP 共用项目、素材、事务命令和
 revision；Timeline usage 读取真实采用，整理和实例化不会运行生成。
 支持英文/中文键盘入口，提供八镜 140 卡、505 素材的独立合成示例。
+同日按用户追加要求补齐可见内容的容器边界、组内整理/横排/竖排/适应内容，
+以及选定组或全部组的排列。多组可同时显示，排列显式执行并支持撤销；
+组间排列避开未参与的组和独立素材，隐藏旧 take 随制作步骤移动但不占满容器。
 
 功能说明和边界见 [PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md)，
 本次实际验证见 [verification.md](../specs/001-canvas-project-organization/verification.md)。

@@ -126,6 +126,7 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
         className="!opacity-0"
       />
       <div
+        data-organization-group={props.id}
         style={{
           width: props.data.props.w,
           height: props.data.props.h,
@@ -139,6 +140,7 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
         }}
       >
         <button
+          data-group-header
           className="nodrag nopan flex min-h-11 w-full items-center gap-2 text-left text-sm font-semibold text-[var(--beat-text-1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--beat-graph)]"
           aria-expanded={!collapsed}
           onClick={() => (meta.onToggle as (() => void) | undefined)?.()}
@@ -151,7 +153,28 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
             {Number(meta.memberCount ?? 0)}
           </span>
         </button>
-        {collapsed ? (
+        {!collapsed ? (
+          <div
+            className="nodrag nopan mt-1 flex gap-1"
+            role="group"
+            aria-label={t('groupLayout')}
+          >
+            {(['tidy', 'row', 'column', 'fit'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className="min-h-11 flex-1 rounded border border-white/10 px-1 text-xs hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--beat-graph)]"
+                onClick={() =>
+                  (meta.onLayout as ((mode: string) => void) | undefined)?.(
+                    mode
+                  )
+                }
+              >
+                {t(`layout_${mode}`)}
+              </button>
+            ))}
+          </div>
+        ) : (
           <>
             <div className="mt-3 flex gap-3 text-xs text-[var(--beat-text-2)]">
               <span aria-label={copy.processing}>
@@ -189,7 +212,7 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
               {t('reviewNotRecorded')}
             </p>
           </>
-        ) : null}
+        )}
       </div>
       <Handle
         type="source"
@@ -296,6 +319,9 @@ function BeatCanvasReactFlowCanvas({
   const lastDeleteCheckpointAtRef = useRef(0);
   const isSnapToGridRef = useRef(false);
   const organizationRef = useRef(organization);
+  const displayedGroupFramesRef = useRef<
+    Record<string, { x: number; y: number; w: number; h: number }>
+  >({});
   organizationRef.current = organization;
   const cardsRef = useRef(canvasCards);
   cardsRef.current = canvasCards;
@@ -430,9 +456,9 @@ function BeatCanvasReactFlowCanvas({
       if (!node) {
         const group = organizationRef.current?.groups[shapeId];
         if (!group) return null;
-        const frame = group.collapsed
-          ? group.summaryFrame
-          : group.expandedFrame;
+        const frame =
+          displayedGroupFramesRef.current[shapeId] ??
+          (group.collapsed ? group.summaryFrame : group.expandedFrame);
         return {
           ...frame,
           minX: frame.x,
@@ -536,7 +562,9 @@ function BeatCanvasReactFlowCanvas({
         if (node) return shapeRecordFromNode(node);
         const group = organizationRef.current?.groups[shapeId];
         const frame =
-          group && (group.collapsed ? group.summaryFrame : group.expandedFrame);
+          group &&
+          (displayedGroupFramesRef.current[shapeId] ??
+            (group.collapsed ? group.summaryFrame : group.expandedFrame));
         return group && frame
           ? {
               id: group.id,
@@ -873,9 +901,9 @@ function BeatCanvasReactFlowCanvas({
           change.position &&
           change.dragging !== undefined
         ) {
-          const frame = group.collapsed
-            ? group.summaryFrame
-            : group.expandedFrame;
+          const frame =
+            displayedGroupFramesRef.current[group.id] ??
+            (group.collapsed ? group.summaryFrame : group.expandedFrame);
           const deltaX = change.position.x - frame.x;
           const deltaY = change.position.y - frame.y;
           if (Math.abs(deltaX) > 0.001 || Math.abs(deltaY) > 0.001)
@@ -887,12 +915,25 @@ function BeatCanvasReactFlowCanvas({
           change.dimensions &&
           change.resizing !== undefined
         ) {
-          const frame = group.collapsed
-            ? group.summaryFrame
-            : group.expandedFrame;
+          const frame =
+            displayedGroupFramesRef.current[group.id] ??
+            (group.collapsed ? group.summaryFrame : group.expandedFrame);
+          const resizePosition = groupChanges.find(
+            (candidate) =>
+              candidate.type === 'position' &&
+              candidate.id === group.id &&
+              candidate.dragging === undefined
+          );
+          const position =
+            resizePosition?.type === 'position'
+              ? resizePosition.position
+              : undefined;
           if (
             Math.abs(frame.w - change.dimensions.width) > 0.001 ||
-            Math.abs(frame.h - change.dimensions.height) > 0.001
+            Math.abs(frame.h - change.dimensions.height) > 0.001 ||
+            (position &&
+              (Math.abs(frame.x - position.x) > 0.001 ||
+                Math.abs(frame.y - position.y) > 0.001))
           )
             applyOrganizationChange([
               {
@@ -901,6 +942,7 @@ function BeatCanvasReactFlowCanvas({
                 target: group.collapsed ? 'summary' : 'expanded',
                 frame: {
                   ...frame,
+                  ...(position ? { x: position.x, y: position.y } : {}),
                   w: change.dimensions.width,
                   h: change.dimensions.height,
                 },
@@ -1147,6 +1189,11 @@ function BeatCanvasReactFlowCanvas({
     const projection = projectCanvasOrganization(cleanDocument, {
       selectedGroupId,
     });
+    displayedGroupFramesRef.current = Object.fromEntries(
+      projection.nodes
+        .filter((node) => node.kind === 'group')
+        .map((node) => [node.id, node.frame!])
+    );
     const visible = new Set(
       projection.nodes
         .filter((node) => node.kind === 'card')
@@ -1226,6 +1273,14 @@ function BeatCanvasReactFlowCanvas({
                 }
               },
               onCheckpoint: onHistoryCheckpoint,
+              onLayout: (mode: 'tidy' | 'row' | 'column' | 'fit') => {
+                onHistoryCheckpoint?.();
+                applyOrganizationChange([
+                  mode === 'fit'
+                    ? { type: 'fit_group', groupId: node.id }
+                    : { type: 'layout_group', groupId: node.id, mode },
+                ]);
+              },
               onToggle: () => {
                 onHistoryCheckpoint?.();
                 applyOrganizationChange([
