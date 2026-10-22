@@ -18,6 +18,7 @@ const isCommandResult = (
 
 export async function executeProjectCommand({
   projectId,
+  canvasId,
   command,
   expectedRevision,
   commandId = createCommandId(),
@@ -25,6 +26,7 @@ export async function executeProjectCommand({
   keepalive = false,
 }: {
   projectId: string;
+  canvasId?: string;
   command: BeatDesignCommand;
   expectedRevision?: number | null;
   commandId?: string;
@@ -36,6 +38,7 @@ export async function executeProjectCommand({
       `/api/app/projects/${encodeURIComponent(projectId)}/commands`,
       {
         commandId,
+        canvasId,
         expectedRevision,
         idempotencyKey,
         command,

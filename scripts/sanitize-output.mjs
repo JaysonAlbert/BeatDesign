@@ -1,7 +1,8 @@
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const roots = ['.output'];
+const outputRoot = process.env.BEATDESIGN_BUILD_OUTPUT_DIR || '.output';
+const roots = [outputRoot];
 const textExtensions = new Set([
   '',
   '.cjs',
@@ -60,9 +61,9 @@ for (const root of roots) {
     if (next !== source) {
       await writeFile(filePath, next);
       changed += 1;
-      if (root === '.output' && filePath.startsWith('.output/public/')) {
+      if (path.resolve(filePath).startsWith(path.resolve(root, 'public') + path.sep)) {
         touchedPublicFiles.set(
-          path.relative('.output/public', filePath),
+          path.relative(path.join(root, 'public'), filePath),
           await stat(filePath)
         );
       }
@@ -78,7 +79,7 @@ for (const root of roots) {
  */
 async function syncServerManifests() {
   if (touchedPublicFiles.size === 0) return;
-  const serverDir = '.output/server';
+  const serverDir = path.join(outputRoot, 'server');
   if (!(await exists(serverDir))) return;
 
   for (const filePath of await walk(serverDir)) {

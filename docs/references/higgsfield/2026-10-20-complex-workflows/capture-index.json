@@ -1,0 +1,19 @@
+{
+  "capturedDate": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "source": "Connected external Chrome; original screenshots",
+  "captures": [
+    {
+      "file": "01-canvas-version-menu.jpg",
+      "width": 2560,
+      "height": 1305,
+      "sha256": "364f2f2ed892437635fdcf36383f2f288e71ee17252d2927173a3816159e2db5"
+    },
+    {
+      "file": "02-board-version-history.jpg",
+      "width": 2560,
+      "height": 1305,
+      "sha256": "ab56188bc104a8a551e7e3a5a6aa3cf25d5dd75bae207e395b95ec6e4fbc9859"
+    }
+  ]
+}

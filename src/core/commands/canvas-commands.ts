@@ -9,12 +9,23 @@ import {
 } from '@/core/beatcanvas/reference-mentions';
 import { resolveCanvasPlacement } from '@/core/beatcanvas/upload-layout';
 import {
+  canvasOrganizationOperationSchema,
+  applyCanvasOrganizationOperations,
+  cleanupCanvasOrganizationForRemovedCards,
+  type CanvasOrganizationOperation,
+} from '@/core/organization/canvas-organization';
+import {
   normalizeProjectSnapshotDocument,
   type ProjectSnapshotDocument,
   type ProjectSnapshotShapeFrame,
 } from '@/core/projects/project-snapshot';
 
 export type CanvasOperation =
+  | CanvasOrganizationOperation
+  | {
+      type: 'set_canvas_organization';
+      organization: ProjectSnapshotDocument['organization'] | null;
+    }
   | {
       type: 'upsert_text';
       cardId: string;
@@ -134,13 +145,38 @@ export function applyCanvasOperations(
   source: ProjectSnapshotDocument,
   operations: readonly CanvasOperation[]
 ): CanvasCommandApplication {
-  let cards = [...source.cards];
-  let frames = { ...source.frames };
+  if (operations.length > 500)
+    throw new Error('At most 500 Canvas operations per batch.');
+  let cards = structuredClone(source.cards);
+  let frames = structuredClone(source.frames);
   let camera = source.camera;
   let workflows = source.workflows;
+  let organization = source.organization;
   const changedIds: string[] = [];
+  const removedIds = new Set<string>();
 
   for (const operation of operations) {
+    if (operation.type === 'set_canvas_organization') {
+      organization = operation.organization ?? undefined;
+      continue;
+    }
+    const organizationOperation =
+      canvasOrganizationOperationSchema.safeParse(operation);
+    if (organizationOperation.success) {
+      // Relational invariants apply to the final mixed batch: moving a member
+      // between groups may temporarily put it in both groups within this loop.
+      const result = applyCanvasOrganizationOperations(
+        { ...source, cards, frames, organization },
+        [organizationOperation.data],
+        { validate: false }
+      );
+      organization = result.document.organization;
+      cards = result.document.cards;
+      frames = result.document.frames;
+      changedIds.push(...result.changedIds);
+      continue;
+    }
+    // Organization operations have already been consumed; keep the legacy branches unchanged.
     if (operation.type === 'set_camera') {
       camera = operation.camera ?? undefined;
       continue;
@@ -183,6 +219,7 @@ export function applyCanvasOperations(
         cards.map((card) => [card.id, card])
       );
       cards = cards.filter((card) => card.id !== operation.cardId);
+      removedIds.add(operation.cardId);
       delete frames[operation.cardId];
       cards = cards.map((card) => ({
         ...card,
@@ -275,6 +312,7 @@ export function applyCanvasOperations(
       continue;
     }
 
+    if (operation.type !== 'set_references') continue;
     const cardIndex = cards.findIndex((card) => card.id === operation.cardId);
     if (cardIndex < 0) continue;
     const knownIds = new Set(cards.map((card) => card.id));
@@ -308,14 +346,22 @@ export function applyCanvasOperations(
     changedIds.push(operation.cardId);
   }
 
+  const updated = {
+    ...source,
+    cards,
+    frames,
+    camera,
+    workflows,
+    organization,
+  };
+  const finalDocument = organization
+    ? cleanupCanvasOrganizationForRemovedCards(
+        updated,
+        [...removedIds].filter((id) => !cards.some((card) => card.id === id))
+      )
+    : updated;
   return {
-    document: normalizeProjectSnapshotDocument({
-      ...source,
-      cards,
-      frames,
-      camera,
-      workflows,
-    }),
+    document: normalizeProjectSnapshotDocument(finalDocument),
     changedIds: Array.from(new Set(changedIds)),
   };
 }

@@ -5,10 +5,12 @@ import { loadWorkspaceProjectRoute } from '@/core/projects/workspace-project-rou
 
 export const Route = createFileRoute('/editor/$projectId')({
   ssr: 'data-only',
-  loader: ({ params }) =>
+  validateSearch: (search: Record<string, unknown>) => ({ clipId: typeof search.clipId === 'string' ? search.clipId : undefined, t: typeof search.t === 'string' ? search.t : undefined, sceneId: typeof search.sceneId === 'string' ? search.sceneId : undefined, canvasId: typeof search.canvasId === 'string' ? search.canvasId : undefined }),
+  loaderDeps: ({ search }) => ({ search }),
+  loader: ({ params, deps }) =>
     loadWorkspaceProjectRoute({
       projectId: params.projectId,
-      search: {},
+      search: deps.search,
       workspaceMode: 'editor',
     }),
   component: EditorProjectRouteComponent,

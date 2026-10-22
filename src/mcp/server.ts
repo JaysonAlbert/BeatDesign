@@ -1,7 +1,20 @@
+import { withCanvasScope, scopedCanvasId } from '@/core/projects/canvas-scope';
 import { readFile, stat } from 'node:fs/promises';
+import { registerSeriesTools } from './series-tools';
 import { isAbsolute, resolve as resolvePath } from 'node:path';
-import { audioGenerationInputSchema, compileAudioGeneration } from './audio-generation';
-import { assetUploadInputSchema, uploadProjectAssetChunk } from './asset-upload';
+import {
+  audioGenerationInputSchema,
+  compileAudioGeneration,
+} from './audio-generation';
+import {
+  assetUploadInputSchema,
+  uploadProjectAssetChunk,
+} from './asset-upload';
+import {
+  registerOrganizationTools,
+  queryOrganizationAssets,
+  requiresExplicitEnvelope,
+} from './organization-tools';
 
 import {
   createMcpHandler,
@@ -232,6 +245,7 @@ const assertActiveProject = async (projectId: string) => {
 
 async function executeExternalCommand({
   projectId,
+  canvasId,
   command,
   expectedRevision,
   commandId = createCommandId(),
@@ -239,6 +253,7 @@ async function executeExternalCommand({
   maxAttempts,
 }: {
   projectId: string;
+  canvasId?: string;
   command: unknown;
   expectedRevision?: number | null;
   commandId?: string;
@@ -253,6 +268,7 @@ async function executeExternalCommand({
     input: {
       projectId,
       origin: 'mcp',
+      canvasId,
       commandId,
       idempotencyKey,
       expectedRevision,
@@ -408,11 +424,16 @@ export function createBeatDesignMcpServer() {
     return project;
   };
 
+  registerOrganizationTools(server, { resolveScopedProject, withToolErrors });
+  registerSeriesTools(server, { withToolErrors });
+
   const buildProjectHandoff = (
     project: Awaited<ReturnType<typeof getActiveProject>> & {},
     options: {
       view?: string | null;
       focusCardId?: string | null;
+      canvasId?: string | null;
+      sceneId?: string | null;
       time?: number | null;
     } = {}
   ) =>
@@ -421,11 +442,14 @@ export function createBeatDesignMcpServer() {
       name: project.name,
       view: options.view ?? project.lastWorkspaceMode,
       focusCardId: options.focusCardId,
+      canvasId: options.canvasId,
+      sceneId: options.sceneId,
       time: options.time,
     });
 
   const persistGenerationCanvasStatus = async ({
     projectId,
+    canvasId,
     generationId,
     status,
     output,
@@ -435,6 +459,7 @@ export function createBeatDesignMcpServer() {
     outputCardId,
   }: {
     projectId: string;
+    canvasId?: string;
     generationId: string | null;
     status: 'pending' | 'processing' | 'succeeded' | 'failed';
     output?: unknown;
@@ -443,7 +468,16 @@ export function createBeatDesignMcpServer() {
     sourceCardId?: string;
     outputCardId?: string;
   }) => {
-    const latest = await loadProjectWithLatestSnapshot({ projectId });
+    let targetCanvasId = canvasId ?? scopedCanvasId(projectId);
+    if (generationId) {
+      const generation = await getGenerationById({ id: generationId });
+      const source = (generation?.input as { _source?: { canvasSource?: { canvasId?: string } } } | null)?._source?.canvasSource;
+      targetCanvasId = source?.canvasId ?? targetCanvasId;
+    }
+    const latest = await loadProjectWithLatestSnapshot({ projectId, canvasId: targetCanvasId }).catch(error => {
+      if ((error as { code?: string }).code === 'SCOPE_MISMATCH') return null;
+      throw error;
+    });
     if (!latest) return null;
     const cards = toCommandCanvasCards(latest.snapshot.cards);
     const outputCard = cards.find(
@@ -470,6 +504,7 @@ export function createBeatDesignMcpServer() {
     const media = resolveOutputMedia(output);
     const applied = await executeExternalCommand({
       projectId,
+      canvasId: targetCanvasId,
       commandId: commandKey,
       idempotencyKey: commandKey,
       expectedRevision: latest.snapshotVersion,
@@ -575,14 +610,36 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_project_update',
     {
-      description: 'Update project name, short description or cover through the shared revision-checked command kernel. Get settingsRevision from project_get; manual coverAssetId must belong to the project. Auto cover uses the first image, then a local video poster.',
-      inputSchema: z.object({ projectId: idSchema.optional(), expectedRevision: z.number().int().min(1), patch: projectSettingsPatchSchema, commandId: idSchema.optional(), idempotencyKey: idSchema.optional() }),
+      description:
+        'Update project name, short description or cover through the shared revision-checked command kernel. Get settingsRevision from project_get; manual coverAssetId must belong to the project. Auto cover uses the first image, then a local video poster.',
+      inputSchema: z.object({
+        projectId: idSchema.optional(),
+        expectedRevision: z.number().int().min(1),
+        patch: projectSettingsPatchSchema,
+        commandId: idSchema.optional(),
+        idempotencyKey: idSchema.optional(),
+      }),
       annotations: { destructiveHint: false, idempotentHint: true },
     },
-    withToolErrors(async ({ projectId, expectedRevision, patch, commandId, idempotencyKey }) => {
-      const project = await resolveScopedProject(projectId);
-      return persistBeatDesignCommand({ projectId: project.id, origin: 'mcp', expectedRevision, commandId, idempotencyKey, command: { type: 'project.update', patch } });
-    })
+    withToolErrors(
+      async ({
+        projectId,
+        expectedRevision,
+        patch,
+        commandId,
+        idempotencyKey,
+      }) => {
+        const project = await resolveScopedProject(projectId);
+        return persistBeatDesignCommand({
+          projectId: project.id,
+          origin: 'mcp',
+          expectedRevision,
+          commandId,
+          idempotencyKey,
+          command: { type: 'project.update', patch },
+        });
+      }
+    )
   );
 
   server.registerTool(
@@ -678,7 +735,7 @@ export function createBeatDesignMcpServer() {
     },
     withToolErrors(async ({ projectId, limit }) => {
       const project = await resolveScopedProject(projectId);
-      return listProjectAssets({ projectId: project.id, limit });
+      return (await queryOrganizationAssets(project.id, { limit })).assets;
     })
   );
 
@@ -706,13 +763,14 @@ export function createBeatDesignMcpServer() {
   server.registerTool(
     'bdesign_asset_upload',
     {
-      description: 'Upload user-provided media bytes as canonical base64 chunks (512 KiB decoded per part; final part may be smaller). Each uploadId is bound to a project, filename, byte length and SHA-256. Retry identical chunks safely; final assembly imports through the existing project Asset service. Maximum file size 64 MiB. Does not read arbitrary workstation paths.',
+      description:
+        'Upload user-provided media bytes as canonical base64 chunks (512 KiB decoded per part; final part may be smaller). Each uploadId is bound to a project, filename, byte length and SHA-256. Retry identical chunks safely; final assembly imports through the existing project Asset service. Maximum file size 64 MiB. Does not read arbitrary workstation paths.',
       inputSchema: assetUploadInputSchema,
-      annotations: {destructiveHint:false,idempotentHint:true},
+      annotations: { destructiveHint: false, idempotentHint: true },
     },
-    withToolErrors(async input => {
+    withToolErrors(async (input) => {
       const project = await resolveScopedProject(input.projectId);
-      return uploadProjectAssetChunk(project.id,input);
+      return uploadProjectAssetChunk(project.id, input);
     })
   );
 
@@ -761,13 +819,14 @@ export function createBeatDesignMcpServer() {
     'bdesign_canvas_get',
     {
       description: 'Read the Canvas document and revision for a project.',
-      inputSchema: z.object({ projectId: idSchema.optional() }),
+      inputSchema: z.object({ projectId: idSchema.optional(), canvasId: idSchema.optional() }),
       annotations: { readOnlyHint: true },
     },
-    withToolErrors(async ({ projectId }) => {
+    withToolErrors(async ({ projectId, canvasId }) => {
       const project = await resolveScopedProject(projectId);
       const state = await loadProjectWithLatestSnapshot({
         projectId: project.id,
+        canvasId,
       });
       if (!state) throw new Error('Project not found.');
       return {
@@ -788,13 +847,15 @@ export function createBeatDesignMcpServer() {
       inputSchema: z.object({
         projectId: idSchema.optional(),
         cardId: idSchema.optional(),
+        canvasId: idSchema.optional(),
       }),
       annotations: { readOnlyHint: true, idempotentHint: true },
     },
-    withWorkspaceHandoffErrors(async ({ projectId, cardId }) => {
+    withWorkspaceHandoffErrors(async ({ projectId, cardId, canvasId }) => {
       const project = await resolveScopedProject(projectId);
       const state = await loadProjectWithLatestSnapshot({
         projectId: project.id,
+        canvasId,
       });
       if (!state) throw new Error('Project not found.');
       const cards = toCommandCanvasCards(state.snapshot.cards);
@@ -808,6 +869,7 @@ export function createBeatDesignMcpServer() {
         handoff: buildProjectHandoff(project, {
           view: 'canvas',
           focusCardId: cardId,
+          canvasId,
         }),
         extra: {
           canvas: {
@@ -827,6 +889,7 @@ export function createBeatDesignMcpServer() {
         'Search Canvas nodes by name, prompt, result text, model, kind, or media type.',
       inputSchema: z.object({
         projectId: idSchema.optional(),
+        canvasId: idSchema.optional(),
         query: z.string().trim().max(500).default(''),
         kind: z.enum(['asset', 'generation', 'output', 'text']).optional(),
         type: z
@@ -835,10 +898,11 @@ export function createBeatDesignMcpServer() {
       }),
       annotations: { readOnlyHint: true },
     },
-    withToolErrors(async ({ projectId, query, kind, type }) => {
+    withToolErrors(async ({ projectId, canvasId, query, kind, type }) => {
       const project = await resolveScopedProject(projectId);
       const state = await loadProjectWithLatestSnapshot({
         projectId: project.id,
+        canvasId,
       });
       if (!state) throw new Error('Project not found.');
       const needle = query.toLocaleLowerCase();
@@ -868,12 +932,31 @@ export function createBeatDesignMcpServer() {
         'Apply incremental Canvas operations. Use upsert_text (cardId, name, textContent, textRole) to create/edit text nodes for scripts, characters and storyboard prompts. Connect text to a generation using set_references; its content is frozen into the prompt at submission. Append place_card to position a new node. Raw document replacement is not exposed.',
       inputSchema: commandMetadataSchema.extend({
         projectId: idSchema.optional(),
+        canvasId: idSchema.optional(),
         operations: z.array(canvasOperationSchema).min(1).max(500),
       }),
       annotations: { destructiveHint: true, idempotentHint: true },
     },
-    withToolErrors(async ({ projectId, operations, ...metadata }) => {
+    withToolErrors(async ({ projectId, canvasId, operations, ...metadata }) => {
       const project = await resolveScopedProject(projectId);
+      if (canvasId || requiresExplicitEnvelope({ type: 'canvas.apply', operations })) {
+        if (
+          !metadata.commandId ||
+          !metadata.idempotencyKey ||
+          !Number.isInteger(metadata.expectedRevision) ||
+          (metadata.expectedRevision ?? -1) < 0
+        )
+          throw new Error(
+            'Organization Canvas operations require explicit commandId, idempotencyKey and expectedRevision.'
+          );
+        return persistBeatDesignCommand({
+          projectId: project.id,
+          canvasId,
+          origin: 'mcp',
+          ...metadata,
+          command: { type: 'canvas.apply', operations },
+        });
+      }
       return executeExternalCommand({
         projectId: project.id,
         ...metadata,
@@ -889,6 +972,7 @@ export function createBeatDesignMcpServer() {
         'Extract the tail frame of a video, place it on Canvas, and create a continuation generation node. The returned prompt explicitly maps @Image1 as the first frame; submit the image as a normal reference.',
       inputSchema: commandMetadataSchema.extend({
         projectId: idSchema.optional(),
+        canvasId: idSchema.optional(),
         sourceCardId: idSchema.optional(),
         assetId: idSchema.optional(),
         prompt: z.string().max(20_000).default(''),
@@ -902,6 +986,7 @@ export function createBeatDesignMcpServer() {
     withToolErrors(
       async ({
         projectId,
+        canvasId,
         sourceCardId,
         assetId,
         prompt,
@@ -914,6 +999,7 @@ export function createBeatDesignMcpServer() {
         const project = await resolveScopedProject(projectId);
         return continueFromTailFrame({
           projectId: project.id,
+          canvasId,
           sourceCardId,
           assetId,
           prompt,
@@ -982,6 +1068,7 @@ export function createBeatDesignMcpServer() {
         'Submit from a reviewed Canvas generation node. A visible output node is created before the provider request, and successful outputs remain reusable Assets.',
       inputSchema: commandMetadataSchema.extend({
         projectId: idSchema.optional(),
+        canvasId: idSchema.optional(),
         sourceCardId: idSchema,
         mode: z.enum(['image', 'video', 'analysis']),
         modelId: idSchema,
@@ -997,10 +1084,11 @@ export function createBeatDesignMcpServer() {
         input.commandId ?? input.idempotencyKey ?? createCommandId();
       const stableRequestKey = input.idempotencyKey ?? commandId;
       return runCanvasGenerationSubmissionOnce({
-        key: `${project.id}:${stableRequestKey}`,
+        key: `${project.id}:${input.canvasId ?? `default:${project.id}`}:${stableRequestKey}`,
         submit: async () => {
           const state = await loadProjectWithLatestSnapshot({
             projectId: project.id,
+            canvasId: input.canvasId,
           });
           if (!state) throw new Error('Project not found.');
           const descriptor = getGenerationModelDescriptor(input.modelId);
@@ -1023,6 +1111,7 @@ export function createBeatDesignMcpServer() {
           });
           const placed = await executeExternalCommand({
             projectId: project.id,
+            canvasId: input.canvasId,
             commandId: `${commandId}:place`,
             idempotencyKey: `${stableRequestKey}:place`,
             expectedRevision: input.expectedRevision ?? state.snapshotVersion,
@@ -1034,11 +1123,12 @@ export function createBeatDesignMcpServer() {
           try {
             result = await submitAssetFirstGeneration({
               origin: 'mcp',
-              generation: { ...plan.request, projectId: project.id },
+              generation: { ...plan.request, projectId: project.id, canvasId: input.canvasId },
             });
           } catch (error) {
             await persistGenerationCanvasStatus({
               projectId: project.id,
+            canvasId: input.canvasId,
               generationId: null,
               status: 'failed',
               error:
@@ -1067,6 +1157,7 @@ export function createBeatDesignMcpServer() {
                     : 'processing';
           await persistGenerationCanvasStatus({
             projectId: project.id,
+            canvasId: input.canvasId,
             generationId,
             status,
             output: result.body.output,

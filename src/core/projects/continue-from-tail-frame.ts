@@ -45,6 +45,7 @@ const defaultDependencies: ContinueFromTailFrameDependencies = {
 
 export type ContinueFromTailFrameInput = {
   projectId: string;
+  canvasId?: string;
   sourceCardId?: string;
   assetId?: string;
   prompt?: string;
@@ -69,6 +70,7 @@ const placeRightOf = (
 
 async function continueFromTailFrameOnce({
   projectId,
+  canvasId,
   sourceCardId,
   assetId,
   prompt = '',
@@ -77,7 +79,7 @@ async function continueFromTailFrameOnce({
   commandId = createCommandId(),
   expectedRevision,
 }: ContinueFromTailFrameInput & { commandId: string }, dependencies: ContinueFromTailFrameDependencies) {
-  const state = await dependencies.loadProjectState({ projectId });
+  const state = await dependencies.loadProjectState({ projectId, canvasId });
   if (!state) throw new Error('Project not found.');
 
   const sourceCard = sourceCardId
@@ -172,6 +174,7 @@ async function continueFromTailFrameOnce({
   const applied = await dependencies.persistCommand({
     input: {
       projectId,
+      canvasId,
       origin: 'mcp',
       commandId,
       idempotencyKey: commandId,
@@ -210,11 +213,13 @@ async function continueFromTailFrameOnce({
     review: {
       tool: 'bdesign_canvas_view',
       projectId,
+      canvasId,
       cardId: generationCardId,
     },
     next: {
       tool: 'bdesign_generation_submit',
       projectId,
+      canvasId,
       sourceCardId: generationCardId,
       mode: 'video',
       modelId: resolvedModelId,
@@ -229,7 +234,7 @@ export function continueFromTailFrame(
   dependencies: ContinueFromTailFrameDependencies = defaultDependencies
 ) {
   const commandId = input.commandId?.trim() || createCommandId();
-  const lockKey = `${input.projectId}:${commandId}`;
+  const lockKey = `${input.projectId}:${input.canvasId ?? 'default'}:${commandId}`;
   const existing = inFlightContinuations.get(lockKey);
   if (existing) {
     return existing as ReturnType<typeof continueFromTailFrameOnce>;

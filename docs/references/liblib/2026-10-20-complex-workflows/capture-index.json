@@ -1,0 +1,37 @@
+{
+  "capturedDate": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "source": "Connected external Chrome; original screenshots",
+  "captures": [
+    {
+      "file": "01-libtv-public-workflow.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "a0f26ac6f246ac6cd2d8e8e82b766a48a909fe32cdaa68a5759e76c785fed4af"
+    },
+    {
+      "file": "02-libtv-storyboard-assets.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "cd5eb6ce627f01b8f25705e83dd048625702d19fa5558700faf0d22e4775b878"
+    },
+    {
+      "file": "03-libtv-node-results.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "edb3a821d42b42ef326cf5be1f21b20277f015fe2a4587299474f734fc01bae0"
+    },
+    {
+      "file": "04-libtv-second-result.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "a5c7632f37e43fa9e8101c44cfcf22f8189eee18dd304a948eb469e4040be0b4"
+    },
+    {
+      "file": "05-libtv-hidden-reference-lines.jpg",
+      "width": 2560,
+      "height": 1249,
+      "sha256": "fe86fb9652288cb8b86aa4a847e8efcf295425ef4a3da68c7292ccc2eb94e1c4"
+    }
+  ]
+}

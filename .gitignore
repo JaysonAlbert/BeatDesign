@@ -19,7 +19,10 @@ src/paraglide/
 
 # local agent state
 /.claude/
-/.agents/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/speckit-*/
 /.codex/
 /.cursor/
 /.zcode/

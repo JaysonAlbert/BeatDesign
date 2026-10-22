@@ -121,6 +121,7 @@ export type BeatCanvasComposerPresentation = {
 
 export type BeatCanvasFrontLayerValue = {
   cards: Record<string, CanvasCard>;
+  generationBlockersByCard?: Record<string, string[]>;
   selectedShapeIds: string[];
   selectedCanvasCardIds: string[];
   activeComposerCardId: string | null;

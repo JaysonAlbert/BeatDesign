@@ -21,6 +21,9 @@ export const assetFirstGenerationRequestSchema = z
   .object({
     version: z.literal(GENERATION_REQUEST_VERSION),
     projectId: z.string().min(1).max(160),
+    canvasId: z.string().min(1).max(200).optional(),
+    sourceSurface: z.enum(['canvas', 'studio', 'editor']).optional(),
+    sourceCardId: z.string().min(1).max(200).optional(),
     mode: z.enum(['image', 'video', 'analysis', 'audio']),
     modelId: z.string().min(1).max(200),
     prompt: z.string().max(20_000),
@@ -51,7 +54,26 @@ export const assetFirstGenerationRequestSchema = z
       .default([]),
     parameters: z.record(z.string(), z.unknown()).default({}),
   })
-  .strict();
+  .strict()
+  .superRefine((request, context) => {
+    if (request.canvasId && request.sourceSurface !== 'canvas') context.addIssue({ code: 'custom', path: ['canvasId'], message: 'canvasId requires a Canvas source.' });
+    if (request.sourceSurface === 'canvas' && !request.sourceCardId)
+      context.addIssue({
+        code: 'custom',
+        message: 'Canvas generation requires sourceCardId.',
+        path: ['sourceCardId'],
+      });
+    if (
+      request.sourceCardId &&
+      request.sourceSurface &&
+      request.sourceSurface !== 'canvas'
+    )
+      context.addIssue({
+        code: 'custom',
+        message: 'A Canvas sourceCardId cannot be used by another surface.',
+        path: ['sourceSurface'],
+      });
+  });
 
 export type AssetFirstGenerationRequest = z.infer<
   typeof assetFirstGenerationRequestSchema

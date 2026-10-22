@@ -23,9 +23,7 @@ import {
   pollGenerationUntilComplete,
   runDraftGeneration,
 } from '@/core/beatcanvas/generation-controller';
-import {
-  buildEffectMetadataMap,
-} from '@/core/beatcanvas/studio/generation-runtime';
+import { buildEffectMetadataMap } from '@/core/beatcanvas/studio/generation-runtime';
 import type { MutableRefObject } from 'react';
 import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner';
@@ -41,6 +39,7 @@ type GenerateDraftOptions = {
 
 export function useBeatCanvasGenerationRuntime({
   projectId,
+  canvasId,
   studioT,
   canvasCardsRef,
   imageModels,
@@ -53,8 +52,10 @@ export function useBeatCanvasGenerationRuntime({
   setStatusMessage,
   updateDraftCard,
   onGenerationComplete,
+  beforeGenerate,
 }: {
   projectId: string;
+  canvasId?: string;
   studioT: StudioTranslateFn;
   canvasCardsRef: MutableRefObject<Record<string, CanvasCard>>;
   imageModels: WorkspaceModelOption[];
@@ -87,6 +88,7 @@ export function useBeatCanvasGenerationRuntime({
       | ((current: CanvasDraftCard) => CanvasDraftCard)
   ) => void;
   onGenerationComplete?: () => void;
+  beforeGenerate?: () => Promise<void>;
 }) {
   const statusLabels = useMemo(
     () => ({
@@ -172,8 +174,10 @@ export function useBeatCanvasGenerationRuntime({
   const runGenerateDraft = useCallback(
     async (draftId: string, options?: GenerateDraftOptions) => {
       const completed = await runDraftGeneration({
+        beforeGenerate,
         draftId,
         projectId,
+        canvasId,
         getCurrentCard: (nextDraftId) => canvasCardsRef.current[nextDraftId],
         buildEffectInput: async (draftCard) => {
           const result = await buildEffectInput(draftCard);
@@ -211,6 +215,7 @@ export function useBeatCanvasGenerationRuntime({
       return completed;
     },
     [
+      beforeGenerate,
       buildEffectInput,
       canvasCardsRef,
       onGenerationComplete,
@@ -257,22 +262,18 @@ export function useBeatCanvasGenerationRuntime({
       const isAnalysis =
         outputCard.generationSnapshot.generationMode === 'analysis' ||
         isCanvasAnalysisCard(draftCard);
-      const models = outputCard.generationSnapshot.type === 'image'
-        ? imageModels
-        : videoModels;
+      const models =
+        outputCard.generationSnapshot.type === 'image'
+          ? imageModels
+          : videoModels;
       const model = isAnalysis
         ? null
         : getSelectableModel(models, outputCard.generationSnapshot.modelId);
       if (!isAnalysis && !model) continue;
 
-      resumedRunIdsRef.current.add(
-        outputCard.generationRunId ?? outputCard.id
-      );
+      resumedRunIdsRef.current.add(outputCard.generationRunId ?? outputCard.id);
 
-      if (
-        draftCard.status !== 'pending' &&
-        draftCard.status !== 'processing'
-      ) {
+      if (draftCard.status !== 'pending' && draftCard.status !== 'processing') {
         updateDraftCard(draftCard.id, {
           status: outputCard.status,
           error: null,

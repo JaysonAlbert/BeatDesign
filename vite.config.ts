@@ -46,6 +46,6 @@ export default defineConfig({
       srcDirectory: 'src',
     }),
     viteReact(),
-    nitro(),
+    nitro(process.env.BEATDESIGN_BUILD_OUTPUT_DIR ? { output: { dir: process.env.BEATDESIGN_BUILD_OUTPUT_DIR } } : {}),
   ],
 });

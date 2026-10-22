@@ -11,6 +11,8 @@ const getLocalizedRoute = (route: string, locale?: string | null) =>
     : route;
 
 export type ProjectEntryIntent = {
+  sceneId?: string;
+  canvasId?: string;
   target?: string;
   model?: string;
   prompt?: string;
@@ -25,6 +27,8 @@ const applyProjectEntryIntent = (
   searchParams: URLSearchParams,
   intent: ProjectEntryIntent
 ) => {
+  if (intent.sceneId) searchParams.set('sceneId', intent.sceneId);
+  if (intent.canvasId) searchParams.set('canvasId', intent.canvasId);
   if (intent.target) {
     searchParams.set('target', intent.target);
   }
@@ -57,6 +61,8 @@ export function parseProjectEntryIntent(
   };
 
   return {
+    sceneId: readValue('sceneId'),
+    canvasId: readValue('canvasId'),
     target: readValue('target'),
     model: readValue('model'),
     prompt: readValue('prompt'),

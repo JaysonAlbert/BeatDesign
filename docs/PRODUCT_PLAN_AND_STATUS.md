@@ -15,6 +15,27 @@
 - Studio / Canvas / Editor redo 与 MCP 共用 asset-first 服务端预检及提交；浏览器接口使用逻辑 model ID，Provider 状态同步集中到服务端。
 - 本地 SQLite 启用 WAL 和 busy timeout；MCP 版本读取根 package 元数据。浏览器与 MCP 联动测试使用独立临时数据库，不调用付费 Provider。
 
+### Canvas 项目组织（独立特性分支，尚未合入/部署）
+
+2026-10-20 已按批准的 Spec Kit 需求和方案实现命名可折叠组、逻辑素材目录、
+固定版本的共享参考和本机工作流模板。它们与 UI/MCP 共用项目、素材、事务命令和
+revision；Timeline usage 读取真实采用，整理和实例化不会运行生成。
+支持英文/中文键盘入口，提供八镜 140 卡、505 素材的独立合成示例。
+同日按用户追加要求补齐可见内容的容器边界、组内整理/横排/竖排/适应内容，
+以及选定组或全部组的排列。多组可同时显示，排列显式执行并支持撤销；
+组间排列避开未参与的组和独立素材，隐藏旧 take 随制作步骤移动但不占满容器。
+
+功能说明和边界见 [PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md)，
+本次实际验证见 [verification.md](../specs/001-canvas-project-organization/verification.md)。
+源码实现、自动检查、浏览器验证、用户视觉验收、合入和部署分别记录。
+该分支没有整理真实影片，不代表正式发布或上游已接受。
+
+### 分集、场次导航与跨集共享资产（002，独立特性分支）
+
+2026-10-21 用户批准需求和技术方案后实现：Series聚合既有分集Project，Scene拥有独立制作画布，旧默认画布保留。导航与Editor场次标签不重排剪辑，跨画布内容按依赖预览后原子转移。共享素材与Elements可显式发布、固定版本绑定、审阅采用、本地化和归档恢复；素材板提供本场/本集/共享查询及独立的批次、历史和实际采用详情。
+
+实现使用同一SQLite、Command Kernel、UI/MCP服务，未自动拆分真实影片、替换take或运行生成。合成作品含12集、240场、6,000卡及2,000本集素材；实际检查、性能、截图、用户视觉验收及未覆盖项见 [002验证](../specs/002-series-scenes-shared-assets/verification.md)。仍是Fork草稿分支，未合入、部署或获上游接受。
+
 ## 1. BeatDesign 是什么
 
 BeatDesign 是一个免费、开源、本地优先的 AI 图片/视频创作工作台。它把 Studio、节点 Canvas、项目 Assets、本地视频 Editor、生成历史和 BeatAPI 连接放在同一个 Project 中。

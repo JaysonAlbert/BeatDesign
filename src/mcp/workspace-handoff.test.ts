@@ -35,3 +35,15 @@ test('Editor handoff clamps negative time and exposes every workspace URL', () =
   assert.ok(handoff.studioUrl.includes('/studio/project-1'));
   assert.ok(handoff.assetsUrl.includes('/assets/project-1'));
 });
+
+test('isolated runtime handoff retains its host and document scope', () => {
+  const previous = process.env.BEATDESIGN_WORKSPACE_URL;
+  process.env.BEATDESIGN_WORKSPACE_URL = 'http://127.0.0.1:3060';
+  try {
+    const handoff = buildBeatDesignWorkspaceHandoff({ projectId: 'episode', name: 'Preview', view: 'canvas', canvasId: 'scene-document', sceneId: 'scene-1' });
+    const url = new URL(handoff.canvasUrl);
+    assert.equal(url.origin, 'http://127.0.0.1:3060');
+    assert.equal(url.searchParams.get('canvasId'), 'scene-document');
+    assert.equal(url.searchParams.get('sceneId'), 'scene-1');
+  } finally { if (previous === undefined) delete process.env.BEATDESIGN_WORKSPACE_URL; else process.env.BEATDESIGN_WORKSPACE_URL = previous; }
+});

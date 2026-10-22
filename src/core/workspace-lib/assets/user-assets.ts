@@ -1,5 +1,6 @@
 
 import { randomUUID } from 'crypto';
+import { withDatabaseTransaction } from '@/core/db/transaction-context';
 import { getDb } from '@/core/workspace-lib/db-adapter';
 import {
   generationAssetLink,
@@ -137,7 +138,9 @@ export const getProjectAssetById = async ({
     )
     .limit(1);
 
-  return rows[0] ?? null;
+  const asset = rows[0] ?? null;
+  if (asset?.storageProvider === 'local') asset.publicUrl = `/api/app/projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(asset.id)}`;
+  return asset;
 };
 
 export const listProjectAssets = async ({
@@ -171,10 +174,12 @@ export const listProjectAssets = async ({
     .limit(Math.max(1, Math.min(500, Math.floor(limit))));
 };
 
-export const deleteUserAssetById = async (assetId: string) => {
+export const deleteUserAssetById = (assetId: string) => withDatabaseTransaction(async () => {
+  const { assertAssetMayBeDeleted } = await import('@/core/series/deletion-guards');
+  await assertAssetMayBeDeleted(assetId);
   const db = await getDb();
   await db.delete(userAsset).where(eq(userAsset.id, assetId));
-};
+});
 
 export const linkGenerationAsset = async ({
   generationId,

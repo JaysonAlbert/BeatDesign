@@ -82,10 +82,12 @@ export const buildProjectSnapshotDocument = ({
   cardsById,
   framesById,
   camera,
+  organization,
 }: {
   cardsById: Record<string, CanvasCard>;
   framesById: SnapshotFramesById;
   camera?: ProjectSnapshotCamera;
+  organization?: ProjectSnapshotDocument['organization'];
 }): ProjectSnapshotDocument => {
   const persistableCards = Object.values(cardsById).filter(
     (card) => !isTransientCanvasUrl(card.url)
@@ -110,9 +112,10 @@ export const buildProjectSnapshotDocument = ({
   );
 
   return normalizeProjectSnapshotDocument({
-    version: 3,
+    version: 4,
     cards,
     frames,
+    ...(organization ? { organization } : {}),
     ...(camera ? { camera } : {}),
   });
 };
@@ -143,18 +146,6 @@ export const createProjectSnapshotRestorePlan = (
       .filter(isCanvasOutputCard)
       .map((card) => [card.id, card.sourceConfigCardId] as const)
   );
-  const normalizeVisibleReferences = <TCard extends CanvasCard>(card: TCard) =>
-    ({
-      ...card,
-      referenceCardIds: Array.from(
-        new Set(
-          card.referenceCardIds.map(
-            (referenceCardId) =>
-              outputSourceById.get(referenceCardId) ?? referenceCardId
-          )
-        )
-      ),
-    }) as TCard;
   const assetCards = document.cards
     .filter(
       (card): card is NonDraftCanvasCard =>
@@ -164,7 +155,7 @@ export const createProjectSnapshotRestorePlan = (
     )
     .sort((left, right) => left.id.localeCompare(right.id))
     .map((card) => ({
-      card: normalizeVisibleReferences(card),
+      card,
       frame: document.frames[card.id],
     }));
 
@@ -172,7 +163,7 @@ export const createProjectSnapshotRestorePlan = (
     .filter(isCanvasGenerationCard)
     .sort((left, right) => left.id.localeCompare(right.id))
     .map((card) => ({
-      card: normalizeVisibleReferences(card),
+      card,
       frame: document.frames[card.id],
     }));
 
@@ -199,7 +190,7 @@ export const createProjectSnapshotRestorePlan = (
 
       connectorIds.add(connectorId);
       connectors.push({
-        sourceCardId: referenceCardId,
+        sourceCardId: outputSourceById.get(referenceCardId) ?? referenceCardId,
         targetCardId: current.card.id,
       });
     }

@@ -3,6 +3,7 @@ export type BeatDesignCommandOrigin = 'ui' | 'mcp' | 'cli' | 'system';
 export type BeatDesignCommandEnvelope<TCommand> = {
   commandId: string;
   projectId: string;
+  canvasId?: string;
   origin: BeatDesignCommandOrigin;
   expectedRevision?: number | null;
   idempotencyKey?: string | null;

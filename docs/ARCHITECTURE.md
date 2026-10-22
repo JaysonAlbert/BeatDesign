@@ -45,6 +45,17 @@ Upload storage is a separate adapter boundary. File selection remains browser-lo
 
 ## Command boundary
 
+Project organization uses this same boundary. Canvas v4 stores canonical groups,
+fixed reference bindings and frozen template instances alongside unchanged cards
+and absolute frames. Display projections never replace raw references or historical
+input snapshots. Per-project folders and Elements live in
+`project_organization_state`; installation-wide definitions live in `workflow_template`.
+New semantic writes require explicit revisions and stable IDs. An asynchronous
+transaction context keeps service reads, CAS updates and request-fingerprinted
+receipts on the same SQLite transaction, including legacy snapshot save paths.
+Canvas generation intents additionally pin the reviewed source card/configuration
+digest. See [Project organization](PROJECT_ORGANIZATION.md).
+
 UI actions and the local MCP server call the same Command Kernel. The kernel owns validation and pure document operations for Canvas and Editor. Persistence boundaries remain responsible for revision checks, durable writes, and returning the authoritative document.
 
 ```text

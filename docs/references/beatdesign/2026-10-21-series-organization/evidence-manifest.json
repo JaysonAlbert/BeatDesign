@@ -1,0 +1,72 @@
+{
+  "syntheticOnly": true,
+  "date": "2026-10-21",
+  "files": [
+    {
+      "file": "asset-board.png",
+      "bytes": 154757,
+      "sha256": "a253c90992caf231db5abee1ba17b09191d6b31bd192b24c3608cdcfd0a57aaf",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "asset-filter-timings.json",
+      "bytes": 316,
+      "sha256": "b52c917e0220a56e970ef15dd8dcf0803e9e54b43f66792260bcb2e4e474ae02",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "canvas-switch-timings.json",
+      "bytes": 347,
+      "sha256": "58c73a96d8662daabcf9353a565cf129d73371d16a9ca8951381a07bef4dc3ce",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "narrow-en.png",
+      "bytes": 91080,
+      "sha256": "bc16b2b0847ad9515e05f015a4b0c4a668ebfd12eb6295c554f4d9fc23537d8e",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "narrow-zh.png",
+      "bytes": 91136,
+      "sha256": "7b3b914ac8e9c7ed7e35ef695dee9e8bfed99c15f028ab4bf3cd8fcbe2114d95",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "production-assets-zh.png",
+      "bytes": 130904,
+      "sha256": "4654ba8568d60510f46db2f2a13c4c33570fd9d606d54ccca5368662043256f5",
+      "origin": "http://127.0.0.1:3060"
+    },
+    {
+      "file": "production-navigation-zh.png",
+      "bytes": 205425,
+      "sha256": "55b4fa3259e4ab107038577a8f5bd689970918ca82ad3f2c6103bb31ba77b2e0",
+      "origin": "http://127.0.0.1:3060"
+    },
+    {
+      "file": "production-series-zh.png",
+      "bytes": 57641,
+      "sha256": "ceabc0b9ef15df2ff57548b83e6b44d593f223a7ccb482db8f35e9146b40e446",
+      "origin": "http://127.0.0.1:3060"
+    },
+    {
+      "file": "scene-navigation.png",
+      "bytes": 214528,
+      "sha256": "d6839cb5175cc40727c08231054292ffe72f3c0eee696539ef45312f4fb7fe9d",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "series-overview.png",
+      "bytes": 96804,
+      "sha256": "cb9ea1b25973e51a8c92c40500b73d82e69e8f1cc95aa633e4986841ea6904d1",
+      "origin": "http://127.0.0.1:3042"
+    },
+    {
+      "file": "shared-version-review.png",
+      "bytes": 188374,
+      "sha256": "85a61fefd4f766d7d85c7fe3d89635b290f5af6a3bac20adcfd07e186f93bd72",
+      "origin": "http://127.0.0.1:3042"
+    }
+  ]
+}

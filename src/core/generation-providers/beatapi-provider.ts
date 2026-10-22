@@ -2,7 +2,10 @@ import {
   BeatApiAdapter,
   validateBeatApiTaskInput,
 } from '@/core/adapters/beatapi-adapter';
-import { getConfig } from '@/modules/config/service';
+import { createServerOnlyFn } from '@tanstack/react-start';
+const getConfig = createServerOnlyFn(async (key: string) =>
+  (await import('@/modules/config/service')).getConfig(key)
+);
 
 import type { GenerationProviderDefinition } from './contracts';
 

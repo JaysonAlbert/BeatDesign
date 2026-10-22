@@ -26,6 +26,7 @@ import { useWorkspaceProjects } from '@/core/workspace-hooks/use-workspace-proje
 import { useCreateProject } from '@/core/workspace-hooks/use-create-project';
 import type { WorkspaceProjectCardItem } from '@/core/workspace-lib/app/workspace-client-api';
 import { m } from '@/paraglide/messages.js';
+import { SeriesHub } from '@/components/app/series-hub';
 
 function getHistoryCopy(locale: string) {
   const messageLocale = normalizeLocale(locale);
@@ -255,6 +256,7 @@ export function WorkspacePage({
           </button>
         </section>
 
+        <SeriesHub embedded />
         <section className="mt-12">
           {liveProjects.length > 0 ? (
             <div className="grid gap-x-4 gap-y-7 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

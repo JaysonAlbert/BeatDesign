@@ -14,6 +14,8 @@ import { apiJsonPost } from '@/lib/api-client';
 import { appConfig } from '@/config';
 import { getGenerationRuntimeConfig } from '@/config/generation-runtime';
 import type { WorkspaceMode } from '@/config/workspace-modes';
+import { SeriesNavigation } from './series-navigation';
+import { useWorkspaceScope, useScopeNavigation, scopeSearch } from './workspace-scope';
 
 export function ProductPageShell({
   children,
@@ -27,6 +29,9 @@ export function ProductPageShell({
   workspaceMode?: WorkspaceMode;
 }) {
   const t = useTranslations('AppShell');
+  const scope = useWorkspaceScope();
+  const navigateScope = useScopeNavigation();
+  const workspaceHref = (mode: string) => `/${mode}/${projectId}${scope ? scopeSearch(scope) : ''}`;
   const untitledWorkspaceName = t('header.untitledCanvas');
   const getDisplayWorkspaceName = useCallback(
     (name: string | null | undefined) => {
@@ -143,6 +148,7 @@ export function ProductPageShell({
                 />
               </Link>
 
+              <SeriesNavigation />
               <div className="hidden min-w-0 flex-1 sm:block">
                 <div className="min-w-0 flex-1">{titleNode}</div>
               </div>
@@ -155,7 +161,8 @@ export function ProductPageShell({
                   aria-label={t('header.workspaceView')}
                 >
                   <Link
-                    href={`/studio/${projectId}`}
+                    href={workspaceHref('studio')}
+                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('studio')); }}
                     aria-current={workspaceMode === 'studio' ? 'page' : undefined}
                     aria-label={t('header.studio')}
                     className={workspaceTabClassName(workspaceMode === 'studio')}
@@ -164,7 +171,8 @@ export function ProductPageShell({
                     <span className="hidden sm:inline">{t('header.studio')}</span>
                   </Link>
                   <Link
-                    href={`/canvas/${projectId}`}
+                    href={workspaceHref('canvas')}
+                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('canvas')); }}
                     aria-current={workspaceMode === 'canvas' ? 'page' : undefined}
                     aria-label={t('header.canvas')}
                     className={workspaceTabClassName(workspaceMode === 'canvas')}
@@ -173,7 +181,8 @@ export function ProductPageShell({
                     <span className="hidden sm:inline">{t('header.canvas')}</span>
                   </Link>
                   <Link
-                    href={`/editor/${projectId}`}
+                    href={workspaceHref('editor')}
+                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('editor')); }}
                     aria-current={workspaceMode === 'editor' ? 'page' : undefined}
                     aria-label={t('header.editor')}
                     className={workspaceTabClassName(workspaceMode === 'editor')}
@@ -182,7 +191,8 @@ export function ProductPageShell({
                     <span className="hidden sm:inline">{t('header.editor')}</span>
                   </Link>
                   <Link
-                    href={`/assets/${projectId}`}
+                    href={workspaceHref('assets')}
+                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('assets')); }}
                     aria-current={workspaceMode === 'assets' ? 'page' : undefined}
                     aria-label={t('header.assets')}
                     className={workspaceTabClassName(workspaceMode === 'assets')}

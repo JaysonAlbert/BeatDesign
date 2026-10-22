@@ -38,6 +38,7 @@ import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 import { uploadLocalProjectAsset } from '@/core/workspace-lib/app/local-project-asset-client';
 import { TimelineClipBlock } from './timeline-clip-block';
 import { useTimelinePersistence } from './use-timeline-persistence';
+import { SceneClipAssignment } from './scene-clip-assignment';
 import { saveTimelineThroughCommand } from '@/core/editor/timeline-persistence';
 export { shouldPersistTimelineDocument, timelineDocumentsEqualForPersistence } from '@/core/editor/timeline-persistence';
 import { createCommandId } from '@/core/commands/contracts';
@@ -177,11 +178,15 @@ const safeFilename = (name: string) =>
 export function VideoEditorWorkspace({
   projectId,
   projectName,
+  initialFocusClipId,
 }: {
   projectId: string;
   projectName: string;
+  initialFocusClipId?: string | null;
 }) {
   const t = useTranslations('AppShell.editor');
+  const seriesT = useTranslations('Series');
+  const handledFocusClipId = useRef<string | null>(null);
   const loadFailedMessage = t('errors.loadFailed');
   const saveFailedMessage = t('errors.saveFailed');
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -1509,12 +1514,21 @@ export function VideoEditorWorkspace({
     seek(nextSource.inPoint);
   };
 
+  useEffect(() => {
+    if (!initialFocusClipId || !isTimelineHydrated || handledFocusClipId.current === initialFocusClipId) return;
+    handledFocusClipId.current = initialFocusClipId;
+    const clip = document.tracks.flatMap(track => track.clips).find(clip => clip.id === initialFocusClipId);
+    if (clip) selectClip(clip);
+    else { setSelectedClipId(null); setError(seriesT('clipUnavailable')); }
+  }, [initialFocusClipId, isTimelineHydrated, document]);
+
   return (
     <div
       className="beat-product-shell flex min-h-0 flex-1 flex-col bg-[var(--beat-bg)] text-[var(--beat-text-1)]"
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >
+      <SceneClipAssignment projectId={projectId} selectedClipId={selectedClipId} clips={document.tracks.flatMap(track => track.clips)} onLocate={id => { const clip = document.tracks.flatMap(track => track.clips).find(c => c.id === id); if (clip) selectClip(clip); }} />
       <input
         ref={fileInputRef}
         type="file"
