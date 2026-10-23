@@ -1,0 +1,80 @@
+{
+  "batch": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "base": "d2ba23d",
+  "branch": "codex/contextual-canvas-redesign",
+  "screenshots": [
+    {
+      "file": "01-canvas-default.jpg",
+      "bytes": 61782,
+      "capturedFileTimeUtc": "2026-10-23T15:03:43.5615006Z",
+      "sha256": "32d5dd49aaf2d3d1c0b455d8051cf325b306be2d2a3846ebb39ffcf6efeb80ce"
+    },
+    {
+      "file": "02-scenes.jpg",
+      "bytes": 67094,
+      "capturedFileTimeUtc": "2026-10-23T14:54:52.1743545Z",
+      "sha256": "8902e0392836104ba9fc0c5b02866822a16c134c61bc92dd2b1a437d83801488"
+    },
+    {
+      "file": "03-node-composer.jpg",
+      "bytes": 70252,
+      "capturedFileTimeUtc": "2026-10-23T14:55:26.1927923Z",
+      "sha256": "cf2dbdd3c5b0090e6bbbd4f8525937d331c61a8f435f96567e8af822b8dfd564"
+    },
+    {
+      "file": "04-generation-settings.jpg",
+      "bytes": 80955,
+      "capturedFileTimeUtc": "2026-10-23T14:55:52.6740985Z",
+      "sha256": "fb480e7b3bd5d0147724eb17bc229091cf364a0149eae3a9a88617c922bebf87"
+    },
+    {
+      "file": "05-reference-picker.jpg",
+      "bytes": 74489,
+      "capturedFileTimeUtc": "2026-10-23T15:00:14.8845674Z",
+      "sha256": "6903becbcd9fb5c0377d83fed0168c2bb3ab4b3e28d960227529099487240ebe"
+    },
+    {
+      "file": "06-result-gallery.jpg",
+      "bytes": 60532,
+      "capturedFileTimeUtc": "2026-10-23T15:11:46.3095839Z",
+      "sha256": "003e24f2ded2882cac6cff605ada342a7164866bd4d1717da78ef58196a7c9a8"
+    },
+    {
+      "file": "07-compact-settings-final.jpg",
+      "bytes": 68769,
+      "capturedFileTimeUtc": "2026-10-23T15:04:16.8536818Z",
+      "sha256": "a3915b7aee0cd6013a823fcf937c2d600845be92fdbaf0fd8cc4610bb4395e8b"
+    },
+    {
+      "file": "08-settings-final.jpg",
+      "bytes": 73761,
+      "capturedFileTimeUtc": "2026-10-23T15:10:56.2373597Z",
+      "sha256": "0eb23a3a14a60109e0ea365e9fa12f3ed9acaf266651184ced81131f853cea97"
+    },
+    {
+      "file": "09-project-reference-assets.jpg",
+      "bytes": 31568,
+      "capturedFileTimeUtc": "2026-10-23T15:12:11.4476903Z",
+      "sha256": "494944a1782baa2207e834a04a5e0d11f169e93b7b7932dbe893f66482ca1a94"
+    },
+    {
+      "file": "10-group-toolbar.jpg",
+      "bytes": 38940,
+      "capturedFileTimeUtc": "2026-10-23T15:12:39.3300115Z",
+      "sha256": "928a895598a04ff899f24ddaefd390104489aabf1357d8a8e52f57d46fa53eaa"
+    },
+    {
+      "file": "11-group-toolbar-final.jpg",
+      "bytes": 39566,
+      "capturedFileTimeUtc": "2026-10-23T15:14:56.0377882Z",
+      "sha256": "4b58d46f1b72ca362dad124054b92c736eeb890abab108c67aacf0e758e96c67"
+    },
+    {
+      "file": "12-scenes-and-group-final.jpg",
+      "bytes": 47764,
+      "capturedFileTimeUtc": "2026-10-23T15:18:32.4915376Z",
+      "sha256": "6621a3d1ee6196357a4e131ba6ac88b6ed89e0f486f0c86fb6f307996049725a"
+    }
+  ]
+}

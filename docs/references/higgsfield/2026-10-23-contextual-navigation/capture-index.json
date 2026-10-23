@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "source": "Connected Chrome; original screenshots",
+  "captures": [
+    {
+      "file": "01-template-overview.png",
+      "bytes": 327322,
+      "sha256": "73945B251969D0DB753F438B452D6AEB42A4463A1B0BF8BCA7C27E871AE6536C",
+      "capturedAtBeijing": "2026-10-23 21:37:06 +08:00"
+    },
+    {
+      "file": "02-selected-group-toolbar.png",
+      "bytes": 95308,
+      "sha256": "DD80C3E3F23EF7BC3F00F863DD9D14F4768D2E9B475C0CEAD3C4458A88CB1478",
+      "capturedAtBeijing": "2026-10-23 21:38:21 +08:00"
+    },
+    {
+      "file": "03-arrange-menu.png",
+      "bytes": 97764,
+      "sha256": "C728BAE19C8DC8BD3413E8634E2D2A7CA8B914176F663FF0CE46FEA94ABA2B48",
+      "capturedAtBeijing": "2026-10-23 21:38:22 +08:00"
+    },
+    {
+      "file": "04-canvas-menu.png",
+      "bytes": 100106,
+      "sha256": "8AF724189FBCAED6DA1D618A00A1BD56947FDC93415F8D8FA861909F60A9DCB5",
+      "capturedAtBeijing": "2026-10-23 21:38:39 +08:00"
+    }
+  ]
+}

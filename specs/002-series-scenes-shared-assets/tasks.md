@@ -98,3 +98,10 @@ US1导航测试与文案，US2纯闭包测试与fixture，US3只读消费者查�
 - [x] T042 消除退出定位的浮点视口漂移，并保留并发更新后的权威视口，按 FR-009（partial/HIGH），路径 src/components/beatcanvas/beatcanvas-shell.tsx、tests/e2e/series.spec.ts。
 
 - [x] T043 转移预览同时核对服务端进行中作业，不只依赖可能滞后的卡片状态，按 FR-008、plan: source intent（partial/HIGH），路径 src/core/series/canvas-transfer.ts、src/core/organization/generation-source-intent.integration.test.ts。
+
+## Phase 10 — 2026-10-23 已批准的六态界面重设计
+
+- [x] T044 场次弹层改紧凑导航和对象菜单，保留命令/归档/归场/保存前切换。
+- [x] T045 组织长表单拆为选组工具条、当前节点参考、移动预检和画布级菜单。
+- [x] T046 节点选择编辑、按需生成设置、节点下方历史和图库；参数由现有能力决定。
+- [x] T047 双语、键盘/窄屏和真实浏览器核验；类型/测试/多语言/生产构建；独立预览及证据。详见 contextual-ui-verification.md；人工视觉验收及真实生成不包含在此勾选中。

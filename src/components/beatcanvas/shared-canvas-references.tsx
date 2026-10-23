@@ -33,25 +33,28 @@ export function SharedCanvasReferences(props: {
     queryKey: ['shared-elements', seriesId],
     queryFn: () =>
       apiJsonGet<Awaited<ReturnType<typeof getSharedLibrary>>>(
-        `/api/app/series/${seriesId}/shared`,
+        `/api/app/series/${seriesId}/shared`
       ),
     enabled: Boolean(seriesId),
     refetchInterval: 5000,
   });
-  if (!seriesId) return null;
+  if (!seriesId)
+    return (
+      <p className="py-3 text-sm text-white/50">{t('noSeriesReferences')}</p>
+    );
   const document = props.getDocument();
   const element = library.data?.elements.find((e) => e.id === elementId);
   const version = element?.versions.find((v) => v.id === versionId);
   const consumer = document.cards.filter(
-    (c) => props.selectedCardIds.includes(c.id) && c.kind === 'generation',
+    (c) => props.selectedCardIds.includes(c.id) && c.kind === 'generation'
   );
   const slots = Object.values(
-    document.organization?.templateInstances ?? {},
+    document.organization?.templateInstances ?? {}
   ).flatMap((instance) =>
     instance.slotDefinitions.map((slot) => ({
       value: JSON.stringify([instance.id, slot.id]),
       label: slot.label,
-    })),
+    }))
   );
   async function bind() {
     if (!version || !element) return;
@@ -59,7 +62,7 @@ export function SharedCanvasReferences(props: {
     try {
       await props.flush();
       const state = await apiJsonGet<{ version: number }>(
-        `/api/app/projects/${props.projectId}/snapshot${props.canvasId ? `?canvasId=${encodeURIComponent(props.canvasId)}` : ''}`,
+        `/api/app/projects/${props.projectId}/snapshot${props.canvasId ? `?canvasId=${encodeURIComponent(props.canvasId)}` : ''}`
       );
       const binding = {
         scope: 'series' as const,
@@ -116,7 +119,7 @@ export function SharedCanvasReferences(props: {
         aria-label={t('chooseSharedElement')}
         onChange={(e) => {
           const item = library.data?.elements.find(
-            (x) => x.id === e.target.value,
+            (x) => x.id === e.target.value
           );
           setElementId(e.target.value);
           setVersionId(item?.currentVersionId ?? '');
@@ -183,13 +186,17 @@ export function SharedCanvasReferences(props: {
         {t('bindFixedVersion')}
       </button>
       {Object.values(document.organization?.elementBindings ?? {})
-        .filter((b) => b.scope === 'series')
+        .filter(
+          (b) =>
+            b.scope === 'series' &&
+            props.selectedCardIds.includes(b.consumerCardId)
+        )
         .map((binding) => {
           const identity = library.data?.elements.find(
-            (e) => e.id === binding.elementId,
+            (e) => e.id === binding.elementId
           );
           const version = identity?.versions.find(
-            (v) => v.id === binding.versionId,
+            (v) => v.id === binding.versionId
           );
           return (
             <div
@@ -218,7 +225,7 @@ export function SharedCanvasReferences(props: {
         className={control}
         onClick={() =>
           void navigate(
-            `/assets/${props.projectId}${scopeSearch({ sceneId: scope?.sceneId, canvasId: props.canvasId })}${scope?.sceneId || props.canvasId ? '&' : '?'}scope=series`,
+            `/assets/${props.projectId}${scopeSearch({ sceneId: scope?.sceneId, canvasId: props.canvasId })}${scope?.sceneId || props.canvasId ? '&' : '?'}scope=series`
           )
         }
       >

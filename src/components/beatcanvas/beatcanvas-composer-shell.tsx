@@ -50,6 +50,10 @@ export function BeatCanvasComposerShell({
   position,
   takeCount: _takeCount = 0,
   generationBlockers = [],
+  expandedSettings = false,
+  settingsTitle,
+  width,
+  resultHistory,
 }: {
   activeDraftCard: CanvasGenerationCard;
   children: ReactNode;
@@ -79,6 +83,10 @@ export function BeatCanvasComposerShell({
   position?: { left: number; top: number } | null;
   takeCount?: number;
   generationBlockers?: readonly string[];
+  expandedSettings?: boolean;
+  settingsTitle?: string;
+  width?: number;
+  resultHistory?: ReactNode;
 }) {
   const blockerDescriptionId = useId();
   const promptInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -132,10 +140,21 @@ export function BeatCanvasComposerShell({
       className={cn(
         'beat-composer beat-pop-in pointer-events-auto absolute z-[60] isolate',
         composerCardClassName,
-        'w-[min(560px,calc(100vw-32px))]',
+        'max-w-[calc(100%-24px)]',
+        expandedSettings ? 'max-h-[calc(100%-32px)] overflow-y-auto' : '',
         position ? '' : 'bottom-[98px] left-1/2 -translate-x-1/2'
       )}
-      style={position ? { left: position.left, top: position.top } : undefined}
+      data-testid={
+        expandedSettings ? 'canvas-generation-settings' : 'canvas-node-composer'
+      }
+      style={{
+        width: width ?? 560,
+        ...(expandedSettings
+          ? { right: 16, top: 16 }
+          : position
+            ? { left: position.left, top: position.top }
+            : {}),
+      }}
       onPointerDown={stopComposerEvent}
       onPointerDownCapture={stopComposerEvent}
       onPointerEnter={() => onComposerPointerChange?.(true)}
@@ -154,6 +173,11 @@ export function BeatCanvasComposerShell({
       onKeyDownCapture={stopComposerKeyboardEvent}
       onKeyUpCapture={stopComposerKeyboardEvent}
     >
+      {expandedSettings && (
+        <h3 className="px-4 pt-3 text-sm font-medium text-[var(--beat-text-1)]">
+          {settingsTitle}
+        </h3>
+      )}
       {/* ── Header row ── */}
       <div className="px-3.5 pt-3">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2">
@@ -325,7 +349,13 @@ export function BeatCanvasComposerShell({
 
       {/* ── Footer: options + CTA ── */}
       <div className="px-3.5 pb-3 pt-3">
-        <div className="flex min-w-0 items-center gap-2">
+        <div
+          className={
+            expandedSettings
+              ? 'flex min-w-0 flex-col items-stretch gap-3'
+              : 'flex min-w-0 items-center gap-2'
+          }
+        >
           <div className="min-w-0 flex-1">{children}</div>
 
           <button
@@ -341,7 +371,8 @@ export function BeatCanvasComposerShell({
             }
             className={cn(
               composerGenerateButtonClassName,
-              'relative active:translate-y-px'
+              'relative active:translate-y-px',
+              expandedSettings && 'w-full gap-2'
             )}
           >
             {isDraftBusy ? (
@@ -349,6 +380,7 @@ export function BeatCanvasComposerShell({
             ) : (
               <ArrowUp className="size-3.5" />
             )}
+            {expandedSettings && <span>{primaryButtonLabel}</span>}
           </button>
         </div>
         {generationBlockers.length > 0 && (
@@ -364,6 +396,11 @@ export function BeatCanvasComposerShell({
           </ul>
         )}
       </div>
+      {!expandedSettings && resultHistory && (
+        <div className="border-t border-white/10 px-3 py-2" data-result-history>
+          {resultHistory}
+        </div>
+      )}
     </section>
   );
 }

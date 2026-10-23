@@ -4,6 +4,8 @@ import {
   MiniMap,
   Handle,
   NodeResizer,
+  NodeToolbar,
+  useViewport,
   Position,
   ReactFlow,
   ReactFlowProvider,
@@ -23,6 +25,7 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type ReactNode,
 } from 'react';
 
 import { CanvasEngineProvider } from '../canvas-engine/canvas-engine-context';
@@ -75,6 +78,19 @@ import {
   type BeatCanvasNodeType,
 } from './beatcanvas-react-flow-types';
 
+import {
+  MoreHorizontal,
+  Ungroup,
+  ArrowRightLeft,
+  LayoutGrid,
+  Play,
+  Download,
+} from 'lucide-react';
+import {
+  WorkspacePopover,
+  workspaceRow,
+} from '@/components/app/workspace-popover';
+import { openCanvasOrganization } from '../organization-actions';
 import '@xyflow/react/dist/style.css';
 import '@/styles/react-flow-beatcanvas.css';
 
@@ -83,6 +99,10 @@ type CanvasComponents = {
 };
 
 interface BeatCanvasReactFlowEditorProps {
+  selectedGroupActions?: ReactNode;
+  onRunGroup?: (groupId: string) => void;
+  onDownloadGroup?: (groupId: string) => void;
+  runningGroupId?: string | null;
   transientFocusCardId?: string | null;
   organization?: CanvasOrganization;
   canvasCards?: Record<string, CanvasCard>;
@@ -104,6 +124,7 @@ interface BeatCanvasReactFlowEditorProps {
 
 function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
   const t = useTranslations('Organization');
+  const viewport = useViewport();
   if (!props.data.meta.beatdesignOrganizationGroup)
     return <WorkflowGroupNode {...props} />;
   const meta = props.data.meta;
@@ -120,6 +141,102 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
           (meta.onCheckpoint as (() => void) | undefined)?.()
         }
       />
+      <NodeToolbar
+        isVisible={Boolean(props.selected)}
+        position={Position.Top}
+        offset={Math.min(
+          12,
+          props.positionAbsoluteY * viewport.zoom + viewport.y - 60
+        )}
+      >
+        <div
+          className="nodrag nopan flex items-center gap-1 rounded-xl border border-white/10 bg-[var(--beat-surface)] p-1 text-[var(--beat-text-1)] shadow-xl"
+          data-testid="group-context-toolbar"
+        >
+          <button
+            disabled={Boolean(meta.runBusy) || !meta.canRun}
+            className="flex min-h-9 items-center gap-1 rounded-md px-2 text-xs hover:bg-white/7 disabled:opacity-40"
+            onClick={() => (meta.onRun as () => void)?.()}
+          >
+            <Play size={14} />
+            {t(meta.runBusy ? 'groupRunning' : 'runGroup')}
+          </button>
+          <WorkspacePopover
+            label={t('groupLayout')}
+            trigger={
+              <>
+                <LayoutGrid size={15} />
+                {t('groupLayout')}
+              </>
+            }
+          >
+            {(['tidy', 'row', 'column', 'fit'] as const).map((mode) => (
+              <button
+                key={mode}
+                className={workspaceRow}
+                onClick={() =>
+                  (meta.onLayout as (mode: string) => void)?.(mode)
+                }
+              >
+                {t(`layout_${mode}`)}
+              </button>
+            ))}
+          </WorkspacePopover>
+          <button
+            className="min-h-9 rounded-md px-2 text-xs hover:bg-white/7"
+            onClick={() => (meta.onToggle as () => void)?.()}
+          >
+            {t(collapsed ? 'expand' : 'collapse')}
+          </button>
+          <button
+            className="flex min-h-9 items-center gap-1 rounded-md px-2 text-xs hover:bg-white/7"
+            onClick={() => (meta.onUngroup as () => void)?.()}
+          >
+            <Ungroup size={14} />
+            {t('ungroup')}
+          </button>
+          <button
+            aria-label={t('downloadGroup')}
+            title={t('downloadGroup')}
+            className="min-h-9 rounded-md px-2 hover:bg-white/7"
+            onClick={() => (meta.onDownload as () => void)?.()}
+          >
+            <Download size={14} />
+          </button>
+          <WorkspacePopover
+            label={t('groupSettings')}
+            trigger={<MoreHorizontal size={16} />}
+            align="end"
+          >
+            <button
+              className={workspaceRow}
+              onClick={() =>
+                openCanvasOrganization({
+                  view: 'group',
+                  groupId: props.id,
+                  cardIds: (meta.memberIds as string[]) ?? [],
+                })
+              }
+            >
+              {t('groupSettings')}
+            </button>
+            {meta.extraActions as ReactNode}
+            <button
+              className={workspaceRow}
+              onClick={() =>
+                openCanvasOrganization({
+                  view: 'move',
+                  groupId: props.id,
+                  cardIds: (meta.memberIds as string[]) ?? [],
+                })
+              }
+            >
+              <ArrowRightLeft size={15} />
+              {t('moveSelection')}
+            </button>
+          </WorkspacePopover>
+        </div>
+      </NodeToolbar>
       <Handle
         type="target"
         position={Position.Left}
@@ -131,7 +248,7 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
         style={{
           width: props.data.props.w,
           height: props.data.props.h,
-          border: `1px ${collapsed ? 'solid' : 'dashed'} ${props.selected ? 'var(--beat-graph)' : 'rgba(220,226,235,.25)'}`,
+          border: `1px solid ${props.selected ? 'var(--beat-graph)' : 'rgba(220,226,235,.25)'}`,
           borderRadius: 12,
           background: collapsed
             ? 'var(--beat-surface)'
@@ -154,28 +271,7 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
             {Number(meta.memberCount ?? 0)}
           </span>
         </button>
-        {!collapsed ? (
-          <div
-            className="nodrag nopan mt-1 flex gap-1"
-            role="group"
-            aria-label={t('groupLayout')}
-          >
-            {(['tidy', 'row', 'column', 'fit'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                className="min-h-11 flex-1 rounded border border-white/10 px-1 text-xs hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--beat-graph)]"
-                onClick={() =>
-                  (meta.onLayout as ((mode: string) => void) | undefined)?.(
-                    mode
-                  )
-                }
-              >
-                {t(`layout_${mode}`)}
-              </button>
-            ))}
-          </div>
-        ) : (
+        {collapsed ? (
           <>
             <div className="mt-3 flex gap-3 text-xs text-[var(--beat-text-2)]">
               <span aria-label={copy.processing}>
@@ -213,7 +309,7 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
               {t('reviewNotRecorded')}
             </p>
           </>
-        )}
+        ) : null}
       </div>
       <Handle
         type="source"
@@ -294,6 +390,10 @@ const shapeRecordFromNode = (node: BeatCanvasFlowNode): CanvasShapeRecord => ({
 });
 
 function BeatCanvasReactFlowCanvas({
+  selectedGroupActions,
+  onRunGroup,
+  onDownloadGroup,
+  runningGroupId,
   organization,
   transientFocusCardId,
   canvasCards,
@@ -1189,9 +1289,16 @@ function BeatCanvasReactFlowCanvas({
       metadataIds.filter((id) => !known.has(id))
     );
     const projectedDocument = structuredClone(cleanDocument);
-    const focusCard = transientFocusCardId ? canvasCards[transientFocusCardId] : undefined;
-    const focusId = focusCard?.kind === 'output' ? focusCard.sourceConfigCardId : transientFocusCardId;
-    for (const group of Object.values(projectedDocument.organization.groups)) if (focusId && group.memberCardIds.includes(focusId)) group.collapsed = false;
+    const focusCard = transientFocusCardId
+      ? canvasCards[transientFocusCardId]
+      : undefined;
+    const focusId =
+      focusCard?.kind === 'output'
+        ? focusCard.sourceConfigCardId
+        : transientFocusCardId;
+    for (const group of Object.values(projectedDocument.organization.groups))
+      if (focusId && group.memberCardIds.includes(focusId))
+        group.collapsed = false;
     const projection = projectCanvasOrganization(projectedDocument, {
       selectedGroupId,
     });
@@ -1233,6 +1340,20 @@ function BeatCanvasReactFlowCanvas({
               name: group.name,
               collapsed: group.collapsed,
               memberCount: node.memberCount,
+              memberIds: group.memberCardIds,
+              extraActions: selectedGroupActions,
+              onRun: () => onRunGroup?.(node.id),
+              onDownload: () => onDownloadGroup?.(node.id),
+              runBusy: Boolean(runningGroupId),
+              canRun: group.memberCardIds.some(
+                (id) => canvasCards[id]?.kind === 'generation'
+              ),
+              onUngroup: () => {
+                onHistoryCheckpoint?.();
+                applyOrganizationChange([
+                  { type: 'remove_group', groupId: node.id },
+                ]);
+              },
               statuses: node.statuses,
               resultName: result?.name,
               timelineUseCount: timelineUsage
@@ -1344,6 +1465,10 @@ function BeatCanvasReactFlowCanvas({
     editor,
     nodes,
     onHistoryCheckpoint,
+    selectedGroupActions,
+    onRunGroup,
+    onDownloadGroup,
+    runningGroupId,
     organization,
     revision,
     timelineUsage,

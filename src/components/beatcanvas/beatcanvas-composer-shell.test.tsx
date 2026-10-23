@@ -140,7 +140,7 @@ test('default composer gives the prompt full width below reference and header co
     html,
     /grid-cols-\[minmax\(0,1fr\)_auto\][\s\S]*col-span-2 row-start-2[\s\S]*beat-composer-prompt[\s\S]*pl-2 pr-2 py-0[\s\S]*placeholder="今天我们要创作什么"[\s\S]*col-start-2 row-start-1[\s\S]*0\/1000[\s\S]*aria-label="Close generator"/
   );
-  assert.match(html, /w-\[min\(560px,calc\(100vw-32px\)\)\]/);
+  assert.match(html, /max-w-\[calc\(100%-24px\)\]/);
   assert.doesNotMatch(
     html,
     /<div suppressHydrationWarning="" class="relative px-4 py-1\.5"><textarea/

@@ -7,3 +7,9 @@
 
 实现技能的checklist gate按已有明确“继续”授权推进；不重复请求同一批准。
 design-review.md保留原审阅记录与尚未完成的实施/视觉/部署项，不把后续验收框勾选为已完成。
+
+## 2026-10-23 六态重设计开发授权
+
+用户：“先按照这个方案开发吧”。对应 docs/design-proposals/2026-10-23-canvas-navigation/README.md 的 Higgsfield 六态对齐版；旧原型交互回传不改变本次批准版本。继续自有 Fork 的隔离实现与预览，未授权合入、主实例部署或影片制作。
+
+checklists/requirements.md 16项已选；design-review.md 14项已选、5项未选（历史实施/视觉/部署门槛）。按本次明确开发授权推进，不把未完成验收改为通过。没有 extensions.yml，前后扩展 hooks 不适用。

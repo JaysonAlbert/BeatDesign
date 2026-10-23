@@ -47,8 +47,8 @@ export function GenerationCardNode({
   const isFailed = status === 'failed';
   const hasResult = Boolean(
     latestOutputUrl ||
-      latestOutputText ||
-      (isAnalysis && analysisReportCount > 0)
+    latestOutputText ||
+    (isAnalysis && analysisReportCount > 0)
   );
   const isEmptySlot = !hasResult && !isFailed;
   const emptySlotAccent =
@@ -73,6 +73,7 @@ export function GenerationCardNode({
   const isCompactActionNode = w <= 128 && h <= 128;
   const visibleTakes = takes.slice(-MAX_VISIBLE_TAKES);
   const showTakeStrip =
+    !selected &&
     !isAnalysis &&
     !isCompactActionNode &&
     (takes.length > 1 || (isBusy && takes.length > 0));
@@ -84,23 +85,10 @@ export function GenerationCardNode({
         detail: { draftId: id, outputId: take.id },
       })
     );
-    window.dispatchEvent(
-      new CustomEvent('beatcanvas:preview-media', {
-        detail: {
-          type: take.type,
-          url: take.url,
-          title: `${displayLabel} ${take.takeNumber}`,
-        },
-      })
-    );
   };
 
   const handlePreviewLatestOutput = () => {
-    if (
-      !latestOutputUrl ||
-      isAnalysis ||
-      typeof window === 'undefined'
-    ) {
+    if (!latestOutputUrl || isAnalysis || typeof window === 'undefined') {
       return;
     }
     window.dispatchEvent(
@@ -179,14 +167,14 @@ export function GenerationCardNode({
                 width: 76,
                 height: 76,
                 borderRadius: '50%',
-              background:
-                'linear-gradient(135deg, var(--beat-accent) 0%, var(--beat-graph) 100%)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow:
-                '0 12px 28px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
+                background:
+                  'linear-gradient(135deg, var(--beat-accent) 0%, var(--beat-graph) 100%)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow:
+                  '0 12px 28px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
               }}
             >
               <svg
@@ -436,13 +424,14 @@ export function GenerationCardNode({
             onPointerDown={(event) => event.stopPropagation()}
             style={{
               position: 'absolute',
-              left: '100%',
-              top: 0,
+              left: '50%',
+              top: '100%',
+              transform: 'translateX(-50%)',
               zIndex: 4,
               display: 'flex',
-              flexDirection: 'column',
+              flexDirection: 'row',
               gap: 6,
-              marginLeft: 8,
+              marginTop: 10,
               pointerEvents: 'auto',
             }}
           >
@@ -465,7 +454,7 @@ export function GenerationCardNode({
                     width: 36,
                     height: 36,
                     overflow: 'hidden',
-                    borderRadius: 8,
+                    borderRadius: 18,
                     border: take.isPinned
                       ? '1.5px solid var(--beat-graph)'
                       : '1px solid rgba(255,255,255,0.12)',
@@ -479,11 +468,7 @@ export function GenerationCardNode({
                   }}
                 >
                   {take.url && take.type === 'video' ? (
-                    <CachedVideoPoster
-                      key={take.url}
-                      src={take.url}
-                      alt=""
-                    />
+                    <CachedVideoPoster key={take.url} src={take.url} alt="" />
                   ) : take.url ? (
                     <img
                       src={take.url}

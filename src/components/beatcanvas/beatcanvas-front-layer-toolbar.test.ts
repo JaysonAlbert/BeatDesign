@@ -10,20 +10,15 @@ const source = readFileSync(
 test('canvas toolbar stays at the bottom and hides while the composer is open', () => {
   assert.match(
     source,
-    /\{!activeDraftCard \? \(\s*<div\s+className=\{cn\(\s*'pointer-events-auto absolute bottom-4 left-1\/2/
+    /\{!activeDraftCard \? \(\s*<div\s+className=\{cn\(\s*'pointer-events-auto absolute bottom-20 left-3/
   );
-  assert.doesNotMatch(
-    source,
-    /activeComposerCardId \? 'top-4' : 'bottom-4'/
-  );
+  assert.doesNotMatch(source, /activeComposerCardId \? 'top-4' : 'bottom-4'/);
 });
 
-test('canvas composer opens from generation-card hover intent instead of selection', () => {
-  assert.match(source, /registerGenerationCardHoverCallback/);
-  assert.match(source, /COMPOSER_HOVER_OPEN_DELAY_MS = 140/);
-  assert.match(source, /COMPOSER_HOVER_CLOSE_DELAY_MS = 220/);
-  assert.match(source, /hoveredComposerCardId/);
-  assert.match(source, /onComposerPointerChange=\{handleComposerPointerChange\}/);
-  assert.match(source, /onComposerFocusChange=\{handleComposerFocusChange\}/);
-  assert.doesNotMatch(source, /resolveComposerFocusLayout/);
+test('canvas editing follows a single selected generation and never opens on hover alone', () => {
+  assert.match(source, /selectedCardIds.length === 1/);
+  assert.match(source, /isDraftCard\(card\)/);
+  assert.doesNotMatch(source, /registerGenerationCardHoverCallback/);
+  assert.match(source, /setSettingsOpen\(false\)/);
+  assert.match(source, /editor.setSelectedShapes\(\[\]\)/);
 });

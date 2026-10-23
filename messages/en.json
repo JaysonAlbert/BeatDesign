@@ -952,7 +952,24 @@
     "templatePlacementX": "Canvas X",
     "templatePlacementY": "Canvas Y",
     "referenceConsumers": "Consumers",
-    "referencePosition": "Input {position}"
+    "referencePosition": "Input {position}",
+    "canvasActions": "Canvas actions",
+    "groupSettings": "Group settings",
+    "displaySettings": "Display",
+    "moveSelection": "Move to another canvas",
+    "projectReferences": "This episode",
+    "seriesReferences": "Series library",
+    "generationSettings": "Generation settings",
+    "moreSettings": "More settings",
+    "runGroup": "Run group",
+    "runGroupHelp": "Review and generate each step with its current inputs.",
+    "groupRunning": "Running",
+    "downloadGroup": "Download current group results",
+    "groupRun_empty": "This group has no generation nodes",
+    "groupRun_busy": "A group task is already running",
+    "groupRun_cycle": "Resolve the circular references before running this group",
+    "groupRun_changed": "Group or inputs changed; remaining tasks stopped",
+    "groupRun_done": "Group run completed"
   },
   "Series": {
     "navigation": "Episodes and scenes",
@@ -1110,6 +1127,13 @@
     "sharedVersion": "Shared reference version",
     "previewArchive": "Preview archive impact",
     "consumerListTruncated": "Open shared references to page through more consumers",
-    "publishAsset": "Publish to Series assets"
+    "publishAsset": "Publish to Series assets",
+    "canvasActions": "Canvas actions: {name}",
+    "sceneActions": "Scene actions: {name}",
+    "searchScenes": "Find a scene or canvas",
+    "expandScene": "Expand scene: {name}",
+    "noMatchingScenes": "No matching scenes",
+    "mainCanvas": "Main canvas",
+    "noSeriesReferences": "This project is not in a series. Use project references or add it to a series to use shared references."
   }
 }

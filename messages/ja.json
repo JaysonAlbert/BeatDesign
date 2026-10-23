@@ -952,7 +952,24 @@
     "templatePlacementX": "Canvas X",
     "templatePlacementY": "Canvas Y",
     "referenceConsumers": "Consumers",
-    "referencePosition": "Input {position}"
+    "referencePosition": "Input {position}",
+    "canvasActions": "Canvas actions",
+    "groupSettings": "Group settings",
+    "displaySettings": "Display",
+    "moveSelection": "Move to another canvas",
+    "projectReferences": "This episode",
+    "seriesReferences": "Series library",
+    "generationSettings": "Generation settings",
+    "moreSettings": "More settings",
+    "runGroup": "グループを実行",
+    "runGroupHelp": "Review and generate each step with its current inputs.",
+    "groupRunning": "実行中",
+    "downloadGroup": "グループの現在の結果をダウンロード",
+    "groupRun_empty": "生成ノードがありません",
+    "groupRun_busy": "グループ内のタスクが実行中です",
+    "groupRun_cycle": "循環参照を修正してください",
+    "groupRun_changed": "入力が変更されたため、残りのタスクを停止しました",
+    "groupRun_done": "グループの実行が完了しました"
   },
   "Series": {
     "navigation": "Episodes and scenes",
@@ -1110,6 +1127,13 @@
     "sharedVersion": "Shared reference version",
     "previewArchive": "Preview archive impact",
     "consumerListTruncated": "Open shared references to page through more consumers",
-    "publishAsset": "Publish to Series assets"
+    "publishAsset": "Publish to Series assets",
+    "canvasActions": "Canvas actions: {name}",
+    "sceneActions": "Scene actions: {name}",
+    "searchScenes": "Find a scene or canvas",
+    "expandScene": "Expand scene: {name}",
+    "noMatchingScenes": "No matching scenes",
+    "mainCanvas": "Main canvas",
+    "noSeriesReferences": "このプロジェクトはシリーズに参加していません。プロジェクトの素材を使用するか、シリーズに追加してください。"
   }
 }

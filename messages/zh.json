@@ -903,7 +903,7 @@
     "groupName": "组名称",
     "groupRole": "组用途",
     "shot": "镜头",
-    "references": "参考",
+    "references": "参考素材",
     "sound": "声音",
     "packaging": "包装",
     "timeline": "时间线",
@@ -952,7 +952,24 @@
     "templatePlacementX": "画布 X 坐标",
     "templatePlacementY": "画布 Y 坐标",
     "referenceConsumers": "使用者",
-    "referencePosition": "输入 {position}"
+    "referencePosition": "输入 {position}",
+    "canvasActions": "画布菜单",
+    "groupSettings": "组设置",
+    "displaySettings": "显示设置",
+    "moveSelection": "移动到其他画布",
+    "projectReferences": "本集素材",
+    "seriesReferences": "剧集共享",
+    "generationSettings": "生成设置",
+    "moreSettings": "更多设置",
+    "runGroup": "运行组",
+    "runGroupHelp": "逐步检查当前输入并生成。",
+    "groupRunning": "运行中",
+    "downloadGroup": "下载组内当前结果",
+    "groupRun_empty": "组内没有可运行的生成节点",
+    "groupRun_busy": "组内已有任务运行中，请完成后再运行",
+    "groupRun_cycle": "组内参考存在循环，请先修正连线",
+    "groupRun_changed": "组或输入已更改，剩余任务已停止",
+    "groupRun_done": "组运行完成"
   },
   "Series": {
     "navigation": "分集与场次",
@@ -1110,6 +1127,13 @@
     "sharedVersion": "共享参考版本",
     "previewArchive": "预览归档影响",
     "consumerListTruncated": "更多使用位置请在共享参考中分页查看",
-    "publishAsset": "发布到剧集共享素材"
+    "publishAsset": "发布到剧集共享素材",
+    "canvasActions": "画布操作：{name}",
+    "sceneActions": "场次操作：{name}",
+    "searchScenes": "查找场次或画布",
+    "expandScene": "展开场次：{name}",
+    "noMatchingScenes": "没有匹配的场次",
+    "mainCanvas": "主画布",
+    "noSeriesReferences": "本项目尚未加入剧集。可先使用本集素材，加入剧集后再选择共享参考。"
   }
 }
