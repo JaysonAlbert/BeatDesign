@@ -29,7 +29,10 @@ const elementVersionSchema = z
   .strict();
 const elementSchema = z
   .object({
-    seriesSource: z.object({ seriesId: id, elementId: id, versionIds: z.record(id, id) }).strict().optional(),
+    seriesSource: z
+      .object({ seriesId: id, elementId: id, versionIds: z.record(id, id) })
+      .strict()
+      .optional(),
     id,
     name,
     kind,
@@ -45,6 +48,7 @@ export const organizationDocumentSchema = z
     folders: z.record(id, folderSchema),
     assetLocations: z.record(id, id),
     elements: z.record(id, elementSchema),
+    brief: z.string().max(30000).optional(),
   })
   .strict();
 export type ProjectOrganizationDocument = z.infer<
@@ -55,6 +59,9 @@ export type ElementVersion = z.infer<typeof elementVersionSchema>;
 export type AssetFolder = z.infer<typeof folderSchema>;
 
 export const organizationOperationSchema = z.discriminatedUnion('type', [
+  z
+    .object({ type: z.literal('set_brief'), text: z.string().max(30000) })
+    .strict(),
   z
     .object({
       type: z.literal('create_folder'),
@@ -299,6 +306,13 @@ export function applyOrganizationOperations(
   };
   for (const operation of parsed.data!) {
     switch (operation.type) {
+      case 'set_brief': {
+        if ((document.brief ?? '') !== operation.text) {
+          document.brief = operation.text;
+          changed.add('project-brief');
+        }
+        break;
+      }
       case 'create_folder': {
         const next = {
           id: operation.folderId,

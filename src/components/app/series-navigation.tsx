@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ListTree,
@@ -30,10 +30,21 @@ import { toast } from 'sonner';
 
 const control =
   'min-h-11 rounded-lg border border-white/15 bg-white/5 px-3 text-sm focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-40';
-export function SeriesNavigation() {
+function InlineNavigation({
+  children,
+}: ComponentProps<typeof WorkspacePopover>) {
+  return (
+    <section className="mx-auto w-full max-w-3xl space-y-1 p-6">
+      {children}
+    </section>
+  );
+}
+export function SeriesNavigation({ embedded = false }: { embedded?: boolean }) {
   const scope = useWorkspaceScope();
   const navigate = useScopeNavigation();
   const t = useTranslations('Series');
+  const productionT = useTranslations('Production');
+  const NavigationSurface = embedded ? InlineNavigation : WorkspacePopover;
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [search, setSearch] = useState('');
@@ -62,7 +73,7 @@ export function SeriesNavigation() {
     queryFn: () => fetchNarrative(scope!.projectId),
     enabled: Boolean(scope),
     initialData: scope?.narrative,
-    refetchInterval: open ? 3000 : false,
+    refetchInterval: open || embedded ? 3000 : false,
   });
   if (!scope || !query.data) return null;
   const state = query.data;
@@ -119,51 +130,53 @@ export function SeriesNavigation() {
           {canvas.id === defaultId ? t('projectCanvas') : canvas.name}
         </span>
       </button>
-      <WorkspacePopover
-        label={t('canvasActions', { name: canvas.name })}
-        trigger={<MoreHorizontal size={16} />}
-        align="end"
-      >
-        <button
-          className={workspaceRow}
-          disabled={busy}
-          onClick={() =>
-            edit(() =>
-              setEditCanvas({
-                id: canvas.id,
-                name: canvas.name,
-                sceneId: canvas.sceneId,
-              })
-            )
-          }
+      {embedded && (
+        <WorkspacePopover
+          label={t('canvasActions', { name: canvas.name })}
+          trigger={<MoreHorizontal size={16} />}
+          align="end"
         >
-          {t('rename')} / {t('sceneMembership')}
-        </button>
-        {canvas.id !== defaultId && (
           <button
             className={workspaceRow}
             disabled={busy}
             onClick={() =>
-              canvas.archivedAt
-                ? void run({
-                    type: 'update_canvas',
-                    canvasId: canvas.id,
-                    archived: false,
-                  })
-                : edit(() =>
-                    setArchive({
-                      type: 'canvas',
-                      id: canvas.id,
-                      revision: state.revision,
-                      count: 1,
-                    })
-                  )
+              edit(() =>
+                setEditCanvas({
+                  id: canvas.id,
+                  name: canvas.name,
+                  sceneId: canvas.sceneId,
+                })
+              )
             }
           >
-            {t(canvas.archivedAt ? 'restore' : 'archive')}
+            {t('rename')} / {t('sceneMembership')}
           </button>
-        )}
-      </WorkspacePopover>
+          {canvas.id !== defaultId && (
+            <button
+              className={workspaceRow}
+              disabled={busy}
+              onClick={() =>
+                canvas.archivedAt
+                  ? void run({
+                      type: 'update_canvas',
+                      canvasId: canvas.id,
+                      archived: false,
+                    })
+                  : edit(() =>
+                      setArchive({
+                        type: 'canvas',
+                        id: canvas.id,
+                        revision: state.revision,
+                        count: 1,
+                      })
+                    )
+              }
+            >
+              {t(canvas.archivedAt ? 'restore' : 'archive')}
+            </button>
+          )}
+        </WorkspacePopover>
+      )}
     </div>
   );
   const scenes = state.scenes.filter(
@@ -174,7 +187,7 @@ export function SeriesNavigation() {
   );
   return (
     <>
-      <WorkspacePopover
+      <NavigationSurface
         open={open}
         onOpenChange={setOpen}
         label={t('navigation')}
@@ -189,9 +202,16 @@ export function SeriesNavigation() {
           </>
         }
       >
-        <div className="px-2 pb-2 pt-1 text-xs text-[var(--beat-text-3)]">
-          {state.episode?.label || state.episode?.name || t('standalone')}
-        </div>
+        {embedded && (
+          <h1 className="mb-5 text-xl font-semibold">
+            {productionT('sceneCanvases')}
+          </h1>
+        )}
+        {state.episode && (
+          <div className="px-2 pb-2 pt-1 text-xs text-[var(--beat-text-3)]">
+            {state.episode.label || state.episode.name}
+          </div>
+        )}
         {state.episode && (
           <button
             className={workspaceRow}
@@ -226,7 +246,7 @@ export function SeriesNavigation() {
               <div key={scene.id} data-scene-entry={scene.id}>
                 <div className="flex items-center rounded-md">
                   <button
-                    className="flex size-8 shrink-0 items-center justify-center rounded hover:bg-white/7"
+                    className={`flex size-8 shrink-0 items-center justify-center rounded hover:bg-white/7 ${canvases.length === 1 && !embedded ? 'invisible' : ''}`}
                     aria-label={t('expandScene', { name: scene.name })}
                     aria-expanded={isExpanded}
                     onClick={() =>
@@ -263,77 +283,79 @@ export function SeriesNavigation() {
                       {canvases.length}
                     </span>
                   </button>
-                  <WorkspacePopover
-                    label={t('sceneActions', { name: scene.name })}
-                    trigger={<MoreHorizontal size={16} />}
-                    align="end"
-                  >
-                    <button
-                      className={workspaceRow}
-                      disabled={busy || Boolean(scene.archivedAt)}
-                      onClick={() =>
-                        edit(() =>
-                          setEditScene({
-                            id: scene.id,
-                            name: scene.name,
-                            summary: scene.summary,
-                          })
-                        )
-                      }
+                  {embedded && (
+                    <WorkspacePopover
+                      label={t('sceneActions', { name: scene.name })}
+                      trigger={<MoreHorizontal size={16} />}
+                      align="end"
                     >
-                      {t('rename')}
-                    </button>
-                    <button
-                      className={workspaceRow}
-                      disabled={busy || Boolean(scene.archivedAt)}
-                      onClick={() =>
-                        void run({
-                          type: 'create_canvas',
-                          canvasId: crypto.randomUUID(),
-                          sceneId: scene.id,
-                          name: canvases.length
-                            ? `${t('canvas')} ${canvases.length + 1}`
-                            : t('mainCanvas'),
-                        })
-                      }
-                    >
-                      {t('newCanvas')}
-                    </button>
-                    <button
-                      className={workspaceRow}
-                      disabled={busy || state.scenes[0]?.id === scene.id}
-                      onClick={() => {
-                        const ids = state.scenes.map((s) => s.id);
-                        const i = ids.indexOf(scene.id);
-                        [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]];
-                        void run({ type: 'set_scene_order', sceneIds: ids });
-                      }}
-                    >
-                      {t('moveUp')}
-                    </button>
-                    <button
-                      className={workspaceRow}
-                      disabled={busy}
-                      onClick={() =>
-                        scene.archivedAt
-                          ? void run({
-                              type: 'set_scene_archived',
-                              sceneId: scene.id,
-                              archived: false,
+                      <button
+                        className={workspaceRow}
+                        disabled={busy || Boolean(scene.archivedAt)}
+                        onClick={() =>
+                          edit(() =>
+                            setEditScene({
+                              id: scene.id,
+                              name: scene.name,
+                              summary: scene.summary,
                             })
-                          : edit(() =>
-                              setArchive({
-                                type: 'scene',
-                                id: scene.id,
-                                revision: state.revision,
-                                count: canvases.length,
+                          )
+                        }
+                      >
+                        {t('rename')}
+                      </button>
+                      <button
+                        className={workspaceRow}
+                        disabled={busy || Boolean(scene.archivedAt)}
+                        onClick={() =>
+                          void run({
+                            type: 'create_canvas',
+                            canvasId: crypto.randomUUID(),
+                            sceneId: scene.id,
+                            name: canvases.length
+                              ? `${t('canvas')} ${canvases.length + 1}`
+                              : t('mainCanvas'),
+                          })
+                        }
+                      >
+                        {t('newCanvas')}
+                      </button>
+                      <button
+                        className={workspaceRow}
+                        disabled={busy || state.scenes[0]?.id === scene.id}
+                        onClick={() => {
+                          const ids = state.scenes.map((s) => s.id);
+                          const i = ids.indexOf(scene.id);
+                          [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]];
+                          void run({ type: 'set_scene_order', sceneIds: ids });
+                        }}
+                      >
+                        {t('moveUp')}
+                      </button>
+                      <button
+                        className={workspaceRow}
+                        disabled={busy}
+                        onClick={() =>
+                          scene.archivedAt
+                            ? void run({
+                                type: 'set_scene_archived',
+                                sceneId: scene.id,
+                                archived: false,
                               })
-                            )
-                      }
-                    >
-                      {t(scene.archivedAt ? 'restore' : 'archive')}
-                    </button>
-                  </WorkspacePopover>
+                            : edit(() =>
+                                setArchive({
+                                  type: 'scene',
+                                  id: scene.id,
+                                  revision: state.revision,
+                                  count: canvases.length,
+                                })
+                              )
+                        }
+                      >
+                        {t(scene.archivedAt ? 'restore' : 'archive')}
+                      </button>
+                    </WorkspacePopover>
+                  )}
                 </div>
                 {isExpanded && (
                   <div className="ml-4 border-l border-white/10 pl-2">
@@ -367,24 +389,31 @@ export function SeriesNavigation() {
               {t('noMatchingScenes')}
             </p>
           )}
-          <details className="pt-2" open={search ? true : undefined}>
-            <summary
-              className={`${workspaceRow} cursor-pointer text-[var(--beat-text-3)]`}
-            >
-              {t('unassigned')}
-            </summary>
-            <div className="ml-3 border-l border-white/10 pl-2">
-              {state.canvases
-                .filter(
-                  (c) =>
-                    !c.sceneId &&
-                    c.id !== defaultId &&
-                    (showArchived || !c.archivedAt) &&
-                    matches(c.name)
-                )
-                .map(row)}
-            </div>
-          </details>
+          {state.canvases.some(
+            (c) =>
+              !c.sceneId &&
+              c.id !== defaultId &&
+              (showArchived || !c.archivedAt)
+          ) && (
+            <details className="pt-2" open={search ? true : undefined}>
+              <summary
+                className={`${workspaceRow} cursor-pointer text-[var(--beat-text-3)]`}
+              >
+                {t('unassigned')}
+              </summary>
+              <div className="ml-3 border-l border-white/10 pl-2">
+                {state.canvases
+                  .filter(
+                    (c) =>
+                      !c.sceneId &&
+                      c.id !== defaultId &&
+                      (showArchived || !c.archivedAt) &&
+                      matches(c.name)
+                  )
+                  .map(row)}
+              </div>
+            </details>
+          )}
         </div>
         <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
           <button
@@ -394,17 +423,31 @@ export function SeriesNavigation() {
             <Plus size={15} />
             {t('newScene')}
           </button>
-          <button
-            className="shrink-0 rounded-md p-2 hover:bg-white/7"
-            aria-label={t('showArchived')}
-            aria-pressed={showArchived}
-            title={t('showArchived')}
-            onClick={() => setShowArchived((v) => !v)}
-          >
-            <Archive size={16} />
-          </button>
+          {embedded && (
+            <button
+              className="shrink-0 rounded-md p-2 hover:bg-white/7"
+              aria-label={t('showArchived')}
+              aria-pressed={showArchived}
+              title={t('showArchived')}
+              onClick={() => setShowArchived((v) => !v)}
+            >
+              <Archive size={16} />
+            </button>
+          )}
         </div>
-      </WorkspacePopover>
+        {!embedded && (
+          <button
+            className={`${workspaceRow} mt-2 border-t border-white/10`}
+            onClick={() => {
+              setOpen(false);
+              void navigate(`/studio/${scope.projectId}?panel=scenes`);
+            }}
+          >
+            <LayoutDashboard size={15} />
+            {productionT('projectOverview')}
+          </button>
+        )}
+      </NavigationSurface>
       <Dialog
         open={Boolean(editScene || editCanvas || archive || creating)}
         onOpenChange={(value) => {

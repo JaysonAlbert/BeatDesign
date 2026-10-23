@@ -28,6 +28,9 @@ export type OrganizationAssetQuery = {
   cursor?: string;
 };
 export type ProjectOrganizationPanelProps = {
+  embedded?: boolean;
+  initialTab?: 'folders' | 'elements';
+  initialElementId?: string;
   document: ProjectOrganizationDocument;
   revision: number;
   assets: OrganizationPanelAsset[];
@@ -54,6 +57,9 @@ const button = `${control} hover:bg-white/10`;
 
 /** Project-local organization controls; all writes are delegated to the shared kernel owner. */
 export function ProjectOrganizationPanel({
+  embedded = false,
+  initialTab = 'folders',
+  initialElementId = '',
   document,
   revision,
   assets,
@@ -64,7 +70,7 @@ export function ProjectOrganizationPanel({
   onLocateConsumer,
 }: ProjectOrganizationPanelProps) {
   const t = useTranslations('Organization');
-  const [tab, setTab] = useState<'folders' | 'elements'>('folders');
+  const [tab, setTab] = useState<'folders' | 'elements'>(initialTab);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [scope, setScope] = useState<'current' | 'project'>('project');
   const [query, setQuery] = useState('');
@@ -76,11 +82,15 @@ export function ProjectOrganizationPanel({
   const [preview, setPreview] = useState<ReturnType<
     typeof previewFolderRemoval
   > | null>(null);
-  const [elementId, setElementId] = useState('');
-  const [elementName, setElementName] = useState('');
-  const [description, setDescription] = useState('');
+  const [elementId, setElementId] = useState(initialElementId);
+  const [elementName, setElementName] = useState(
+    document.elements[initialElementId]?.name ?? ''
+  );
+  const [description, setDescription] = useState(
+    document.elements[initialElementId]?.description ?? ''
+  );
   const [kind, setKind] = useState<'character' | 'scene' | 'prop' | 'voice'>(
-    'character'
+    document.elements[initialElementId]?.kind ?? 'character'
   );
   const [assetId, setAssetId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -822,6 +832,7 @@ export function ProjectOrganizationPanel({
       )}
     </div>
   );
+  if (embedded) return content;
   if (narrow) {
     return (
       <Dialog open={drawerOpen} onOpenChange={setDrawerOpen}>

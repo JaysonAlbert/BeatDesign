@@ -13,3 +13,6 @@ design-review.md保留原审阅记录与尚未完成的实施/视觉/部署项�
 用户：“先按照这个方案开发吧”。对应 docs/design-proposals/2026-10-23-canvas-navigation/README.md 的 Higgsfield 六态对齐版；旧原型交互回传不改变本次批准版本。继续自有 Fork 的隔离实现与预览，未授权合入、主实例部署或影片制作。
 
 checklists/requirements.md 16项已选；design-review.md 14项已选、5项未选（历史实施/视觉/部署门槛）。按本次明确开发授权推进，不把未完成验收改为通过。没有 extensions.yml，前后扩展 hooks 不适用。
+# 2026-10-23 项目工作台补充授权
+
+用户原话：“完全参照Higgsfields来优化下”。承接已批准的界面重设计，授权检查实际 Cinema Studio 项目界面并继续开发项目组织、简报、Elements、目录和 Canvas 返回导航；不要求再次批准原型后才实现。仍不代表主实例部署、合入、付费生成或真实影片迁移授权。旧 design-review checklist 的审批占位保持原样，以本文件和用户对话为准。

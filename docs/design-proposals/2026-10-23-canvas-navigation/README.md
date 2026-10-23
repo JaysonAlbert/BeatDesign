@@ -4,6 +4,10 @@
 
 本版取代先前的常驻节点详情方案。六种实际状态、10 张原始截图及操作边界见 [实测对照](../../references/higgsfield/2026-10-23-six-states/README.md)。此前轻量目录方案留在 [历史提案](prior-lightweight-proposal.md)，不作为当前布局依据。
 
+## 2026-10-24 项目工作台补充
+
+用户追加要求后，完整场次管理已移入项目页面；画布弹层仅保留快速切换、新建和项目总览。Studio / Assets 使用固定项目侧栏、独立简报、Elements 图库和目录。Higgsfield 实际支持项目内嵌 Canvas；BeatDesign 目前保留独立 Canvas 加返回项目，不能称为完全一致。见 [当前回执](../../../specs/002-series-scenes-shared-assets/project-workspace-verification.md)。下列六态说明保留为 Canvas 设计依据。
+
 ## 两处一起改
 
 - `Episodes and scenes`：改为左上当前场次标题打开的紧凑目录。默认关闭；一场一画布可直接进入，多画布时再展开。保留项目画布、未归场、场次更多菜单与新建入口。没有默认静帧预演、动态试拍入口，也不自动生成阶段画布。

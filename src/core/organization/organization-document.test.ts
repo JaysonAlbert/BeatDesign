@@ -32,6 +32,47 @@ const element = {
   assetId: 'image',
 };
 
+test('project brief accepts old documents, preserves other organization data, and enforces its limit', () => {
+  const old = applyOrganizationOperations(
+    emptyOrganizationDocument(),
+    [folder('refs'), element],
+    options
+  ).document;
+  const text = '# Story\nA continuous action.\n\nReferences: @lulu';
+  const next = applyOrganizationOperations(
+    old,
+    [{ type: 'set_brief', text }],
+    options
+  );
+  assert.equal(next.document.brief, text);
+  assert.deepEqual(next.document.folders, old.folders);
+  assert.deepEqual(next.document.elements, old.elements);
+  assert.equal(old.brief, undefined);
+  assert.deepEqual(
+    applyOrganizationOperations(
+      next.document,
+      [{ type: 'set_brief', text }],
+      options
+    ).changedIds,
+    []
+  );
+  assert.throws(() =>
+    applyOrganizationOperations(
+      old,
+      [{ type: 'set_brief', text: 'x'.repeat(30001) }],
+      options
+    )
+  );
+  assert.equal(
+    applyOrganizationOperations(
+      next.document,
+      [{ type: 'set_brief', text: '' }],
+      options
+    ).document.brief,
+    ''
+  );
+});
+
 test('organization operations expose concrete MCP-compatible JSON Schema', () => {
   const schema = JSON.stringify(z.toJSONSchema(organizationOperationSchema));
   assert.match(schema, /create_folder/);

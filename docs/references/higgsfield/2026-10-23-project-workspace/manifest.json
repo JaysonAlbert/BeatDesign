@@ -1,0 +1,25 @@
+{
+  "captures": [
+    {
+      "file": "01-home.jpg",
+      "bytes": 36907,
+      "sha256": "1c1ba28abda1fbd946538bba596b5f5538f220285a1ff5017d8b5966fbcecd87"
+    },
+    {
+      "file": "02-project-workspace.jpg",
+      "bytes": 61220,
+      "sha256": "4408e19b097159acaee3b329ef9d5d9b2ea05605e41f48faf003e7900001dd3c"
+    },
+    {
+      "file": "03-project-brief.jpg",
+      "bytes": 58269,
+      "sha256": "e4deb7efa9cd55cadd381796a6e67a4c5ced91ca1eff33566e15691a62c4e46d"
+    },
+    {
+      "file": "05-new-folder.jpg",
+      "bytes": 32649,
+      "sha256": "7994b932bf3fee51f75246dbc29f8885b69e7c27f614588e34cf4dd41a2dd466"
+    }
+  ],
+  "timezone": "Asia/Shanghai"
+}

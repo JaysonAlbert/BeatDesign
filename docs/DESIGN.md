@@ -49,6 +49,8 @@
 
 ## Layout
 
+- **Own-fork project workspace (2026-10-23 user-directed Higgsfield alignment):** Studio and Assets use a collapsible 240px project rail for brief, settings, Elements, tools, folders and scene canvases. Below 1024px the rail is an overlay. Canvas and Editor retain full-width working surfaces and an explicit return-to-project action. This scoped override follows the user's request; it does not add a cloud account or collaboration service.
+
 - **Marketing grid:** 12 columns, max width 1280px, 24–32px gutters.
 - **App grid:** Creative project routes use a 56px top bar and fluid main region without a persistent sidebar.
 - **Studio:** No sidebar. A full-bleed media wall supports a bottom floating composer; media type, model, ratio, parameters, and Generate live in that composer. Content max width is 1380px and composer max width is 1180px.

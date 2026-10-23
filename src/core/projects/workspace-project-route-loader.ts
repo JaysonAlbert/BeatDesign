@@ -28,6 +28,7 @@ export async function loadWorkspaceProjectRoute({
 
   return {
     locale,
+    panel: search.panel ?? null,
     project: projectState.project,
     snapshot: projectState.snapshot,
     snapshotVersion: projectState.snapshotVersion,

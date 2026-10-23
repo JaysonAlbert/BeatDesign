@@ -1,5 +1,7 @@
 # BeatDesign 产品规划与当前完成状态
 
+2026-10-24 自有分支追加：Higgsfield 项目工作台对齐（可收起侧栏、独立简报、Elements 图库、嵌套目录与独立场次管理）已在隔离 3060 预览实现。功能边界、验证及保留差异见 [项目工作台回执](../specs/002-series-scenes-shared-assets/project-workspace-verification.md)；未合入或部署主实例。
+
 - 文档用途：给新加入的开发者、Codex、Claude Code 和其他 AI Agent 提供统一产品上下文
 - 当前基线：BeatDesign v0.2 Phase 1 本地实现
 - 最后核对：2026-09-23

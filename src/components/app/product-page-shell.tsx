@@ -1,10 +1,15 @@
+import { PanelLeftOpen, ArrowLeft } from 'lucide-react';
+import { ProjectProductionNavigation } from './project-production-navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Images, LayoutPanelTop, Scissors, Workflow } from 'lucide-react';
 
 import { WorkspaceApiConfigDialog } from '@/components/app/workspace-api-config-dialog';
 import { ProjectSettingsDialog } from './project-settings-dialog';
-import { fetchProjectSettings, saveProjectSettings } from '@/core/workspace-lib/app/project-settings-client';
+import {
+  fetchProjectSettings,
+  saveProjectSettings,
+} from '@/core/workspace-lib/app/project-settings-client';
 import { useQuery } from '@tanstack/react-query';
 import { LanguageSwitcher } from '@/components/app/language-switcher';
 import { GitHubIcon } from '@/components/icons/github';
@@ -15,7 +20,11 @@ import { appConfig } from '@/config';
 import { getGenerationRuntimeConfig } from '@/config/generation-runtime';
 import type { WorkspaceMode } from '@/config/workspace-modes';
 import { SeriesNavigation } from './series-navigation';
-import { useWorkspaceScope, useScopeNavigation, scopeSearch } from './workspace-scope';
+import {
+  useWorkspaceScope,
+  useScopeNavigation,
+  scopeSearch,
+} from './workspace-scope';
 
 export function ProductPageShell({
   children,
@@ -29,9 +38,19 @@ export function ProductPageShell({
   workspaceMode?: WorkspaceMode;
 }) {
   const t = useTranslations('AppShell');
+  const productionT = useTranslations('Production');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  useEffect(() => {
+    // Route shells remount when switching tools; keep narrow pages unobstructed.
+    if (window.matchMedia('(max-width: 1023px)').matches) setSidebarOpen(false);
+  }, []);
+  const projectWorkspace = Boolean(
+    projectId && (workspaceMode === 'studio' || workspaceMode === 'assets')
+  );
   const scope = useWorkspaceScope();
   const navigateScope = useScopeNavigation();
-  const workspaceHref = (mode: string) => `/${mode}/${projectId}${scope ? scopeSearch(scope) : ''}`;
+  const workspaceHref = (mode: string) =>
+    `/${mode}/${projectId}${scope ? scopeSearch(scope) : ''}`;
   const untitledWorkspaceName = t('header.untitledCanvas');
   const getDisplayWorkspaceName = useCallback(
     (name: string | null | undefined) => {
@@ -48,12 +67,20 @@ export function ProductPageShell({
   const [draftWorkspaceName, setDraftWorkspaceName] =
     useState(defaultWorkspaceName);
   const lastPersistedWorkspaceNameRef = useRef(defaultWorkspaceName);
-  const projectSettings = useQuery({ queryKey: ['project-settings', projectId], queryFn: () => fetchProjectSettings(projectId!), enabled: Boolean(projectId), refetchInterval: 5000, refetchIntervalInBackground: false });
+  const projectSettings = useQuery({
+    queryKey: ['project-settings', projectId],
+    queryFn: () => fetchProjectSettings(projectId!),
+    enabled: Boolean(projectId),
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
+  });
 
   useEffect(() => {
     const name = projectSettings.data?.name;
     if (!name) return;
-    setDraftWorkspaceName((draft) => draft === lastPersistedWorkspaceNameRef.current ? name : draft);
+    setDraftWorkspaceName((draft) =>
+      draft === lastPersistedWorkspaceNameRef.current ? name : draft
+    );
     lastPersistedWorkspaceNameRef.current = name;
   }, [projectSettings.data?.name]);
 
@@ -88,8 +115,11 @@ export function ProductPageShell({
     }
 
     try {
-      const current = projectSettings.data ?? await fetchProjectSettings(projectId);
-      await saveProjectSettings(projectId, current.settingsRevision, { name: nextName });
+      const current =
+        projectSettings.data ?? (await fetchProjectSettings(projectId));
+      await saveProjectSettings(projectId, current.settingsRevision, {
+        name: nextName,
+      });
       void projectSettings.refetch();
       lastPersistedWorkspaceNameRef.current = nextName;
     } catch (error) {
@@ -134,100 +164,163 @@ export function ProductPageShell({
   return (
     <div className="beat-product-shell flex h-screen min-h-screen flex-col overflow-hidden bg-[var(--beat-bg)] text-[var(--beat-text-1)]">
       <header className="pointer-events-auto sticky top-0 z-40 shrink-0 border-b border-white/[0.07] bg-[var(--beat-surface)]/96 text-[var(--beat-text-1)] backdrop-blur-xl">
-          <div className="flex h-14 items-center gap-3 px-4 lg:px-5">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <Link
-                href="/"
-                aria-label={t('header.backHome')}
-                className="inline-flex size-9 items-center justify-center rounded-xl text-[var(--beat-text-1)] transition hover:bg-white/[0.06]"
-              >
-                <img
-                  src={appConfig.app_logo}
-                  alt={appConfig.app_name}
-                  className="size-7 rounded-xl object-contain"
-                />
-              </Link>
-
-              <SeriesNavigation />
-              <div className="hidden min-w-0 flex-1 sm:block">
-                <div className="min-w-0 flex-1">{titleNode}</div>
-              </div>
-            </div>
-
-            <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
-              {projectId && workspaceMode ? (
-                <nav
-                  className="flex items-center rounded-full border border-white/[0.09] bg-white/[0.035] p-1"
-                  aria-label={t('header.workspaceView')}
-                >
-                  <Link
-                    href={workspaceHref('studio')}
-                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('studio')); }}
-                    aria-current={workspaceMode === 'studio' ? 'page' : undefined}
-                    aria-label={t('header.studio')}
-                    className={workspaceTabClassName(workspaceMode === 'studio')}
-                  >
-                    <LayoutPanelTop className="size-3.5" aria-hidden="true" />
-                    <span className="hidden sm:inline">{t('header.studio')}</span>
-                  </Link>
-                  <Link
-                    href={workspaceHref('canvas')}
-                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('canvas')); }}
-                    aria-current={workspaceMode === 'canvas' ? 'page' : undefined}
-                    aria-label={t('header.canvas')}
-                    className={workspaceTabClassName(workspaceMode === 'canvas')}
-                  >
-                    <Workflow className="size-3.5" aria-hidden="true" />
-                    <span className="hidden sm:inline">{t('header.canvas')}</span>
-                  </Link>
-                  <Link
-                    href={workspaceHref('editor')}
-                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('editor')); }}
-                    aria-current={workspaceMode === 'editor' ? 'page' : undefined}
-                    aria-label={t('header.editor')}
-                    className={workspaceTabClassName(workspaceMode === 'editor')}
-                  >
-                    <Scissors className="size-3.5" aria-hidden="true" />
-                    <span className="hidden sm:inline">{t('header.editor')}</span>
-                  </Link>
-                  <Link
-                    href={workspaceHref('assets')}
-                    onClick={event => { event.preventDefault(); void navigateScope(workspaceHref('assets')); }}
-                    aria-current={workspaceMode === 'assets' ? 'page' : undefined}
-                    aria-label={t('header.assets')}
-                    className={workspaceTabClassName(workspaceMode === 'assets')}
-                  >
-                    <Images className="size-3.5" aria-hidden="true" />
-                    <span className="hidden sm:inline">{t('header.assets')}</span>
-                  </Link>
-                </nav>
-              ) : null}
-              <LanguageSwitcher variant="workspace" />
-              {projectId && <ProjectSettingsDialog projectId={projectId} onSaved={(settings) => {
-                setDraftWorkspaceName(settings.name);
-                lastPersistedWorkspaceNameRef.current = settings.name;
-                void projectSettings.refetch();
-              }} />}
-              <WorkspaceApiConfigDialog
-                providerId={getGenerationRuntimeConfig().providerId}
+        <div className="flex h-14 items-center gap-3 px-4 lg:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Link
+              href="/"
+              aria-label={t('header.backHome')}
+              className="inline-flex size-9 items-center justify-center rounded-xl text-[var(--beat-text-1)] transition hover:bg-white/[0.06]"
+            >
+              <img
+                src={appConfig.app_logo}
+                alt={appConfig.app_name}
+                className="size-7 rounded-xl object-contain"
               />
-              <a
-                href="https://github.com/BeatAPI/BeatDesign"
-                target="_blank"
-                rel="noreferrer"
-                aria-label={t('header.githubRepository')}
-                title={t('header.githubRepository')}
-                className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-[var(--beat-text-2)] transition hover:border-white/[0.16] hover:bg-white/[0.075] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--beat-graph)]/70"
+            </Link>
+
+            {projectWorkspace ? (
+              <button
+                aria-label={productionT('toggleNavigation')}
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="rounded-lg p-2 hover:bg-white/10"
               >
-                <GitHubIcon className="size-[17px]" aria-hidden="true" />
-              </a>
+                <PanelLeftOpen size={18} />
+              </button>
+            ) : (
+              <>
+                {projectId && (
+                  <button
+                    className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs text-white/50 hover:bg-white/10"
+                    aria-label={productionT('backToProject')}
+                    onClick={() => void navigateScope(`/studio/${projectId}`)}
+                  >
+                    <ArrowLeft size={15} />
+                    <span className="hidden md:inline">
+                      {productionT('project')}
+                    </span>
+                  </button>
+                )}
+                <SeriesNavigation />
+              </>
+            )}
+            <div className="hidden min-w-0 flex-1 sm:block">
+              <div className="min-w-0 flex-1">{titleNode}</div>
             </div>
           </div>
-        </header>
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {children}
-      </main>
+          <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
+            {projectId && workspaceMode && !projectWorkspace ? (
+              <nav
+                className="flex items-center rounded-full border border-white/[0.09] bg-white/[0.035] p-1"
+                aria-label={t('header.workspaceView')}
+              >
+                <Link
+                  href={workspaceHref('studio')}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void navigateScope(workspaceHref('studio'));
+                  }}
+                  aria-current={workspaceMode === 'studio' ? 'page' : undefined}
+                  aria-label={t('header.studio')}
+                  className={workspaceTabClassName(workspaceMode === 'studio')}
+                >
+                  <LayoutPanelTop className="size-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">{t('header.studio')}</span>
+                </Link>
+                <Link
+                  href={workspaceHref('canvas')}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void navigateScope(workspaceHref('canvas'));
+                  }}
+                  aria-current={workspaceMode === 'canvas' ? 'page' : undefined}
+                  aria-label={t('header.canvas')}
+                  className={workspaceTabClassName(workspaceMode === 'canvas')}
+                >
+                  <Workflow className="size-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">{t('header.canvas')}</span>
+                </Link>
+                <Link
+                  href={workspaceHref('editor')}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void navigateScope(workspaceHref('editor'));
+                  }}
+                  aria-current={workspaceMode === 'editor' ? 'page' : undefined}
+                  aria-label={t('header.editor')}
+                  className={workspaceTabClassName(workspaceMode === 'editor')}
+                >
+                  <Scissors className="size-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">{t('header.editor')}</span>
+                </Link>
+                <Link
+                  href={workspaceHref('assets')}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void navigateScope(workspaceHref('assets'));
+                  }}
+                  aria-current={workspaceMode === 'assets' ? 'page' : undefined}
+                  aria-label={t('header.assets')}
+                  className={workspaceTabClassName(workspaceMode === 'assets')}
+                >
+                  <Images className="size-3.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">{t('header.assets')}</span>
+                </Link>
+              </nav>
+            ) : null}
+            <LanguageSwitcher variant="workspace" />
+            {projectId && !projectWorkspace && (
+              <ProjectSettingsDialog
+                projectId={projectId}
+                onSaved={(settings) => {
+                  setDraftWorkspaceName(settings.name);
+                  lastPersistedWorkspaceNameRef.current = settings.name;
+                  void projectSettings.refetch();
+                }}
+              />
+            )}
+            <WorkspaceApiConfigDialog
+              providerId={getGenerationRuntimeConfig().providerId}
+            />
+            <a
+              href="https://github.com/BeatAPI/BeatDesign"
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t('header.githubRepository')}
+              title={t('header.githubRepository')}
+              className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.09] bg-white/[0.035] text-[var(--beat-text-2)] transition hover:border-white/[0.16] hover:bg-white/[0.075] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--beat-graph)]/70"
+            >
+              <GitHubIcon className="size-[17px]" aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {projectWorkspace && sidebarOpen && (
+          <>
+            <button
+              aria-label={productionT('collapse')}
+              className="absolute inset-0 z-40 bg-black/60 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <aside
+              className="absolute inset-y-0 left-0 z-40 w-60 shrink-0 border-r border-white/7 lg:static"
+              aria-label={productionT('projectNavigation')}
+            >
+              <ProjectProductionNavigation
+                projectId={projectId!}
+                name={draftWorkspaceName}
+                mode={workspaceMode!}
+                onCollapse={() => setSidebarOpen(false)}
+              />
+            </aside>
+          </>
+        )}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

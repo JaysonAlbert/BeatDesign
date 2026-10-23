@@ -14,6 +14,8 @@
 | LibTV | 2026-10-23 | 公开作品工作流、分类素材板与所选结果 | [本日截图与边界](liblib/2026-10-23-contextual-navigation/README.md) |
 | Higgsfield | 2026-10-23 | 未选、节点、组、生成设置、参考选择、结果图库六种状态 | [10 张原图与逐项对照](higgsfield/2026-10-23-six-states/README.md) |
 | BeatDesign 开发预览 | 2026-10-23 | 紧凑场次目录、组工具条、节点设置与参考图库 | [实际实现截图与修正记录](beatdesign/2026-10-23-contextual-canvas/README.md) |
+| Higgsfield | 2026-10-23 | 项目工作台、简报、Elements、目录和嵌入 Canvas | [截图与实测边界](higgsfield/2026-10-23-project-workspace/README.md) |
+| BeatDesign 开发预览 | 2026-10-24 | 项目导航、简报和元素图库 | [实际截图与验证](beatdesign/2026-10-24-project-workspace/README.md) |
 
 后续查看功能时，尽量成套保存：整体界面、菜单、参数选项、操作前后状态。
 每批注明日期、入口、操作步骤、各图用途、已确认行为与未确认项。
