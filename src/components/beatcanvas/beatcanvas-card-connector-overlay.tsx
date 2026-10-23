@@ -1,7 +1,14 @@
+import { openCanvasOrganization } from './organization-actions';
 import type { CanvasCardMediaType } from '@/core/beatcanvas/canvas-types';
 import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 import { FileText, ImageIcon, Plus, Upload, Video } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   useCanvasEngine,
   useCanvasEngineValue,
@@ -39,6 +46,7 @@ const isCardShapeType = (shapeType: string) =>
 
 export function CardConnectorOverlay() {
   const t = useTranslations('AppShell.studio.textNode');
+  const organizationT = useTranslations('Organization');
   const { editor } = useCanvasEngine();
   const {
     cards,
@@ -78,7 +86,11 @@ export function CardConnectorOverlay() {
     observer.observe(overlay);
     return () => {
       observer.disconnect();
-      if (menu.contains(document.activeElement) && previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+      if (
+        menu.contains(document.activeElement) &&
+        previousFocus instanceof HTMLElement &&
+        previousFocus.isConnected
+      ) {
         previousFocus.focus({ preventScroll: true });
       }
     };
@@ -287,7 +299,15 @@ export function CardConnectorOverlay() {
     side: Side,
     e: React.PointerEvent
   ) => {
-    if (side !== 'output') {
+    if (side === 'input') {
+      if (cards[shapeId]?.kind !== 'generation') return;
+      e.stopPropagation();
+      e.preventDefault();
+      window.dispatchEvent(
+        new CustomEvent('beatcanvas:open-reference-picker', {
+          detail: { cardId: shapeId },
+        })
+      );
       return;
     }
 
@@ -329,7 +349,8 @@ export function CardConnectorOverlay() {
       const pos = getButtonPosition(shapeId, side);
       if (!pos) continue;
       const connectorKey = `${shapeId}-${side}`;
-      const isInteractive = side === 'output';
+      const isInteractive =
+        side === 'output' || cards[shapeId]?.kind === 'generation';
       const isHovered = hoveredConnectorKey === connectorKey;
       const isDraggingSource =
         drag?.sourceId === shapeId && drag.sourceSide === side;
@@ -377,9 +398,27 @@ export function CardConnectorOverlay() {
               current === connectorKey ? null : current
             )
           }
+          role={isInteractive ? 'button' : undefined}
+          tabIndex={isInteractive ? 0 : -1}
+          onKeyDown={(event) => {
+            if (
+              side === 'input' &&
+              isInteractive &&
+              (event.key === 'Enter' || event.key === ' ')
+            ) {
+              event.preventDefault();
+              window.dispatchEvent(
+                new CustomEvent('beatcanvas:open-reference-picker', {
+                  detail: { cardId: shapeId },
+                })
+              );
+            }
+          }}
           onPointerDown={(e) => handleConnectorDown(shapeId, side, e)}
           aria-label={
-            side === 'output' ? labels.createGenerationCardLabel : undefined
+            side === 'output'
+              ? labels.createGenerationCardLabel
+              : organizationT('projectReferences')
           }
         >
           {(isHovered || isDraggingSource) && (
@@ -452,16 +491,33 @@ export function CardConnectorOverlay() {
           onKeyDown={(event) => {
             // Menu navigation must not trigger the canvas's node shortcuts.
             event.stopPropagation();
-            const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
-            const index = items.indexOf(document.activeElement as HTMLButtonElement);
+            const items = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                '[role="menuitem"]'
+              )
+            );
+            const index = items.indexOf(
+              document.activeElement as HTMLButtonElement
+            );
             let nextIndex: number;
             switch (event.key) {
-              case 'ArrowDown': nextIndex = (index + 1) % items.length; break;
-              case 'ArrowUp': nextIndex = (index <= 0 ? items.length : index) - 1; break;
-              case 'Home': nextIndex = 0; break;
-              case 'End': nextIndex = items.length - 1; break;
-              case 'Tab': setCreateMenu(null); return;
-              default: return;
+              case 'ArrowDown':
+                nextIndex = (index + 1) % items.length;
+                break;
+              case 'ArrowUp':
+                nextIndex = (index <= 0 ? items.length : index) - 1;
+                break;
+              case 'Home':
+                nextIndex = 0;
+                break;
+              case 'End':
+                nextIndex = items.length - 1;
+                break;
+              case 'Tab':
+                setCreateMenu(null);
+                return;
+              default:
+                return;
             }
             event.preventDefault();
             event.stopPropagation();
@@ -477,7 +533,12 @@ export function CardConnectorOverlay() {
               className={menuItemClassName}
               onClick={() => handleCreateFromMenu('image')}
             >
-              <ImageIcon aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
+              <ImageIcon
+                aria-hidden="true"
+                size={16}
+                strokeWidth={1.75}
+                className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]"
+              />
               {labels.imageModeLabel}
             </button>
             <button
@@ -488,7 +549,12 @@ export function CardConnectorOverlay() {
               className={menuItemClassName}
               onClick={() => handleCreateFromMenu('video')}
             >
-              <Video aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
+              <Video
+                aria-hidden="true"
+                size={16}
+                strokeWidth={1.75}
+                className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]"
+              />
               {labels.videoModeLabel}
             </button>
             <button
@@ -502,12 +568,36 @@ export function CardConnectorOverlay() {
                 setCreateMenu(null);
               }}
             >
-              <FileText aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
+              <FileText
+                aria-hidden="true"
+                size={16}
+                strokeWidth={1.75}
+                className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]"
+              />
               {t('defaultName')}
             </button>
           </div>
           <div role="separator" className="mx-2 my-1.5 h-px bg-white/[0.07]" />
           <div role="group">
+            {createMenu.sourceId &&
+              cards[createMenu.sourceId]?.kind === 'generation' && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  className={menuItemClassName}
+                  onClick={() => {
+                    openCanvasOrganization({
+                      view: 'references',
+                      cardIds: [createMenu.sourceId!],
+                    });
+                    setCreateMenu(null);
+                  }}
+                >
+                  <ImageIcon size={16} />
+                  {organizationT('references')}
+                </button>
+              )}
             <button
               type="button"
               role="menuitem"
@@ -519,7 +609,12 @@ export function CardConnectorOverlay() {
                 setCreateMenu(null);
               }}
             >
-              <Upload aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]" />
+              <Upload
+                aria-hidden="true"
+                size={16}
+                strokeWidth={1.75}
+                className="shrink-0 text-[var(--beat-text-2)] group-hover:text-[var(--beat-text-1)] group-focus-visible:text-[var(--beat-text-1)]"
+              />
               {labels.connectorUploadLabel}
             </button>
           </div>

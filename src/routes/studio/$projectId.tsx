@@ -6,6 +6,10 @@ import { loadWorkspaceProjectRoute } from '@/core/projects/workspace-project-rou
 export const Route = createFileRoute('/studio/$projectId')({
   ssr: 'data-only',
   validateSearch: (search: Record<string, unknown>) => ({
+    panel:
+      search.panel === 'brief' || search.panel === 'scenes'
+        ? search.panel
+        : undefined,
     sceneId: typeof search.sceneId === 'string' ? search.sceneId : undefined,
     canvasId: typeof search.canvasId === 'string' ? search.canvasId : undefined,
     target: (search.target as string) || undefined,

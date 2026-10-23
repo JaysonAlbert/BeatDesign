@@ -33,9 +33,11 @@ import { ApiError } from '@/lib/api-client';
 export function ProjectSettingsDialog({
   projectId,
   onSaved,
+  triggerLabel,
 }: {
   projectId: string;
   onSaved?: (settings: ProjectSettings) => void;
+  triggerLabel?: string;
 }) {
   const t = useTranslations('ProjectSettings');
   const locale = useLocale();
@@ -88,7 +90,7 @@ export function ProjectSettingsDialog({
     if (!file || busy) return;
     if (
       !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(
-        file.type,
+        file.type
       )
     ) {
       setError(t('imageOnly'));
@@ -133,7 +135,7 @@ export function ProjectSettingsDialog({
           cover: autoCover
             ? { mode: 'auto' }
             : { mode: 'manual', assetId: coverId! },
-        },
+        }
       );
       await invalidateWorkspaceAfterProjectMutation(queryClient);
       onSaved?.(next);
@@ -144,7 +146,7 @@ export function ProjectSettingsDialog({
           ? t('conflict')
           : err instanceof Error
             ? err.message
-            : t('saveError'),
+            : t('saveError')
       );
     } finally {
       setBusy(false);
@@ -165,9 +167,14 @@ export function ProjectSettingsDialog({
       <DialogTrigger
         aria-label={t('title')}
         title={t('title')}
-        className="inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-white/60 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[#ff6b1a]"
+        className={
+          triggerLabel
+            ? 'flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm text-white/70 hover:bg-white/7 hover:text-white'
+            : 'inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-white/60 hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[#ff6b1a]'
+        }
       >
         <Settings2 className="size-4" />
+        {triggerLabel}
       </DialogTrigger>
       <DialogContent className="max-h-[90dvh] overflow-y-auto border-white/10 bg-[#111214] text-[#f6f6f4] sm:max-w-[760px]">
         <DialogHeader>

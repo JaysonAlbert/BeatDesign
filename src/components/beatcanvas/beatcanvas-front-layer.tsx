@@ -10,6 +10,7 @@ import {
   getWorkspaceAspectRatioOptions,
 } from '@/core/effects/workspace-models';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 import { StudioStartHere } from '@/components/studio/studio-start-here';
 import {
   getDraftReferencePickerOptions,
@@ -63,16 +64,12 @@ import {
 import { useCanvasFrontLayer } from './beatcanvas-front-layer-context';
 import { CardConnectorOverlay } from './beatcanvas-card-connector-overlay';
 import { beatcanvasPanelClassName } from './beatcanvas-theme';
-import { registerGenerationCardHoverCallback } from './beatcanvas-generation-hover-bridge';
 
 export type { BeatCanvasFrontLayerValue } from './beatcanvas-front-layer-context';
 
 const BEATDESIGN_ZOOM_STEPS = [
   0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.4, 2.8, 3.2, 3.6, 4,
 ];
-
-const COMPOSER_HOVER_OPEN_DELAY_MS = 140;
-const COMPOSER_HOVER_CLOSE_DELAY_MS = 220;
 
 function areZoomStepsEqual(current: number[] | undefined, next: number[]) {
   return (
@@ -84,6 +81,8 @@ function areZoomStepsEqual(current: number[] | undefined, next: number[]) {
 
 export function BeatCanvasFrontLayer() {
   const { editor } = useCanvasEngine();
+  const organizationT = useTranslations('Organization');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     cards,
     generationBlockersByCard,
@@ -124,6 +123,9 @@ export function BeatCanvasFrontLayer() {
   const [isModelSelectOpen, setIsModelSelectOpen] = useState(false);
   const [isParameterPopoverOpen, setIsParameterPopoverOpen] = useState(false);
   const [isReferencePickerOpen, setIsReferencePickerOpen] = useState(false);
+  const [referenceRequestId, setReferenceRequestId] = useState<string | null>(
+    null
+  );
   const [isVersionPickerOpen, setIsVersionPickerOpen] = useState(false);
   const [promptInputValue, setPromptInputValue] = useState('');
   const [isPromptComposing, setIsPromptComposing] = useState(false);
@@ -132,9 +134,6 @@ export function BeatCanvasFrontLayer() {
   );
   const [edgesVisible, setEdgesVisible] = useState(true);
   const [isSnapToGridActive, setIsSnapToGridActive] = useState(false);
-  const [hoveredComposerCardId, setHoveredComposerCardId] = useState<
-    string | null
-  >(null);
   const [composerHeight, setComposerHeight] = useState(260);
   const composerRef = useRef<HTMLElement | null>(null);
   const typePickerRef = useRef<HTMLDivElement | null>(null);
@@ -142,12 +141,6 @@ export function BeatCanvasFrontLayer() {
   const parameterPickerRef = useRef<HTMLDivElement | null>(null);
   const referencePickerRef = useRef<HTMLDivElement | null>(null);
   const versionPickerRef = useRef<HTMLDivElement | null>(null);
-  const hoveredComposerCardIdRef = useRef<string | null>(null);
-  const composerOpenTimerRef = useRef<number | null>(null);
-  const composerCloseTimerRef = useRef<number | null>(null);
-  const isPointerWithinComposerRef = useRef(false);
-  const isFocusWithinComposerRef = useRef(false);
-
   const selectedShapeIds = useCanvasEngineValue(
     (currentEditor) => currentEditor.getSelectedShapeIds(),
     [cards]
@@ -214,118 +207,15 @@ export function BeatCanvasFrontLayer() {
     });
   }, [editor]);
 
-  const clearComposerOpenTimer = useCallback(() => {
-    if (composerOpenTimerRef.current === null) return;
-    window.clearTimeout(composerOpenTimerRef.current);
-    composerOpenTimerRef.current = null;
-  }, []);
-
-  const clearComposerCloseTimer = useCallback(() => {
-    if (composerCloseTimerRef.current === null) return;
-    window.clearTimeout(composerCloseTimerRef.current);
-    composerCloseTimerRef.current = null;
-  }, []);
-
-  const closeHoveredComposer = useCallback(() => {
-    clearComposerOpenTimer();
-    clearComposerCloseTimer();
-    hoveredComposerCardIdRef.current = null;
-    isPointerWithinComposerRef.current = false;
-    isFocusWithinComposerRef.current = false;
-    setHoveredComposerCardId(null);
-    onActiveComposerCardIdChange(null);
-  }, [
-    clearComposerCloseTimer,
-    clearComposerOpenTimer,
-    onActiveComposerCardIdChange,
-  ]);
-
-  const scheduleComposerClose = useCallback(
-    (cardId?: string) => {
-      clearComposerCloseTimer();
-      composerCloseTimerRef.current = window.setTimeout(() => {
-        composerCloseTimerRef.current = null;
-        if (
-          isPointerWithinComposerRef.current ||
-          isFocusWithinComposerRef.current ||
-          (cardId && hoveredComposerCardIdRef.current !== cardId)
-        ) {
-          return;
-        }
-        closeHoveredComposer();
-      }, COMPOSER_HOVER_CLOSE_DELAY_MS);
-    },
-    [clearComposerCloseTimer, closeHoveredComposer]
+  const closeComposer = useCallback(
+    () => onActiveComposerCardIdChange(null),
+    [onActiveComposerCardIdChange]
   );
-
-  useEffect(() => {
-    registerGenerationCardHoverCallback((cardId, isPointerWithinCard) => {
-      clearComposerOpenTimer();
-
-      if (!isPointerWithinCard) {
-        scheduleComposerClose(cardId);
-        return;
-      }
-
-      clearComposerCloseTimer();
-      const card = cards[cardId];
-      if (!isDraftCard(card)) return;
-
-      if (hoveredComposerCardIdRef.current === cardId) {
-        return;
-      }
-
-      composerOpenTimerRef.current = window.setTimeout(() => {
-        composerOpenTimerRef.current = null;
-        hoveredComposerCardIdRef.current = cardId;
-        setHoveredComposerCardId(cardId);
-        onActiveComposerCardIdChange(cardId);
-      }, COMPOSER_HOVER_OPEN_DELAY_MS);
-    });
-
-    return () => {
-      registerGenerationCardHoverCallback(null);
-      clearComposerOpenTimer();
-      clearComposerCloseTimer();
-    };
-  }, [
-    cards,
-    clearComposerCloseTimer,
-    clearComposerOpenTimer,
-    onActiveComposerCardIdChange,
-    scheduleComposerClose,
-  ]);
-
-  const handleComposerPointerChange = useCallback(
-    (isPointerWithinComposer: boolean) => {
-      isPointerWithinComposerRef.current = isPointerWithinComposer;
-      if (isPointerWithinComposer) {
-        clearComposerCloseTimer();
-        return;
-      }
-      scheduleComposerClose();
-    },
-    [clearComposerCloseTimer, scheduleComposerClose]
-  );
-
-  const handleComposerFocusChange = useCallback(
-    (isFocusWithinComposer: boolean) => {
-      isFocusWithinComposerRef.current = isFocusWithinComposer;
-      if (isFocusWithinComposer) {
-        clearComposerCloseTimer();
-        return;
-      }
-      scheduleComposerClose();
-    },
-    [clearComposerCloseTimer, scheduleComposerClose]
-  );
-
   const activeDraftCard = useMemo(() => {
-    const activeCard = hoveredComposerCardId
-      ? cards[hoveredComposerCardId]
-      : null;
-    return isDraftCard(activeCard) ? activeCard : null;
-  }, [cards, hoveredComposerCardId]);
+    const card =
+      selectedCardIds.length === 1 ? cards[selectedCardIds[0]] : null;
+    return isDraftCard(card) ? card : null;
+  }, [cards, selectedCardIds]);
   const activeDraftFrame = useCanvasEngineValue(
     (currentEditor) => {
       if (!activeDraftCard) return null;
@@ -337,20 +227,21 @@ export function BeatCanvasFrontLayer() {
     },
     [activeDraftCard?.id, activeDraftCard?.type, activeDraftCard?.aspectRatio]
   );
-  const canvasViewportWidth = useCanvasEngineValue((currentEditor) => {
-    try {
-      return currentEditor.getContainer().clientWidth;
-    } catch {
-      return 0;
-    }
-  });
-  const canvasViewportHeight = useCanvasEngineValue((currentEditor) => {
-    try {
-      return currentEditor.getContainer().clientHeight;
-    } catch {
-      return 0;
-    }
-  });
+  const [canvasViewport, setCanvasViewport] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const container = editor.getContainer();
+    const update = () =>
+      setCanvasViewport({
+        width: container.clientWidth,
+        height: container.clientHeight,
+      });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [editor]);
+  const canvasViewportWidth = canvasViewport.width,
+    canvasViewportHeight = canvasViewport.height;
   const activeDraftComposerPosition = useMemo(() => {
     if (
       !activeDraftFrame ||
@@ -365,6 +256,11 @@ export function BeatCanvasFrontLayer() {
       viewportWidth: canvasViewportWidth,
       viewportHeight: canvasViewportHeight,
       composerHeight,
+      preferredWidth: Math.min(
+        480,
+        Math.max(360, frameToViewportRect(activeDraftFrame).width)
+      ),
+      gap: 0,
     });
   }, [
     activeDraftFrame,
@@ -670,6 +566,7 @@ export function BeatCanvasFrontLayer() {
   };
 
   useEffect(() => {
+    setSettingsOpen(false);
     setIsTypeSelectOpen(false);
     setIsModelSelectOpen(false);
     setIsParameterPopoverOpen(false);
@@ -759,12 +656,43 @@ export function BeatCanvasFrontLayer() {
     setIsVersionPickerOpen(false);
   }, [isDraftBusy]);
 
+  useEffect(() => {
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && settingsOpen) {
+        event.preventDefault();
+        setSettingsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', key);
+    return () => document.removeEventListener('keydown', key);
+  }, [settingsOpen]);
+  useEffect(() => {
+    const open = (event: Event) => {
+      const id = (event as CustomEvent<{ cardId: string }>).detail?.cardId;
+      if (!id || cards[id]?.kind !== 'generation') return;
+      setReferenceRequestId(id);
+      editor.setSelectedShapes([id]);
+      onActiveComposerCardIdChange(id);
+    };
+    window.addEventListener('beatcanvas:open-reference-picker', open);
+    return () =>
+      window.removeEventListener('beatcanvas:open-reference-picker', open);
+  }, [cards, editor, onActiveComposerCardIdChange]);
+  useEffect(() => {
+    if (referenceRequestId && referenceRequestId === activeDraftCard?.id) {
+      setSettingsOpen(false);
+      setIsModelSelectOpen(false);
+      setIsVersionPickerOpen(false);
+      setIsReferencePickerOpen(true);
+      setReferenceRequestId(null);
+    }
+  }, [referenceRequestId, activeDraftCard?.id]);
   return (
     <div className="pointer-events-none absolute inset-0 z-30">
       {!activeDraftCard ? (
         <div
           className={cn(
-            'pointer-events-auto absolute bottom-4 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-1 rounded-[var(--beat-radius-sm)] px-1.5 py-1',
+            'pointer-events-auto absolute bottom-20 left-3 z-[70] flex max-w-[calc(100%-24px)] flex-wrap items-center md:bottom-4 gap-1 rounded-[var(--beat-radius-sm)] px-1.5 py-1',
             beatcanvasPanelClassName
           )}
         >
@@ -920,9 +848,28 @@ export function BeatCanvasFrontLayer() {
           isDraftBusy={isDraftBusy}
           isPromptComposing={isPromptComposing}
           labels={labels}
-          onActiveComposerCardIdChange={closeHoveredComposer}
-          onComposerFocusChange={handleComposerFocusChange}
-          onComposerPointerChange={handleComposerPointerChange}
+          onActiveComposerCardIdChange={() => {
+            if (settingsOpen) setSettingsOpen(false);
+            else {
+              editor.setSelectedShapes([]);
+              closeComposer();
+            }
+          }}
+          expandedSettings={settingsOpen}
+          settingsTitle={organizationT('generationSettings')}
+          width={
+            settingsOpen
+              ? 320
+              : Math.min(
+                  480,
+                  Math.max(
+                    360,
+                    activeDraftFrame
+                      ? frameToViewportRect(activeDraftFrame).width
+                      : 400
+                  )
+                )
+          }
           onGenerateDraft={onGenerateDraft}
           onPromptChange={handlePromptValueChange}
           onPromptCommit={handlePromptCommit}
@@ -940,11 +887,38 @@ export function BeatCanvasFrontLayer() {
           promptPlaceholder={activePromptPlaceholder}
           promptReferences={promptReferences}
           presentation={composerPresentation}
-          position={activeDraftComposerPosition}
+          position={
+            settingsOpen
+              ? { left: Math.max(12, canvasViewportWidth - 336), top: 16 }
+              : activeDraftComposerPosition
+          }
           takeCount={generationOutputs.length}
+          resultHistory={
+            <>
+              <BeatCanvasComposerVersionPicker
+                variant="strip"
+                activeDraftId={activeDraftCard.id}
+                containerRef={versionPickerRef}
+                isDraftBusy={isDraftBusy}
+                isOpen={isVersionPickerOpen}
+                labels={labels}
+                onOpenChange={(nextOpen) => {
+                  setIsTypeSelectOpen(false);
+                  setIsModelSelectOpen(false);
+                  setIsParameterPopoverOpen(false);
+                  setIsReferencePickerOpen(false);
+                  setIsVersionPickerOpen(nextOpen);
+                }}
+                onPinGenerationOutput={onPinGenerationOutput}
+                outputs={generationOutputs}
+                pinnedOutputId={pinnedOutputId}
+              />
+            </>
+          }
           promptAccessory={(insertReferenceMention) => (
             <>
               <BeatCanvasComposerReferencePicker
+                embedded={settingsOpen}
                 activeDraftId={activeDraftCard.id}
                 canvasReferenceCards={canvasReferenceCards}
                 containerRef={referencePickerRef}
@@ -968,45 +942,36 @@ export function BeatCanvasFrontLayer() {
                 primaryIntent={primaryReferenceIntent}
                 variant="row"
               />
-              <BeatCanvasComposerVersionPicker
-                activeDraftId={activeDraftCard.id}
-                containerRef={versionPickerRef}
-                isDraftBusy={isDraftBusy}
-                isOpen={isVersionPickerOpen}
-                labels={labels}
-                onOpenChange={(nextOpen) => {
-                  setIsTypeSelectOpen(false);
-                  setIsModelSelectOpen(false);
-                  setIsParameterPopoverOpen(false);
-                  setIsReferencePickerOpen(false);
-                  setIsVersionPickerOpen(nextOpen);
-                }}
-                onPinGenerationOutput={onPinGenerationOutput}
-                outputs={generationOutputs}
-                pinnedOutputId={pinnedOutputId}
-              />
             </>
           )}
         >
-          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2">
-            <BeatCanvasComposerTypePicker
-              activeDraftId={activeDraftCard.id}
-              containerRef={typePickerRef}
-              isDraftBusy={isDraftBusy}
-              isOpen={isTypeSelectOpen}
-              labels={labels}
-              onDraftTaskTypeChange={onDraftTaskTypeChange}
-              onOpenChange={(nextOpen) => {
-                setIsModelSelectOpen(false);
-                setIsParameterPopoverOpen(false);
-                setIsReferencePickerOpen(false);
-                setIsVersionPickerOpen(false);
-                setIsTypeSelectOpen(nextOpen);
-              }}
-              selectedType={
-                activeDraftCard.generationMode ?? activeDraftCard.type
-              }
-            />
+          <div
+            className={
+              settingsOpen
+                ? 'flex min-w-0 flex-col items-stretch gap-3'
+                : 'flex min-w-0 flex-1 flex-wrap items-center gap-1'
+            }
+          >
+            {(settingsOpen || isAnalysisDraft) && (
+              <BeatCanvasComposerTypePicker
+                activeDraftId={activeDraftCard.id}
+                containerRef={typePickerRef}
+                isDraftBusy={isDraftBusy}
+                isOpen={isTypeSelectOpen}
+                labels={labels}
+                onDraftTaskTypeChange={onDraftTaskTypeChange}
+                onOpenChange={(nextOpen) => {
+                  setIsModelSelectOpen(false);
+                  setIsParameterPopoverOpen(false);
+                  setIsReferencePickerOpen(false);
+                  setIsVersionPickerOpen(false);
+                  setIsTypeSelectOpen(nextOpen);
+                }}
+                selectedType={
+                  activeDraftCard.generationMode ?? activeDraftCard.type
+                }
+              />
+            )}
 
             {isAnalysisDraft ? (
               <BeatCanvasAnalysisDepthPicker
@@ -1028,6 +993,7 @@ export function BeatCanvasFrontLayer() {
             ) : (
               <div className="contents">
                 <BeatCanvasComposerModelPicker
+                  embedded={settingsOpen}
                   activeDraftId={activeDraftCard.id}
                   containerRef={modelPickerRef}
                   isDraftBusy={isDraftBusy}
@@ -1053,7 +1019,8 @@ export function BeatCanvasFrontLayer() {
                   activeDraftCard={activeDraftCard}
                   containerRef={parameterPickerRef}
                   isDraftBusy={isDraftBusy}
-                  isOpen={isParameterPopoverOpen}
+                  isOpen={settingsOpen}
+                  embedded={settingsOpen}
                   labels={labels}
                   onDraftAspectRatioChange={onDraftAspectRatioChange}
                   onDraftBackgroundSourceChange={onDraftBackgroundSourceChange}
@@ -1067,11 +1034,9 @@ export function BeatCanvasFrontLayer() {
                   onDraftQualityChange={onDraftQualityChange}
                   onDraftVariantChange={onDraftVariantChange}
                   onOpenChange={(nextOpen) => {
-                    setIsTypeSelectOpen(false);
-                    setIsReferencePickerOpen(false);
                     setIsModelSelectOpen(false);
-                    setIsVersionPickerOpen(false);
-                    setIsParameterPopoverOpen(nextOpen);
+                    setIsReferencePickerOpen(false);
+                    setSettingsOpen(nextOpen);
                   }}
                   parameterSummaryLabel={parameterSummaryLabel}
                   selectedAspectRatioOptions={selectedAspectRatioOptions}

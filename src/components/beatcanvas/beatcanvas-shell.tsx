@@ -1,3 +1,6 @@
+import { workspaceRow } from '@/components/app/workspace-popover';
+import type { ProjectReferenceAsset } from './organization-actions';
+import { planGroupRun, groupRunFingerprint } from '@/core/beatcanvas/group-run';
 import { VIDEO_ANALYSIS_MODEL_ID } from '@/core/effects/video-analysis';
 import { getTemplateGenerationBlockers } from '@/core/workflows/workflow-template';
 import { CanvasOrganizationPanel } from './organization-panel';
@@ -185,7 +188,9 @@ export function BeatCanvasShell({
   initialFocusCardId: string | null;
 }) {
   const seriesT = useTranslations('Series');
-  const [transientFocusCardId, setTransientFocusCardId] = useState<string | null>(initialFocusCardId);
+  const [transientFocusCardId, setTransientFocusCardId] = useState<
+    string | null
+  >(initialFocusCardId);
   const focusCameraRef = useRef(initialProjectSnapshot?.camera);
   const rawStudioT = useTranslations('AppShell.studio');
   const organizationT = useTranslations('Organization');
@@ -1392,12 +1397,14 @@ export function BeatCanvasShell({
     : isSingleDownloadable
       ? studioT('multiSelect.download')
       : null;
-  const showContextToolbar = Boolean(
-    canPreviewSelection ||
-    isSingleDownloadable ||
-    isGroupSelected ||
-    canAddSelectionToTimeline
-  );
+  const showContextToolbar =
+    !canvasOrganization?.groups[selectedShapeId ?? ''] &&
+    Boolean(
+      canPreviewSelection ||
+      isSingleDownloadable ||
+      isGroupSelected ||
+      canAddSelectionToTimeline
+    );
   const snapshotChangeSignal = useMemo(
     () => ({
       cards: canvasCards,
@@ -1417,8 +1424,14 @@ export function BeatCanvasShell({
     const nextDocument = buildCanvasProjectSnapshotDocument();
     const camera = nextDocument.camera;
     const canonicalCamera = focusCameraRef.current;
-    const roundingOnly = camera && canonicalCamera && Math.abs(camera.x - canonicalCamera.x) < 1e-8 && Math.abs(camera.y - canonicalCamera.y) < 1e-8 && Math.abs(camera.z - canonicalCamera.z) < 1e-8;
-    if (transientFocusCardId || roundingOnly) nextDocument.camera = canonicalCamera;
+    const roundingOnly =
+      camera &&
+      canonicalCamera &&
+      Math.abs(camera.x - canonicalCamera.x) < 1e-8 &&
+      Math.abs(camera.y - canonicalCamera.y) < 1e-8 &&
+      Math.abs(camera.z - canonicalCamera.z) < 1e-8;
+    if (transientFocusCardId || roundingOnly)
+      nextDocument.camera = canonicalCamera;
     const workflows = {
       ...(nextDocument.workflows ?? {}),
       ...(activeTemplateProjectWorkflowSnapshot
@@ -1442,8 +1455,17 @@ export function BeatCanvasShell({
     (
       document: import('@/core/projects/project-snapshot').ProjectSnapshotDocument
     ) => {
+      const selectedIds = editorRef.current?.getSelectedShapeIds() ?? [];
+      const survivingIds = new Set([
+        ...document.cards.map((card) => card.id),
+        ...Object.keys(document.organization?.groups ?? {}),
+      ]);
       focusCameraRef.current = document.camera;
       restoreCanvasProjectSnapshot(document);
+      // A server-normalized autosave must not close the selected node editor.
+      editorRef.current?.setSelectedShapes(
+        selectedIds.filter((id) => survivingIds.has(id))
+      );
       resumeInFlightGenerations();
     },
     [restoreCanvasProjectSnapshot, resumeInFlightGenerations]
@@ -1489,10 +1511,20 @@ export function BeatCanvasShell({
 
     handledInitialFocusCardIdRef.current = focusCardId;
     const focused = canvasCards[focusCardId];
-    const targetId = focused.kind === 'output' ? focused.sourceConfigCardId : focusCardId;
+    const targetId =
+      focused.kind === 'output' ? focused.sourceConfigCardId : focusCardId;
     handleSelectShape(targetId);
     focusShape(targetId);
-    if (focused.kind === 'output' && focused.url && (focused.type === 'image' || focused.type === 'video')) window.dispatchEvent(new CustomEvent('beatcanvas:preview-media', { detail: { type: focused.type, url: focused.url, title: focused.name } }));
+    if (
+      focused.kind === 'output' &&
+      focused.url &&
+      (focused.type === 'image' || focused.type === 'video')
+    )
+      window.dispatchEvent(
+        new CustomEvent('beatcanvas:preview-media', {
+          detail: { type: focused.type, url: focused.url, title: focused.name },
+        })
+      );
     if (canvasCards[focusCardId]?.kind === 'generation') {
       setActiveComposerCardId(focusCardId);
     }
@@ -1710,6 +1742,193 @@ export function BeatCanvasShell({
     [canvasCardsRef, removeCanvasCardsForShapes]
   );
 
+  const projectReferenceCard = (
+    asset: ProjectReferenceAsset
+  ): CanvasCard | null => {
+    if (!['image', 'video', 'audio'].includes(asset.type) || !asset.publicUrl)
+      return null;
+    const sample = Object.values(canvasCardsRef.current).find(
+      (c) => c.kind === 'generation'
+    );
+    return sample
+      ? {
+          ...sample,
+          id: asset.id,
+          assetId: asset.id,
+          kind: 'asset',
+          type: asset.type as 'image' | 'video' | 'audio',
+          url: asset.publicUrl,
+          name: asset.filename ?? asset.id,
+        }
+      : null;
+  };
+  const canUseProjectReference = (
+    draftId: string,
+    asset: ProjectReferenceAsset
+  ) => {
+    const draft = canvasCardsRef.current[draftId],
+      sourceCard = projectReferenceCard(asset);
+    if (
+      draft?.kind !== 'generation' ||
+      !sourceCard ||
+      draft.status === 'pending' ||
+      draft.status === 'processing'
+    )
+      return false;
+    return canUseCanvasCardAsGenerationReference({
+      sourceCard,
+      targetType: draft.type,
+      targetGenerationMode: draft.generationMode,
+      targetModel: getSelectableModel(
+        draft.type === 'image' ? imageModels : videoModels,
+        draft.modelId
+      ),
+    });
+  };
+  const handleUseProjectReference = (
+    draftId: string,
+    asset: ProjectReferenceAsset
+  ) => {
+    if (!canUseProjectReference(draftId, asset)) return;
+    const existing = Object.values(canvasCardsRef.current).find(
+      (c) => c.kind === 'asset' && c.assetId === asset.id
+    );
+    const frame = editorRef.current?.getShapePageBounds(draftId);
+    const referenceId =
+      existing?.id ??
+      insertAssetCard({
+        assetId: asset.id,
+        type: asset.type as 'image' | 'video' | 'audio',
+        url: asset.publicUrl,
+        name: asset.filename ?? asset.id,
+        kind: 'asset',
+        activateOnInsert: false,
+        size: { w: 260, h: 146 },
+        ...(frame
+          ? { frame: { x: frame.minX - 340, y: frame.minY, w: 260, h: 146 } }
+          : {}),
+      });
+    if (referenceId) {
+      handleAttachCanvasReference(draftId, referenceId);
+      editorRef.current?.setSelectedShapes([draftId]);
+    }
+  };
+  const [runningGroupId, setRunningGroupId] = useState<string | null>(null);
+  const groupRunScope = useRef(0);
+  const groupRunLock = useRef(false);
+  useEffect(() => {
+    groupRunScope.current += 1;
+    return () => {
+      groupRunScope.current += 1;
+    };
+  }, [projectId, canvasId]);
+  const handleRunGroup = useCallback(
+    async (groupId: string) => {
+      if (groupRunLock.current) return;
+      const group =
+        buildProjectSnapshotDocument().organization?.groups[groupId];
+      if (!group) return;
+      let ids: string[];
+      try {
+        ids = planGroupRun(canvasCardsRef.current, group.memberCardIds);
+      } catch (error) {
+        toast.error(
+          organizationT(
+            `groupRun_${error instanceof Error ? error.message : 'empty'}`
+          )
+        );
+        return;
+      }
+      const frozen = new Map(
+        ids.map((id) => [id, groupRunFingerprint(canvasCardsRef.current[id])])
+      );
+      const scope = groupRunScope.current;
+      groupRunLock.current = true;
+      setRunningGroupId(groupId);
+      try {
+        for (const [index, id] of ids.entries()) {
+          if (scope !== groupRunScope.current) return;
+          const currentGroup =
+            buildProjectSnapshotDocument().organization?.groups[groupId];
+          if (
+            !currentGroup?.memberCardIds.includes(id) ||
+            groupRunFingerprint(canvasCardsRef.current[id]) !== frozen.get(id)
+          ) {
+            toast.error(organizationT('groupRun_changed'));
+            return;
+          }
+          if (
+            !(await runGenerateDraft(id, {
+              suppressResultFocus: true,
+              suppressSuccessToast: true,
+              batchIndex: index + 1,
+              batchTotal: ids.length,
+            }))
+          )
+            return;
+        }
+        if (scope === groupRunScope.current)
+          toast.success(organizationT('groupRun_done'));
+      } finally {
+        groupRunLock.current = false;
+        setRunningGroupId(null);
+      }
+    },
+    [buildProjectSnapshotDocument, runGenerateDraft, organizationT]
+  );
+
+  const handleDownloadGroup = useCallback(
+    async (groupId: string) => {
+      const group =
+        buildProjectSnapshotDocument().organization?.groups[groupId];
+      if (!group) return;
+      const media = [
+        ...new Map(
+          group.memberCardIds.flatMap((id) => {
+            const card = canvasCardsRef.current[id];
+            // Outputs are represented by the generation's currently chosen result.
+            if (!card || card.kind === 'output') return [];
+            const concrete = resolveConcreteCanvasMediaCard({
+              cards: canvasCardsRef.current,
+              card,
+            });
+            return concrete && isDownloadableCanvasCard(concrete)
+              ? [[concrete.assetId ?? concrete.url, concrete] as const]
+              : [];
+          })
+        ).values(),
+      ];
+      if (!media.length) {
+        toast.error(studioT('messages.noDownloadableAssets'));
+        return;
+      }
+      try {
+        const { default: JSZip } = await import('jszip');
+        const files = await Promise.all(media.map(fetchDownloadBlob));
+        const zip = new JSZip();
+        files.forEach(({ blob, fileName }, index) =>
+          zip.file(`${index + 1}-${fileName}`, blob)
+        );
+        triggerBrowserDownload(
+          await zip.generateAsync({ type: 'blob' }),
+          'canvas-group-assets.zip'
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : studioT('messages.noDownloadableAssets')
+        );
+      }
+    },
+    [
+      buildProjectSnapshotDocument,
+      fetchDownloadBlob,
+      studioT,
+      triggerBrowserDownload,
+    ]
+  );
+
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden bg-[var(--beatcanvas-canvas-bg)]">
       <input
@@ -1745,10 +1964,63 @@ export function BeatCanvasShell({
       />
       {/* Canvas area */}
       <div className="relative flex-1 min-w-0">
-        {transientFocusCardId && <div className="absolute left-1/2 top-3 z-30 flex max-w-[90%] -translate-x-1/2 items-center gap-2 rounded-lg border border-orange-500/40 bg-black/85 p-2 text-xs"><span>{seriesT('temporaryFocus')}</span><button className="min-h-11 px-3" onClick={() => { if (focusCameraRef.current) editorRef.current?.setCamera(focusCameraRef.current, { animation: { duration: 0 } }); setTransientFocusCardId(null); }}>{seriesT('closeFocus')}</button></div>}
+        {transientFocusCardId && (
+          <div className="absolute left-1/2 top-3 z-30 flex max-w-[90%] -translate-x-1/2 items-center gap-2 rounded-lg border border-orange-500/40 bg-black/85 p-2 text-xs">
+            <span>{seriesT('temporaryFocus')}</span>
+            <button
+              className="min-h-11 px-3"
+              onClick={() => {
+                if (focusCameraRef.current)
+                  editorRef.current?.setCamera(focusCameraRef.current, {
+                    animation: { duration: 0 },
+                  });
+                setTransientFocusCardId(null);
+              }}
+            >
+              {seriesT('closeFocus')}
+            </button>
+          </div>
+        )}
         <BeatCanvasFrontLayerProvider value={frontLayerValue}>
           <Suspense fallback={<BeatCanvasLoading />}>
             <BeatCanvasReactFlowEditor
+              selectedGroupActions={
+                <>
+                  {canPreviewSelection && (
+                    <button
+                      className={workspaceRow}
+                      onClick={handlePreviewSelection}
+                    >
+                      {studioT('multiSelect.preview')}
+                    </button>
+                  )}
+                  {canAddSelectionToTimeline && (
+                    <button
+                      className={workspaceRow}
+                      disabled={isAddingSelectionToTimeline}
+                      onClick={handleAddSelectionToTimeline}
+                    >
+                      {projectAssetsT(
+                        selectedTimelineMedia.length > 1
+                          ? 'createTimeline'
+                          : 'addToTimeline'
+                      )}
+                    </button>
+                  )}
+                  {continuationSelection && (
+                    <button
+                      className={workspaceRow}
+                      disabled={isContinuingVideo}
+                      onClick={handleContinueFromTailFrame}
+                    >
+                      {projectAssetsT('continueFromTailFrame')}
+                    </button>
+                  )}
+                </>
+              }
+              onRunGroup={handleRunGroup}
+              onDownloadGroup={handleDownloadGroup}
+              runningGroupId={runningGroupId}
               timelineUsage={canvasTimelineUsage.data?.clips}
               canvasCards={canvasCards}
               organization={canvasOrganization}
@@ -1766,6 +2038,8 @@ export function BeatCanvasShell({
         </BeatCanvasFrontLayerProvider>
 
         <CanvasOrganizationPanel
+          canUseProjectReference={canUseProjectReference}
+          onUseProjectReference={handleUseProjectReference}
           projectId={projectId}
           canvasId={canvasId}
           selectedCardIds={selectedCanvasCardIds}
@@ -1776,7 +2050,9 @@ export function BeatCanvasShell({
             snapshotLifecycle.acceptExternalSnapshot(document, revision);
           }}
           onLocate={(id) => {
-            if (!transientFocusCardId) focusCameraRef.current = buildCanvasProjectSnapshotDocument().camera;
+            if (!transientFocusCardId)
+              focusCameraRef.current =
+                buildCanvasProjectSnapshotDocument().camera;
             setTransientFocusCardId(id);
             handleSelectShape(id);
             focusShape(id);

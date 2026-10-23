@@ -22,11 +22,13 @@ import {
 import { toast } from 'sonner';
 type Page = Awaited<ReturnType<typeof queryScopedAssets>>;
 const control =
-  'min-h-11 rounded-lg border border-white/15 bg-white/5 px-3 text-sm focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-40';
+  'min-h-9 rounded-lg border border-white/10 bg-white/[0.025] px-3 text-sm focus-visible:ring-2 focus-visible:ring-orange-500 disabled:opacity-40';
 export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
   const context = useWorkspaceScope();
   const router = useRouter();
   const t = useTranslations('Series');
+  const productionT = useTranslations('Production');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const client = useQueryClient();
   const search = useSearch({ strict: false }) as Record<
     string,
@@ -64,7 +66,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
     queryFn: ({ pageParam, signal }) =>
       apiJsonGet<Page>(
         `/api/app/projects/${projectId}/scoped-assets?${params}${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ''}`,
-        { signal },
+        { signal }
       ),
     initialPageParam: null as string | null,
     getNextPageParam: (page) => page.nextCursor,
@@ -75,7 +77,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
     queryKey: ['asset-board-folders', projectId],
     queryFn: () =>
       apiJsonGet<{ document: ProjectOrganizationDocument }>(
-        `/api/app/projects/${projectId}/organization`,
+        `/api/app/projects/${projectId}/organization`
       ),
     enabled: scope !== 'series',
   });
@@ -123,7 +125,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
           <button
             key={value}
             type="button"
-            className={`${control} ${scope === value ? 'border-orange-500 bg-orange-500/10' : ''}`}
+            className={`${control} ${scope === value ? 'border-white/20 bg-white/10 text-white' : '!border-transparent !bg-transparent text-white/45'}`}
             aria-pressed={scope === value}
             disabled={
               (value === 'scene' && !context?.sceneId) ||
@@ -161,53 +163,69 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
             </option>
           ))}
         </select>
-        <select
+        <button
           className={control}
-          aria-label={t('referenceKind')}
-          value={search.elementKind ?? ''}
-          onChange={(e) => update({ elementKind: e.target.value || undefined })}
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen(!filtersOpen)}
         >
-          <option value="">{t('allKinds')}</option>
-          {(['character', 'scene', 'prop', 'voice', 'other'] as const).map(
-            (value) => (
-              <option key={value} value={value}>
-                {t(value)}
-              </option>
-            ),
-          )}
-        </select>
-        <select
-          className={control}
-          aria-label={t('usage')}
-          value={search.usage ?? ''}
-          onChange={(e) => update({ usage: e.target.value || undefined })}
-        >
-          <option value="">{t('allUses')}</option>
-          {(['reference', 'candidate', 'timeline', 'unassigned'] as const).map(
-            (value) => (
-              <option key={value} value={value}>
-                {t(`usage_${value}`)}
-              </option>
-            ),
-          )}
-        </select>
-        {scope !== 'series' && (
-          <select
-            className={control}
-            aria-label={t('folder')}
-            value={search.folderId ?? ''}
-            onChange={(e) => update({ folderId: e.target.value || undefined })}
-          >
-            <option value="">{t('allFolders')}</option>
-            <option value="@unassigned">{t('unfiled')}</option>
-            {Object.values(organization.data?.document.folders ?? {}).map(
-              (folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
+          {productionT('filters')}
+          {search.elementKind || search.usage || search.folderId ? ' •' : ''}
+        </button>
+        {filtersOpen && (
+          <>
+            <select
+              className={control}
+              aria-label={t('referenceKind')}
+              value={search.elementKind ?? ''}
+              onChange={(e) =>
+                update({ elementKind: e.target.value || undefined })
+              }
+            >
+              <option value="">{t('allKinds')}</option>
+              {(['character', 'scene', 'prop', 'voice', 'other'] as const).map(
+                (value) => (
+                  <option key={value} value={value}>
+                    {t(value)}
+                  </option>
+                )
+              )}
+            </select>
+            <select
+              className={control}
+              aria-label={t('usage')}
+              value={search.usage ?? ''}
+              onChange={(e) => update({ usage: e.target.value || undefined })}
+            >
+              <option value="">{t('allUses')}</option>
+              {(
+                ['reference', 'candidate', 'timeline', 'unassigned'] as const
+              ).map((value) => (
+                <option key={value} value={value}>
+                  {t(`usage_${value}`)}
                 </option>
-              ),
+              ))}
+            </select>
+            {scope !== 'series' && (
+              <select
+                className={control}
+                aria-label={t('folder')}
+                value={search.folderId ?? ''}
+                onChange={(e) =>
+                  update({ folderId: e.target.value || undefined })
+                }
+              >
+                <option value="">{t('allFolders')}</option>
+                <option value="@unassigned">{t('unfiled')}</option>
+                {Object.values(organization.data?.document.folders ?? {}).map(
+                  (folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  )
+                )}
+              </select>
             )}
-          </select>
+          </>
         )}
       </div>
       {scope === 'series' && (
@@ -332,7 +350,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
                     onClick={() =>
                       void action(async () => {
                         const library = await apiJsonGet<{ revision: number }>(
-                          `/api/app/series/${seriesId}`,
+                          `/api/app/series/${seriesId}`
                         );
                         const commandId = crypto.randomUUID();
                         await apiJsonPost(
@@ -346,7 +364,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
                               projectId,
                               assetIds: [asset.id],
                             },
-                          },
+                          }
                         );
                         toast.success(t('usedInEpisode'));
                       })
@@ -395,7 +413,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
                             type: 'publish_assets',
                             sourceProjectId: projectId,
                             assetIds: [asset.id],
-                          }),
+                          })
                         )
                       }
                     >
@@ -413,7 +431,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
                           await saveProjectSettings(
                             projectId,
                             settings.settingsRevision,
-                            { cover: { mode: 'manual', assetId: asset.id } },
+                            { cover: { mode: 'manual', assetId: asset.id } }
                           );
                           await client.invalidateQueries({
                             queryKey: ['project-settings', projectId],
@@ -478,7 +496,7 @@ export function ScopedAssetsBoard({ projectId }: { projectId: string }) {
                     archived: true,
                     previewToken: archivePreview.previewToken,
                   },
-                  archivePreview.seriesRevision,
+                  archivePreview.seriesRevision
                 );
                 setArchivePreview(null);
               })

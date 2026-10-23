@@ -57,7 +57,7 @@ export default function BeatCanvasSidebar({
 
   return (
     <>
-      <div className="pointer-events-auto absolute left-4 top-[39%] z-50 flex w-[54px] -translate-y-1/2 flex-col items-center gap-1 rounded-[var(--beat-radius-sm)] border border-white/[0.13] bg-[var(--beatcanvas-panel)] px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_24px_56px_rgba(0,0,0,0.48)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent">
+      <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-[var(--beat-radius-sm)] border border-white/[0.13] bg-[var(--beatcanvas-panel)] px-1.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_24px_56px_rgba(0,0,0,0.48)] backdrop-blur-2xl before:pointer-events-none before:absolute before:inset-x-3 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent">
         <ToolBtn
           icon={<Plus size={18} />}
           title={t('toolbar.generationNode')}
@@ -136,7 +136,7 @@ function ToolBtn({
       aria-pressed={active}
     >
       {icon}
-      <span className="pointer-events-none absolute left-[calc(100%+11px)] top-1/2 z-[90] -translate-y-1/2 translate-x-1 whitespace-nowrap rounded-[8px] border border-white/10 bg-[var(--beat-surface-2)]/95 px-2.5 py-1.5 text-[11px] font-medium text-[var(--beat-text-1)] opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.42)] backdrop-blur-xl transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100">
+      <span className="pointer-events-none absolute bottom-[calc(100%+11px)] left-1/2 z-[90] -translate-x-1/2 whitespace-nowrap rounded-[8px] border border-white/10 bg-[var(--beat-surface-2)]/95 px-2.5 py-1.5 text-[11px] font-medium text-[var(--beat-text-1)] opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.42)] backdrop-blur-xl transition-[opacity,transform] duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
         {title}
       </span>
     </button>
@@ -145,7 +145,7 @@ function ToolBtn({
 
 function ToolSeparator() {
   return (
-    <div className="my-0.5 h-px w-7 bg-gradient-to-r from-transparent via-white/[0.13] to-transparent" />
+    <div className="mx-0.5 h-7 w-px bg-gradient-to-r from-transparent via-white/[0.13] to-transparent" />
   );
 }
 
@@ -176,7 +176,7 @@ function SlidePanel({
   return (
     <div
       ref={panelRef}
-      className="beat-slide-in pointer-events-auto absolute left-20 top-[39%] z-40 max-h-[calc(100%-80px)] w-[280px] -translate-y-1/2 overflow-hidden rounded-[var(--beat-radius-sm)] border border-white/[0.12] bg-[var(--beatcanvas-panel)] text-[var(--beat-text-1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_28px_64px_rgba(0,0,0,0.46)] backdrop-blur-2xl"
+      className="beat-slide-in pointer-events-auto absolute bottom-20 left-1/2 z-40 max-h-[calc(100%-100px)] w-[min(320px,calc(100%-24px))] -translate-x-1/2 overflow-hidden rounded-[var(--beat-radius-sm)] border border-white/[0.12] bg-[var(--beatcanvas-panel)] text-[var(--beat-text-1)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_28px_64px_rgba(0,0,0,0.46)] backdrop-blur-2xl"
     >
       <div className="max-h-[calc(100vh-160px)] overflow-y-auto">
         {children}

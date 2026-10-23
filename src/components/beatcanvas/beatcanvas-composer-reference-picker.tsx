@@ -1,5 +1,7 @@
 import { CachedVideoPoster } from './cached-video-poster';
 import { cn } from '@/lib/utils';
+import { openCanvasOrganization } from './organization-actions';
+import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 import type { CanvasReferenceMediaType } from '@/core/beatcanvas/canvas-types';
 import {
   ChevronDown,
@@ -50,6 +52,7 @@ export function BeatCanvasComposerReferencePicker({
   options,
   primaryIntent,
   variant = 'icon',
+  embedded = false,
 }: {
   activeDraftId: string;
   canvasReferenceCards?: CanvasReferenceCardOption[];
@@ -74,7 +77,9 @@ export function BeatCanvasComposerReferencePicker({
   options: ReferenceOption[];
   primaryIntent: CanvasReferenceMediaType;
   variant?: 'icon' | 'row';
+  embedded?: boolean;
 }) {
+  const t = useTranslations('Organization');
   const [draggedReferenceId, setDraggedReferenceId] = useState<string | null>(
     null
   );
@@ -90,7 +95,10 @@ export function BeatCanvasComposerReferencePicker({
   return (
     <div ref={containerRef} className={cn('shrink-0', isRow && 'min-w-0')}>
       <div
-        className={cn('relative', isRow && 'flex min-w-0 items-center gap-1')}
+        className={cn(
+          'relative',
+          isRow && 'flex min-w-0 flex-wrap items-center gap-1'
+        )}
       >
         {isRow && attachedCount > 0 ? (
           <div className="flex min-w-0 max-w-[392px] items-center gap-1 overflow-x-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -213,12 +221,27 @@ export function BeatCanvasComposerReferencePicker({
         {isOpen ? (
           <div
             className={cn(
-              composerFloatingPanelClassName,
-              'left-0 w-[min(300px,calc(100vw-48px))]'
+              embedded
+                ? 'mt-2 max-h-[280px] w-full overflow-y-auto rounded-lg border border-white/10 bg-[var(--beat-surface-2)] p-2'
+                : composerFloatingPanelClassName,
+              !embedded && 'left-0 w-[min(300px,calc(100vw-48px))]'
             )}
             onPointerDownCapture={stopComposerEvent}
           >
             <div className="max-h-[320px] space-y-2.5 overflow-y-auto">
+              <button
+                type="button"
+                className="min-h-9 w-full rounded-md border border-white/10 px-3 text-left text-sm hover:bg-white/7"
+                onClick={() => {
+                  onOpenChange(false);
+                  openCanvasOrganization({
+                    view: 'references',
+                    cardIds: [activeDraftId],
+                  });
+                }}
+              >
+                {t('projectReferences')} / {t('seriesReferences')}
+              </button>
               <div className="space-y-0.5">
                 {options.map((option) => (
                   <button

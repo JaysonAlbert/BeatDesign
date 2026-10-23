@@ -65,6 +65,7 @@ export function BeatCanvasComposerParameterPicker({
   selectedQualityOptions,
   selectedVariantOptions,
   tone = 'default',
+  embedded = false,
   visibleParameterSummaryTokens,
 }: {
   activeDraftCard: CanvasGenerationCard;
@@ -111,347 +112,451 @@ export function BeatCanvasComposerParameterPicker({
   selectedQualityOptions: WorkspaceQualityOption[];
   selectedVariantOptions: WorkspaceModelVariant[];
   tone?: 'default' | 'batch';
+  embedded?: boolean;
   visibleParameterSummaryTokens: string[];
 }) {
   const isBatchTone = tone === 'batch';
   const commitSelection = (applyChange: () => void) =>
-    commitComposerParameterSelection({ applyChange, onOpenChange });
+    embedded
+      ? applyChange()
+      : commitComposerParameterSelection({ applyChange, onOpenChange });
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        isBatchTone
-          ? cn(composerFieldSlotClassName, 'lg:max-w-none')
-          : 'relative w-fit min-w-0 max-w-[min(240px,100%)] flex-none'
+        embedded
+          ? 'w-full'
+          : isBatchTone
+            ? cn(composerFieldSlotClassName, 'lg:max-w-none')
+            : 'relative w-fit min-w-0 max-w-[min(240px,100%)] flex-none'
       )}
     >
-      <button
-        type="button"
-        disabled={isDraftBusy}
-        title={parameterSummaryLabel}
-        onClick={() => {
-          onOpenChange(!isOpen);
-        }}
-        onPointerDownCapture={stopComposerEvent}
-        className={cn(
-          composerFieldButtonClassName,
-          isBatchTone
-            ? 'min-h-[44px] w-full rounded-none border-0 bg-transparent px-0 py-0 hover:bg-transparent'
-            : 'w-fit max-w-full'
-        )}
-      >
-        <span
+      {!embedded && (
+        <button
+          type="button"
+          disabled={isDraftBusy}
+          title={parameterSummaryLabel}
+          onClick={() => {
+            onOpenChange(!isOpen);
+          }}
+          onPointerDownCapture={stopComposerEvent}
           className={cn(
-            'flex min-w-0 items-center gap-2 overflow-hidden',
-            isBatchTone ? 'text-white' : 'text-white'
+            composerFieldButtonClassName,
+            isBatchTone
+              ? 'min-h-[44px] w-full rounded-none border-0 bg-transparent px-0 py-0 hover:bg-transparent'
+              : 'w-fit max-w-full'
           )}
         >
-          {visibleParameterSummaryTokens.map((token, index) => (
-            <span key={`${token}-${index}`} className="contents">
-              {!isBatchTone && index > 0 ? (
-                <span className="shrink-0 text-white/35">·</span>
-              ) : null}
-              {isBatchTone && index > 0 ? (
-                <span className="shrink-0 text-white/45">·</span>
-              ) : null}
-              <span
-                className={cn(
-                  'min-w-0',
-                  isBatchTone
-                    ? 'text-[18px] font-semibold tracking-[-0.04em] text-white'
-                    : 'text-[12px] font-medium',
-                  index === visibleParameterSummaryTokens.length - 1
-                    ? 'truncate'
-                    : 'shrink-0'
-                )}
-              >
-                {token}
+          <span
+            className={cn(
+              'flex min-w-0 items-center gap-2 overflow-hidden',
+              isBatchTone ? 'text-white' : 'text-white'
+            )}
+          >
+            {visibleParameterSummaryTokens.map((token, index) => (
+              <span key={`${token}-${index}`} className="contents">
+                {!isBatchTone && index > 0 ? (
+                  <span className="shrink-0 text-white/35">·</span>
+                ) : null}
+                {isBatchTone && index > 0 ? (
+                  <span className="shrink-0 text-white/45">·</span>
+                ) : null}
+                <span
+                  className={cn(
+                    'min-w-0',
+                    isBatchTone
+                      ? 'text-[18px] font-semibold tracking-[-0.04em] text-white'
+                      : 'text-[12px] font-medium',
+                    index === visibleParameterSummaryTokens.length - 1
+                      ? 'truncate'
+                      : 'shrink-0'
+                  )}
+                >
+                  {token}
+                </span>
               </span>
-            </span>
-          ))}
-        </span>
-        <ChevronDown
-          className={cn(
-            'pointer-events-none size-3.5 shrink-0 transition-transform duration-200',
-            isBatchTone ? 'text-[var(--beat-text-2)]' : 'text-white/45',
-            isOpen ? 'rotate-180' : ''
-          )}
-        />
-      </button>
+            ))}
+          </span>
+          <ChevronDown
+            className={cn(
+              'pointer-events-none size-3.5 shrink-0 transition-transform duration-200',
+              isBatchTone ? 'text-[var(--beat-text-2)]' : 'text-white/45',
+              isOpen ? 'rotate-180' : ''
+            )}
+          />
+        </button>
+      )}
 
       {isOpen ? (
         <div
           className={cn(
-            composerFloatingPanelClassName,
-            'right-0 w-[min(360px,calc(100vw-48px))]'
+            embedded ? 'w-full' : composerFloatingPanelClassName,
+            !embedded && 'right-0 w-[min(360px,calc(100vw-48px))]'
           )}
           onPointerDownCapture={stopComposerEvent}
         >
           <div className="space-y-3">
-            {selectedOutputQualities.length > 0 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.outputQualityLabel}
-                </p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {selectedOutputQualities.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
+            {embedded ? (
+              <div className="grid grid-cols-2 gap-3">
+                {selectedDurationOptions.length > 0 && (
+                  <div className="col-span-2">
+                    <CompactChoice
+                      label={labels.durationLabel}
+                      value={activeDraftCard.duration}
+                      options={selectedDurationOptions}
                       disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftOutputQualityChange(activeDraftCard.id, item)
-                        )
+                      format={(v) => `${v} s`}
+                      onChange={(v) =>
+                        onDraftDurationChange(activeDraftCard.id, v)
                       }
-                      className={getParameterChipClassName(
-                        activeDraftCard.outputQuality === item
-                      )}
-                    >
-                      {item.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {selectedAspectRatioOptions.length > 0 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.aspectRatioLabel}
-                </p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {selectedAspectRatioOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftAspectRatioChange(activeDraftCard.id, item)
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.aspectRatio === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
-
-            {selectedDurationOptions.length > 0 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.durationLabel}
-                </p>
-                {activeDraftCard.modelId.startsWith('local-h3') ? (
-                  <p className="max-w-[300px] text-[11px] leading-relaxed text-white/55">
-                    {labels.localH3DurationHint}
-                  </p>
-                ) : null}
-                <div className="grid grid-cols-3 gap-1.5">
-                  {selectedDurationOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftDurationChange(activeDraftCard.id, item)
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.duration === item
-                      )}
-                    >
-                      <span className="flex flex-col items-center gap-0.5">
-                        <span>{item}</span>
-                        {activeDraftCard.modelId.startsWith('local-h3') ? (
-                          <span className="text-[10px] font-normal opacity-60">
-                            {getLocalH3Timing(item)?.frames}f
+                    />
+                  </div>
+                )}
+                <CompactChoice
+                  label={labels.outputQualityLabel}
+                  value={activeDraftCard.outputQuality}
+                  options={selectedOutputQualities}
+                  disabled={isDraftBusy}
+                  format={(v) => v.toUpperCase()}
+                  onChange={(v) =>
+                    onDraftOutputQualityChange(activeDraftCard.id, v)
+                  }
+                />
+                <CompactChoice
+                  label={labels.aspectRatioLabel}
+                  value={activeDraftCard.aspectRatio}
+                  options={selectedAspectRatioOptions}
+                  disabled={isDraftBusy}
+                  format={(v) => normalizeComposerToken(v, labels)}
+                  onChange={(v) =>
+                    onDraftAspectRatioChange(activeDraftCard.id, v)
+                  }
+                />
+              </div>
+            ) : (
+              <>
+                {selectedDurationOptions.length > 0 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.durationLabel}
+                    </p>
+                    {activeDraftCard.modelId.startsWith('local-h3') ? (
+                      <p className="max-w-[300px] text-[11px] leading-relaxed text-white/55">
+                        {labels.localH3DurationHint}
+                      </p>
+                    ) : null}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {selectedDurationOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftDurationChange(activeDraftCard.id, item)
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.duration === item
+                          )}
+                        >
+                          <span className="flex flex-col items-center gap-0.5">
+                            <span>{item}</span>
+                            {activeDraftCard.modelId.startsWith('local-h3') ? (
+                              <span className="text-[10px] font-normal opacity-60">
+                                {getLocalH3Timing(item)?.frames}f
+                              </span>
+                            ) : null}
                           </span>
-                        ) : null}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-            {selectedCharacterOrientationOptions.length > 0 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.characterOrientationLabel}
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {selectedCharacterOrientationOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftCharacterOrientationChange(
-                            activeDraftCard.id,
-                            item
-                          )
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.characterOrientation === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                {selectedOutputQualities.length > 0 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.outputQualityLabel}
+                    </p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {selectedOutputQualities.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftOutputQualityChange(
+                                activeDraftCard.id,
+                                item
+                              )
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.outputQuality === item
+                          )}
+                        >
+                          {item.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-            {selectedBackgroundSourceOptions.length > 0 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.backgroundSourceLabel}
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {selectedBackgroundSourceOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftBackgroundSourceChange(
-                            activeDraftCard.id,
-                            item
-                          )
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.backgroundSource === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                {selectedAspectRatioOptions.length > 0 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.aspectRatioLabel}
+                    </p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {selectedAspectRatioOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftAspectRatioChange(activeDraftCard.id, item)
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.aspectRatio === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </>
+            )}
+            <details>
+              <summary className="cursor-pointer py-2 text-xs text-[var(--beat-text-2)]">
+                {labels.parameterLabel}
+              </summary>
+              <div className="space-y-3">
+                {selectedCharacterOrientationOptions.length > 0 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.characterOrientationLabel}
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {selectedCharacterOrientationOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftCharacterOrientationChange(
+                                activeDraftCard.id,
+                                item
+                              )
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.characterOrientation === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-            {selectedLanguageOptions.length > 0 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.languageLabel}
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {selectedLanguageOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftLanguageChange(activeDraftCard.id, item)
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.language === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                {selectedBackgroundSourceOptions.length > 0 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.backgroundSourceLabel}
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {selectedBackgroundSourceOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftBackgroundSourceChange(
+                                activeDraftCard.id,
+                                item
+                              )
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.backgroundSource === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-            {selectedModeOptions.length > 1 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.modeOptionLabel}
-                </p>
-                <div className={compactParameterGroupClass}>
-                  {selectedModeOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftModeChange(activeDraftCard.id, item)
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.mode === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                {selectedLanguageOptions.length > 0 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.languageLabel}
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {selectedLanguageOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftLanguageChange(activeDraftCard.id, item)
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.language === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-            {selectedVariantOptions.length > 1 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.variantOptionLabel}
-                </p>
-                <div className={compactParameterGroupClass}>
-                  {selectedVariantOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftVariantChange(activeDraftCard.id, item)
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.variant === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                {selectedModeOptions.length > 1 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.modeOptionLabel}
+                    </p>
+                    <div className={compactParameterGroupClass}>
+                      {selectedModeOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftModeChange(activeDraftCard.id, item)
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.mode === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-            {selectedQualityOptions.length > 1 ? (
-              <section className="space-y-1.5">
-                <p className={composerSectionLabelClassName}>
-                  {labels.qualityOptionLabel}
-                </p>
-                <div className={compactParameterGroupClass}>
-                  {selectedQualityOptions.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      disabled={isDraftBusy}
-                      onClick={() =>
-                        commitSelection(() =>
-                          onDraftQualityChange(activeDraftCard.id, item)
-                        )
-                      }
-                      className={getParameterChipClassName(
-                        activeDraftCard.quality === item
-                      )}
-                    >
-                      {normalizeComposerToken(item, labels)}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                {selectedVariantOptions.length > 1 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.variantOptionLabel}
+                    </p>
+                    <div className={compactParameterGroupClass}>
+                      {selectedVariantOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftVariantChange(activeDraftCard.id, item)
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.variant === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {selectedQualityOptions.length > 1 ? (
+                  <section className="space-y-1.5">
+                    <p className={composerSectionLabelClassName}>
+                      {labels.qualityOptionLabel}
+                    </p>
+                    <div className={compactParameterGroupClass}>
+                      {selectedQualityOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          disabled={isDraftBusy}
+                          onClick={() =>
+                            commitSelection(() =>
+                              onDraftQualityChange(activeDraftCard.id, item)
+                            )
+                          }
+                          className={getParameterChipClassName(
+                            activeDraftCard.quality === item
+                          )}
+                        >
+                          {normalizeComposerToken(item, labels)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+              </div>
+            </details>
           </div>
         </div>
       ) : null}
     </div>
+  );
+}
+
+function CompactChoice<T extends string | number>({
+  label,
+  value,
+  options,
+  disabled,
+  format,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: T[];
+  disabled: boolean;
+  format: (value: T) => string;
+  onChange: (value: T) => void;
+}) {
+  if (!options.length) return null;
+  return (
+    <label className="flex min-w-0 flex-col gap-1.5 text-xs text-[var(--beat-text-2)]">
+      <span>{label}</span>
+      {options.length === 1 ? (
+        <span className="py-2 text-sm text-[var(--beat-text-1)]">
+          {format(options[0])}
+        </span>
+      ) : (
+        <select
+          className="h-9 w-full rounded-lg border border-white/10 bg-[var(--beat-surface-2)] px-2 text-sm text-[var(--beat-text-1)] disabled:opacity-50"
+          aria-label={label}
+          disabled={disabled}
+          value={String(value)}
+          onChange={(event) => {
+            const next = options.find(
+              (item) => String(item) === event.target.value
+            );
+            if (next !== undefined) onChange(next);
+          }}
+        >
+          {options.map((item) => (
+            <option key={item} value={String(item)}>
+              {format(item)}
+            </option>
+          ))}
+        </select>
+      )}
+    </label>
   );
 }

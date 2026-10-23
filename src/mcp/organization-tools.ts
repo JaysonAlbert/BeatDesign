@@ -38,7 +38,10 @@ type RegistrationContext = {
   withToolErrors: ErrorWrapper;
 };
 const id = z.string().trim().min(1).max(200);
-const projectScope = z.object({ projectId: id.optional(), canvasId: id.optional() });
+const projectScope = z.object({
+  projectId: id.optional(),
+  canvasId: id.optional(),
+});
 const explicitEnvelope = z.object({
   commandId: id,
   idempotencyKey: id,
@@ -61,7 +64,7 @@ export function registerOrganizationTools(
     'bdesign_organization_get',
     {
       description:
-        'Read project folders and versioned Elements. Optionally preview removing one folder or Element without applying changes.',
+        'Read the project brief, folders and versioned Elements. Optionally preview removing one folder or Element without applying changes.',
       inputSchema: projectScope
         .extend({ preview: previewTarget.optional() })
         .strict(),
@@ -89,7 +92,7 @@ export function registerOrganizationTools(
     'bdesign_organization_apply',
     {
       description:
-        'Apply project folder or Element operations atomically. Supply stable commandId/idempotencyKey and the organization revision from organization_get. Folder removal requires a matching previewRevision. Never generates or uploads media.',
+        'Apply project brief (set_brief), folder or Element operations atomically. Supply stable commandId/idempotencyKey and the organization revision from organization_get. Folder removal requires a matching previewRevision. Never generates or uploads media.',
       inputSchema: projectScope
         .extend(explicitEnvelope.shape)
         .extend({ operations: organizationCommandSchema.shape.operations })
@@ -114,13 +117,19 @@ export function registerOrganizationTools(
       inputSchema: projectScope
         .extend({
           folderId: id.nullable().optional(),
-          scope: z.enum(['current', 'project', 'scene', 'episode', 'series']).default('project'),
+          scope: z
+            .enum(['current', 'project', 'scene', 'episode', 'series'])
+            .default('project'),
           sceneId: id.optional(),
           seriesId: id.optional(),
           mediaType: z.enum(['image', 'video', 'audio']).optional(),
           includeArchived: z.boolean().optional(),
-          elementKind: z.enum(['character', 'scene', 'prop', 'voice', 'other']).optional(),
-          usage: z.enum(['reference', 'candidate', 'timeline', 'unassigned']).optional(),
+          elementKind: z
+            .enum(['character', 'scene', 'prop', 'voice', 'other'])
+            .optional(),
+          usage: z
+            .enum(['reference', 'candidate', 'timeline', 'unassigned'])
+            .optional(),
           query: z.string().max(500).default(''),
           cursor: z.string().min(1).max(8192).optional(),
           limit: z.number().int().min(1).max(500).default(100),
@@ -130,11 +139,22 @@ export function registerOrganizationTools(
     },
     withToolErrors(async ({ projectId, ...query }) => {
       const project = await resolveScopedProject(projectId);
-      if (query.scope === 'scene' || query.scope === 'episode' || query.scope === 'series') {
+      if (
+        query.scope === 'scene' ||
+        query.scope === 'episode' ||
+        query.scope === 'series'
+      ) {
         const { canvasId, ...filters } = query;
-        return queryScopedAssets({ ...filters, scope: query.scope, projectId: project.id });
+        return queryScopedAssets({
+          ...filters,
+          scope: query.scope,
+          projectId: project.id,
+        });
       }
-      return queryOrganizationAssets(project.id, { ...query, scope: query.scope });
+      return queryOrganizationAssets(project.id, {
+        ...query,
+        scope: query.scope,
+      });
     })
   );
   server.registerTool(
@@ -169,9 +189,11 @@ export function registerOrganizationTools(
     },
     withToolErrors(async ({ projectId, canvasId, preview }) => {
       const project = await resolveScopedProject(projectId);
-      return withCanvasScope(project.id, canvasId, () => 'selectedCardIds' in preview
-        ? previewWorkflowTemplate(project.id, preview.selectedCardIds)
-        : previewWorkflowInstantiation(project.id, preview));
+      return withCanvasScope(project.id, canvasId, () =>
+        'selectedCardIds' in preview
+          ? previewWorkflowTemplate(project.id, preview.selectedCardIds)
+          : previewWorkflowInstantiation(project.id, preview)
+      );
     })
   );
   server.registerTool(

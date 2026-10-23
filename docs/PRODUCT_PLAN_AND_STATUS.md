@@ -1,10 +1,16 @@
 # BeatDesign 产品规划与当前完成状态
 
+2026-10-24 自有分支追加：Higgsfield 项目工作台对齐（可收起侧栏、独立简报、Elements 图库、嵌套目录与独立场次管理）已在隔离 3060 预览实现。功能边界、验证及保留差异见 [项目工作台回执](../specs/002-series-scenes-shared-assets/project-workspace-verification.md)；未合入或部署主实例。
+
 - 文档用途：给新加入的开发者、Codex、Claude Code 和其他 AI Agent 提供统一产品上下文
 - 当前基线：BeatDesign v0.2 Phase 1 本地实现
 - 最后核对：2026-09-23
 - 事实边界：只有代码、测试和本文“已完成”栏目共同证明的能力才算完成；规划项不等于已发布
 - 发布状态：GitHub 最新正式 Release 为 [v0.2.4](https://github.com/BeatAPI/BeatDesign/releases/tag/v0.2.4)；npm 最新版本为 `@beatapi/beatdesign-workbuddy@0.2.4`（2026-09-23 核验）。WorkBuddy 开放平台中，原有连接器 `oc_321d021032343aea` 的 v0.2.3 已发布，v0.2.4 已提交更新并显示“审核中”；新版通过审核和公开市场可检索性均未核验。
+
+### 2026-10-23 自有 Fork：场次与 Canvas 上下文界面（隔离预览）
+
+已按 Higgsfield 六态实测完成紧凑场次目录、选组工具条、节点提示词与模型、按需生成设置、参考素材选择和下方结果历史。默认没有静帧预演/动态试拍入口；不改变现有影片审核记录。组运行复用原生成运行器；共享固定版本和移动预检保留。验证与限制见 [重设计回执](../specs/002-series-scenes-shared-assets/contextual-ui-verification.md)。此条只说明自有分支实现和独立预览，不表示已合入、主实例部署或上游接受。
 
 ### v0.2.4 已发布改进
 

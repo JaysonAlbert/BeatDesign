@@ -1,0 +1,52 @@
+[
+  {
+    "file": "01-unselected.png",
+    "at": "2026-10-23T14:04:21.675Z",
+    "state": "unselected"
+  },
+  {
+    "file": "03-selected-group.png",
+    "at": "2026-10-23T14:04:41.179Z",
+    "state": "selected group"
+  },
+  {
+    "file": "02-selected-node.png",
+    "at": "2026-10-23T14:04:49.899Z",
+    "state": "selected image generation"
+  },
+  {
+    "file": "04-generation-settings.png",
+    "at": "2026-10-23T14:04:55.636Z",
+    "state": "image generation settings"
+  },
+  {
+    "file": "05-reference-source.png",
+    "at": "2026-10-23T14:05:21.387Z",
+    "state": "reference input source menu"
+  },
+  {
+    "file": "05b-reference-picker.png",
+    "at": "2026-10-23T14:05:34.700Z",
+    "state": "asset picker"
+  },
+  {
+    "file": "06-result-history.png",
+    "at": "2026-10-23T14:07:39.967Z",
+    "state": "result card and history; full view permission error"
+  },
+  {
+    "file": "06b-result-gallery.png",
+    "at": "2026-10-23T14:07:47.768Z",
+    "state": "expanded results gallery"
+  },
+  {
+    "file": "04b-video-settings.png",
+    "at": "2026-10-23T14:08:02.665Z",
+    "state": "video settings Seedance 2.0"
+  },
+  {
+    "file": "04c-model-picker.png",
+    "at": "2026-10-23T14:08:14.669Z",
+    "state": "model picker"
+  }
+]

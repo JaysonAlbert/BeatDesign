@@ -27,6 +27,7 @@ export function BeatCanvasComposerModelPicker({
   selectedModelLabel,
   selectedModelId,
   tone = 'default',
+  embedded = false,
 }: {
   activeDraftId: string;
   containerRef?: RefObject<HTMLDivElement | null>;
@@ -38,6 +39,7 @@ export function BeatCanvasComposerModelPicker({
   selectedModelLabel: string;
   selectedModelId: string | null;
   tone?: 'default' | 'batch';
+  embedded?: boolean;
 }) {
   const selectedModelIconPath = selectedModelId
     ? getModelIconPathByModelId(selectedModelId)
@@ -118,8 +120,10 @@ export function BeatCanvasComposerModelPicker({
       {isOpen ? (
         <div
           className={cn(
-            composerFloatingPanelClassName,
-            'left-0 w-[min(360px,calc(100vw-48px))]'
+            embedded
+              ? 'mt-2 max-h-[280px] w-full overflow-y-auto rounded-lg border border-white/10 bg-[var(--beat-surface-2)] p-2'
+              : composerFloatingPanelClassName,
+            !embedded && 'left-0 w-[min(360px,calc(100vw-48px))]'
           )}
           onPointerDownCapture={stopComposerEvent}
         >

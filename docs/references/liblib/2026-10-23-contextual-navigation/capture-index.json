@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "source": "Connected Chrome; original screenshots",
+  "captures": [
+    {
+      "file": "01-workflow-overview.png",
+      "bytes": 166429,
+      "sha256": "E964FEFED7A73F113E6BB04C23177C481C709C86D451B7F415E09077AC03D288",
+      "capturedAtBeijing": "2026-10-23 21:37:16 +08:00"
+    },
+    {
+      "file": "02-assets-board.png",
+      "bytes": 347000,
+      "sha256": "481FD93BDFE9A10CC460E698CDAD9CBA4BFC04A7A0571D74A31617A5DBBD0989",
+      "capturedAtBeijing": "2026-10-23 21:37:29 +08:00"
+    },
+    {
+      "file": "03-selected-result.png",
+      "bytes": 235336,
+      "sha256": "40786AB495EC6D3DA2C7AA1BF7B5C9CDE4ACAAE29FD927FCC1429B1828B942F2",
+      "capturedAtBeijing": "2026-10-23 21:37:36 +08:00"
+    }
+  ]
+}
