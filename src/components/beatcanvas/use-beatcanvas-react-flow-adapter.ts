@@ -1587,7 +1587,7 @@ export function useBeatCanvasReactFlowAdapter({
   const buildProjectSnapshotDocument = captureCanvasDocument;
 
   const restoreProjectSnapshot = useCallback(
-    (document: ProjectSnapshotDocument) => {
+    (document: ProjectSnapshotDocument, options?: { preserveViewport: boolean }) => {
       if (document.version === 5) canvasSchemaVersionRef.current = 5;
       const editor = editorRef.current;
       if (!editor) return;
@@ -1693,6 +1693,10 @@ export function useBeatCanvasReactFlowAdapter({
       }
 
       const restoreCameraOrFocusCards = () => {
+        // Polling/autosave refresh content, never the user's live viewport.
+        // Skip the camera callback entirely, including its deferred RAF, so a
+        // pan made during reconciliation cannot be replaced a frame later.
+        if (options?.preserveViewport) return;
         if (document.camera) {
           editorRef.current?.setCamera(document.camera, {
             animation: { duration: 0 },

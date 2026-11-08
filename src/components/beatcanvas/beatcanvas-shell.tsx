@@ -1455,15 +1455,16 @@ export function BeatCanvasShell({
 
   const restoreProjectSnapshot = useCallback(
     (
-      document: import('@/core/projects/project-snapshot').ProjectSnapshotDocument
+      document: import('@/core/projects/project-snapshot').ProjectSnapshotDocument,
+      options?: { preserveViewport: boolean }
     ) => {
       const selectedIds = editorRef.current?.getSelectedShapeIds() ?? [];
       const survivingIds = new Set([
         ...document.cards.map((card) => card.id),
         ...Object.keys(document.organization?.groups ?? {}),
       ]);
-      focusCameraRef.current = document.camera;
-      restoreCanvasProjectSnapshot(document);
+      if (!options?.preserveViewport) focusCameraRef.current = document.camera;
+      restoreCanvasProjectSnapshot(document, options);
       // A server-normalized autosave must not close the selected node editor.
       editorRef.current?.setSelectedShapes(
         selectedIds.filter((id) => survivingIds.has(id))
@@ -2049,6 +2050,7 @@ export function BeatCanvasShell({
               getCanvasDocument={buildProjectSnapshotDocument}
               onMount={handleEditorMount}
               onDocumentChange={handleCanvasDocumentChange}
+              onViewportInteraction={() => setTransientFocusCardId(null)}
               onHistoryCheckpoint={recordCanvasHistory}
               onShapeIdsRemoved={handleCanvasShapeIdsRemoved}
               onReferenceEdgesRemoved={handleReferenceEdgesRemoved}
