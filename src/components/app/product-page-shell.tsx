@@ -20,6 +20,7 @@ import { appConfig } from '@/config';
 import { getGenerationRuntimeConfig } from '@/config/generation-runtime';
 import type { WorkspaceMode } from '@/config/workspace-modes';
 import { SeriesNavigation } from './series-navigation';
+import { canvasDirectoryHref } from './canvas-directory-model';
 import {
   useWorkspaceScope,
   useScopeNavigation,
@@ -31,11 +32,13 @@ export function ProductPageShell({
   workspaceName,
   projectId,
   workspaceMode,
+  canvasDirectory = false,
 }: {
   children: ReactNode;
   workspaceName?: string | null;
   projectId?: string | null;
   workspaceMode?: WorkspaceMode;
+  canvasDirectory?: boolean;
 }) {
   const t = useTranslations('AppShell');
   const productionT = useTranslations('Production');
@@ -45,12 +48,14 @@ export function ProductPageShell({
     if (window.matchMedia('(max-width: 1023px)').matches) setSidebarOpen(false);
   }, []);
   const projectWorkspace = Boolean(
-    projectId && (workspaceMode === 'studio' || workspaceMode === 'assets')
+    projectId && (workspaceMode === 'studio' || workspaceMode === 'assets' || workspaceMode === 'canvas')
   );
   const scope = useWorkspaceScope();
   const navigateScope = useScopeNavigation();
   const workspaceHref = (mode: string) =>
-    `/${mode}/${projectId}${scope ? scopeSearch(scope) : ''}`;
+    mode === 'canvas'
+      ? canvasDirectoryHref(projectId!)
+      : `/${mode}/${projectId}${scope ? scopeSearch(scope) : ''}`;
   const untitledWorkspaceName = t('header.untitledCanvas');
   const getDisplayWorkspaceName = useCallback(
     (name: string | null | undefined) => {
@@ -179,13 +184,17 @@ export function ProductPageShell({
             </Link>
 
             {projectWorkspace ? (
+              <div className="flex min-w-0 items-center gap-2">
               <button
                 aria-label={productionT('toggleNavigation')}
+                aria-expanded={sidebarOpen}
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="rounded-lg p-2 hover:bg-white/10"
               >
                 <PanelLeftOpen size={18} />
               </button>
+              {workspaceMode === 'canvas' && !canvasDirectory && <SeriesNavigation />}
+              </div>
             ) : (
               <>
                 {projectId && (

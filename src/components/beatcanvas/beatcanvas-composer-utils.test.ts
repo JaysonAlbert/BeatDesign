@@ -3,8 +3,31 @@ import test from 'node:test';
 
 import {
   resolveAnchoredComposerPosition,
+  resolveNodeComposerWidth,
   resolveComposerFocusLayout,
 } from './beatcanvas-composer-utils';
+
+test('resizing a wide media node keeps its composer equally wide and aligned', () => {
+  for (const frameWidth of [600, 840, 1000]) {
+    const width = resolveNodeComposerWidth(frameWidth, 1400);
+    assert.equal(width, frameWidth);
+    const position = resolveAnchoredComposerPosition({
+      frame: { left: 100, top: 40, width: frameWidth, height: 240 },
+      viewportWidth: 1400,
+      preferredWidth: width,
+      gap: 0,
+    });
+    assert.equal(position.left, 100);
+    assert.equal(position.top, 280);
+  }
+});
+
+test('composer stays usable for small nodes and within the canvas after sidebar resize', () => {
+  assert.equal(resolveNodeComposerWidth(180, 1200), 360);
+  assert.equal(resolveNodeComposerWidth(840, 640), 608);
+  assert.equal(resolveNodeComposerWidth(840, 900), 840);
+  assert.equal(resolveNodeComposerWidth(840, 300), 268);
+});
 
 test('anchors the composer directly below the active frame', () => {
   assert.deepEqual(

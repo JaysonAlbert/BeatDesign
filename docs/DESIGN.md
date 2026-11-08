@@ -49,7 +49,9 @@
 
 ## Layout
 
-- **Own-fork project workspace (2026-10-23 user-directed Higgsfield alignment):** Studio and Assets use a collapsible 240px project rail for brief, settings, Elements, tools, folders and scene canvases. Below 1024px the rail is an overlay. Canvas and Editor retain full-width working surfaces and an explicit return-to-project action. This scoped override follows the user's request; it does not add a cloud account or collaboration service.
+- **Canvas navigation (2026-11-08 user-approved):** The global Canvas tool opens a project canvas directory with scene canvases and other canvases. It never inherits a hidden scene selection. A scene entry opens that scene's canvas; scene assets have a separate labeled action. The directory shows actual media/document counts and generation activity, without implying human approval. A cross-scene overview canvas is optional, not a required project structure. Preserve existing canvases and explicit document deep links.
+
+- **Own-fork project workspace (2026-10-23, Canvas extended 2026-11-08 by user request):** Studio, Assets, the canvas directory and individual canvases use a collapsible 240px project rail for brief, settings, Elements, tools, folders and scene canvases. It starts expanded on desktop; below 1024px it starts closed and opens as an overlay. Individual canvases retain an explicit scene/document switcher and mark the current scene in the rail. Editor retains its full-width surface. This scoped override follows the user's request; it does not add a cloud account or collaboration service.
 
 - **Marketing grid:** 12 columns, max width 1280px, 24–32px gutters.
 - **App grid:** Creative project routes use a 56px top bar and fluid main region without a persistent sidebar.

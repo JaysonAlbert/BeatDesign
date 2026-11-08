@@ -21,8 +21,8 @@ import { useProjectOrganization } from './use-project-organization';
 import {
   useWorkspaceScope,
   useScopeNavigation,
-  scopeSearch,
 } from './workspace-scope';
+import { canvasDirectoryHref, canvasDocumentHref, sceneAssetsHref, sceneCanvasHref } from './canvas-directory-model';
 import { ProjectSettingsDialog } from './project-settings-dialog';
 import {
   Dialog,
@@ -194,7 +194,7 @@ export function ProjectProductionNavigation({
             {nav(
               t('canvas'),
               Workflow,
-              `/canvas/${projectId}${scope ? scopeSearch(scope) : ''}`,
+              canvasDirectoryHref(projectId),
               mode === 'canvas'
             )}
             {nav(
@@ -254,20 +254,50 @@ export function ProjectProductionNavigation({
         </div>
         {scope?.narrative.scenes
           .filter((scene) => !scene.archivedAt)
-          .map((scene) => (
-            <button
-              key={scene.id}
-              className={`${row} ${search.sceneId === scene.id ? 'bg-white/10 !text-white' : ''}`}
-              onClick={() =>
-                go(
-                  `/assets/${projectId}?scope=scene&sceneId=${encodeURIComponent(scene.id)}`
-                )
-              }
-            >
-              <PanelsTopLeft size={15} />
-              <span className="truncate">{scene.name}</span>
-            </button>
-          ))}
+          .map((scene) => {
+            const canvases = scope?.narrative.canvases.filter(
+              (canvas) => canvas.sceneId === scene.id && !canvas.archivedAt
+            ) ?? [];
+            return (
+              <div key={scene.id} className="min-w-0">
+                <div className="flex min-w-0 items-center gap-1">
+                  <button
+                    className={`${row} flex-1 ${mode === 'canvas' && scope?.sceneId === scene.id ? 'bg-white/10 !text-white' : ''}`}
+                    aria-current={mode === 'canvas' && scope?.sceneId === scene.id ? 'page' : undefined}
+                    title={scene.name}
+                    onClick={() => go(sceneCanvasHref(projectId, scene.id))}
+                  >
+                    <PanelsTopLeft size={15} className="shrink-0" />
+                    <span className="truncate">{scene.name}</span>
+                  </button>
+                  <button
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-lg text-white/45 hover:bg-white/7 hover:text-white ${mode === 'assets' && search.scope === 'scene' && search.sceneId === scene.id ? 'bg-white/10 !text-white' : ''}`}
+                    aria-label={t('sceneAssets', { name: scene.name })}
+                    title={t('sceneAssets', { name: scene.name })}
+                    onClick={() => go(sceneAssetsHref(projectId, scene.id))}
+                  >
+                    <Images size={15} />
+                  </button>
+                </div>
+                {canvases.length > 1 && (
+                  <div className="ml-5 border-l border-white/10 pl-2">
+                    {canvases.map((canvas) => (
+                      <button
+                        key={canvas.id}
+                        className={`${row} ${mode === 'canvas' && scope?.canvasId === canvas.id ? 'bg-white/10 !text-white' : ''}`}
+                        aria-current={mode === 'canvas' && scope?.canvasId === canvas.id ? 'page' : undefined}
+                        title={canvas.name}
+                        onClick={() => go(canvasDocumentHref(projectId, canvas.id, scene.id))}
+                      >
+                        <Workflow size={14} className="shrink-0" />
+                        <span className="truncate">{canvas.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         <button
           className={`${row} !text-white/40`}
           onClick={() => go(`/studio/${projectId}?panel=scenes`)}

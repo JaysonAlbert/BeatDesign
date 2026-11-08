@@ -91,6 +91,7 @@ import {
   workspaceRow,
 } from '@/components/app/workspace-popover';
 import { openCanvasOrganization } from '../organization-actions';
+import { summarizeCanvasGroup, type CanvasGroupSummary } from '../group-summary';
 import '@xyflow/react/dist/style.css';
 import '@/styles/react-flow-beatcanvas.css';
 
@@ -130,6 +131,8 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
   const meta = props.data.meta;
   const collapsed = Boolean(meta.collapsed);
   const counts = meta.statuses as Record<string, number> | undefined;
+  const summary = meta.contentSummary as CanvasGroupSummary | undefined;
+  const activeCount = Number(counts?.pending ?? 0) + Number(counts?.processing ?? 0);
   const copy = getBeatCanvasNodeCopy();
   return (
     <>
@@ -252,8 +255,9 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
           borderRadius: 12,
           background: collapsed
             ? 'var(--beat-surface)'
-            : 'rgba(127,176,242,.025)',
+            : 'rgba(246,246,244,.018)',
           padding: 12,
+          overflow: 'hidden',
           boxSizing: 'border-box',
         }}
       >
@@ -268,46 +272,60 @@ function OrganizationGroupNode(props: NodeProps<BeatCanvasFlowNode>) {
             {String(meta.name ?? '')}
           </span>
           <span className="text-xs opacity-60">
-            {Number(meta.memberCount ?? 0)}
+            {t('groupItemCount', { count: Number(meta.memberCount ?? 0) })}
           </span>
         </button>
+        <div className="flex items-center gap-2 text-xs text-[var(--beat-text-2)]">
+          <span className="shrink-0 rounded bg-white/5 px-2 py-1">
+            {t(String(meta.role ?? 'references'))}
+          </span>
+          <span className="truncate">
+            {Object.entries(summary?.counts ?? {})
+              .filter(([, count]) => count > 0)
+              .map(([kind, count]) => t(`groupContent_${kind}`, { count }))
+              .join(' · ')}
+          </span>
+        </div>
         {collapsed ? (
           <>
-            <div className="mt-3 flex gap-3 text-xs text-[var(--beat-text-2)]">
-              <span aria-label={copy.processing}>
-                ◌{' '}
-                {Number(counts?.pending ?? 0) + Number(counts?.processing ?? 0)}
+            <button
+              className="nodrag nopan mt-3 flex w-full gap-3 rounded-lg bg-white/[0.025] p-2 text-left hover:bg-white/5"
+              onClick={() => (meta.onToggle as (() => void) | undefined)?.()}
+              aria-label={t('expand')}
+            >
+              {summary?.preview && (
+                <img src={summary.preview.url} alt={summary.preview.name}
+                  className="size-16 shrink-0 rounded object-contain" loading="lazy" />
+              )}
+              <span className="min-w-0 flex-1">
+                {summary?.members.slice(0, 3).map((member) => (
+                  <span key={member.id} className="block truncate text-xs leading-5 text-[var(--beat-text-1)]" title={member.name}>
+                    {member.name}
+                  </span>
+                ))}
+                {summary?.excerpt && (
+                  <span className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--beat-text-2)]">{summary.excerpt}</span>
+                )}
               </span>
+            </button>
+            {(activeCount > 0 || Number(counts?.failed ?? 0) > 0) && <div className="mt-2 flex gap-3 text-xs text-[var(--beat-text-2)]">
+              {activeCount > 0 &&
+              <span aria-label={copy.processing}>
+                ◌ {activeCount}
+              </span>}
+              {Number(counts?.failed ?? 0) > 0 &&
               <span aria-label={copy.generationFailed}>
                 ⚠ {Number(counts?.failed ?? 0)}
-              </span>
-            </div>
-            {meta.resultName ? (
-              <div className="mt-2 text-xs">
-                <p className="text-[var(--beat-text-2)]">
-                  {t('displayedResult')}
-                </p>
-                <button
-                  className="nodrag nopan block min-h-11 w-full truncate text-left text-[var(--beat-text-1)] underline underline-offset-2"
-                  onClick={() =>
-                    (meta.onResult as (() => void) | undefined)?.()
-                  }
-                >
-                  {String(meta.resultName)}
-                </button>
-              </div>
-            ) : null}
-            <p className="mt-1 text-xs text-[var(--beat-text-2)]">
+              </span>}
+            </div>}
+            {Number(meta.timelineUseCount ?? 0) > 0 && <p className="mt-1 text-xs text-[var(--beat-text-2)]">
               {t('timelineUses', {
                 count:
                   meta.timelineUseCount == null
                     ? '—'
                     : Number(meta.timelineUseCount),
               })}
-            </p>
-            <p className="mt-1 text-xs text-[var(--beat-text-2)]">
-              {t('reviewNotRecorded')}
-            </p>
+            </p>}
           </>
         ) : null}
       </div>
@@ -1338,6 +1356,8 @@ function BeatCanvasReactFlowCanvas({
             meta: {
               beatdesignOrganizationGroup: true,
               name: group.name,
+              role: group.role,
+              contentSummary: summarizeCanvasGroup(projectedDocument, group),
               collapsed: group.collapsed,
               memberCount: node.memberCount,
               memberIds: group.memberCardIds,

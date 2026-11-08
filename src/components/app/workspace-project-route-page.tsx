@@ -1,4 +1,5 @@
 import { ProjectBrief } from './project-brief';
+import { CanvasDirectory } from './canvas-directory';
 import { SeriesNavigation } from './series-navigation';
 import { ProductPageShell } from '@/components/app/product-page-shell';
 import { ProjectAssetsWorkspace } from '@/components/app/project-assets-workspace';
@@ -24,8 +25,8 @@ export function WorkspaceProjectRoutePage({
     <WorkspaceScopeProvider
       value={{
         projectId: data.project.id,
-        canvasId: data.canvasId,
-        sceneId: data.sceneId,
+        canvasId: data.canvasDirectory ? null : data.canvasId,
+        sceneId: data.canvasDirectory ? null : data.sceneId,
         narrative: data.narrative,
       }}
     >
@@ -33,8 +34,11 @@ export function WorkspaceProjectRoutePage({
         workspaceName={data.project.name}
         projectId={data.project.id}
         workspaceMode={data.workspaceMode}
+        canvasDirectory={data.canvasDirectory}
       >
-        {data.scopeError ? (
+        {data.canvasDirectory ? (
+          <CanvasDirectory />
+        ) : data.scopeError ? (
           <div role="alert" className="m-8 space-y-4">
             <p>{t('scopeUnavailable')}</p>
             <Link href={`/canvas/${data.project.id}`}>
@@ -44,7 +48,9 @@ export function WorkspaceProjectRoutePage({
         ) : data.workspaceMode === 'canvas' && !data.canvasId ? (
           <div className="m-8">
             <p>{t('emptyScene')}</p>
-            <p>{t('openNavigation')}</p>
+            <Link href={`/studio/${data.project.id}?panel=scenes`}>
+              {t('newCanvas')}
+            </Link>
           </div>
         ) : data.workspaceMode === 'studio' && data.panel === 'brief' ? (
           <ProjectBrief key={data.project.id} projectId={data.project.id} />
