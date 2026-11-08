@@ -61,6 +61,11 @@ export type GenerationCardNodeProps = {
   h: number;
   cardMediaType: 'image' | 'video';
   label: string;
+  shotCode?: string;
+  displayTitle?: string;
+  takeNumber?: number;
+  durationLabel?: string;
+  hasCandidate?: boolean;
   status: 'idle' | 'pending' | 'processing' | 'succeeded' | 'failed';
   isAnalysis?: boolean;
   latestOutputUrl?: string | null;

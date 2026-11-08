@@ -4,6 +4,7 @@ import {
   Position,
   type NodeProps,
   useInternalNode,
+  useViewport,
 } from '@xyflow/react';
 import { ScanSearch, Sparkles } from 'lucide-react';
 
@@ -13,6 +14,7 @@ import { CachedVideoPoster } from '../cached-video-poster';
 import { getBeatCanvasNodeCopy } from './beatcanvas-node-copy';
 import type { BeatCanvasFlowNode } from '../react-flow/beatcanvas-react-flow-types';
 import { fireGenerationCardHover } from '../beatcanvas-generation-hover-bridge';
+import { useTranslations } from '@/core/workspace-lib/shims/next-intl';
 
 const MAX_VISIBLE_TAKES = 6;
 
@@ -29,6 +31,8 @@ export function GenerationCardNode({
 }: NodeProps<BeatCanvasFlowNode>) {
   const props = data.props;
   const internalNode = useInternalNode(id);
+  const { zoom } = useViewport();
+  const t = useTranslations('CanvasShots');
   if (!('status' in props)) return null;
 
   const {
@@ -42,6 +46,11 @@ export function GenerationCardNode({
     latestOutputText = null,
     analysisReportCount = 0,
     takes = [],
+    shotCode,
+    displayTitle,
+    takeNumber,
+    durationLabel,
+    hasCandidate,
   } = props;
   const isBusy = status === 'pending' || status === 'processing';
   const isFailed = status === 'failed';
@@ -71,6 +80,8 @@ export function GenerationCardNode({
         ? shapeCopy.imageGeneration
         : shapeCopy.videoGeneration);
   const isCompactActionNode = w <= 128 && h <= 128;
+  const headerScale = 1 / Math.max(zoom, 0.1);
+  const compactCaption = zoom < 0.45;
   const visibleTakes = takes.slice(-MAX_VISIBLE_TAKES);
   const showTakeStrip =
     !selected &&
@@ -128,26 +139,35 @@ export function GenerationCardNode({
           overflow: 'visible',
         }}
       >
-        {!isInsideGroup && !isCompactActionNode && (
+        {(!isInsideGroup || shotCode) && (!isCompactActionNode || shotCode) && (
           <div
+            data-testid="generation-node-caption"
+            title={displayLabel}
             style={{
               position: 'absolute',
-              top: -25,
+              bottom: 'calc(100% + 8px)',
               left: 0,
               zIndex: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 13,
+              width: w / headerScale,
+              transform: `scale(${headerScale})`,
+              transformOrigin: 'left bottom',
+              fontSize: 14,
               fontWeight: 600,
               color: selected ? 'var(--beat-graph)' : 'var(--beat-text-2)',
               lineHeight: '18px',
               whiteSpace: 'nowrap',
-              pointerEvents: 'none',
+              pointerEvents: 'auto',
             }}
           >
-            <Sparkles aria-hidden="true" size={14} strokeWidth={1.8} />
-            {displayLabel}
+            <div className="flex min-w-0 items-center gap-2">
+              {shotCode ? <span className="shrink-0 rounded border border-white/15 bg-[#17181b] px-2 py-1 font-mono text-sm text-white">{shotCode}</span> : <Sparkles aria-hidden="true" size={14} strokeWidth={1.8} />}
+              {!compactCaption && <span className="truncate">{displayTitle || displayLabel}</span>}
+            </div>
+            {!compactCaption && <div className="mt-1 flex items-center gap-2 text-xs font-normal text-[var(--beat-text-2)]">
+              <span>{isBusy ? shapeCopy.processing : isFailed ? shapeCopy.generationFailed : hasCandidate ? t('candidate') : t('notGenerated')}</span>
+              {takeNumber != null && <span>{t('take', { number: takeNumber })}</span>}
+              {durationLabel && <span>{durationLabel}</span>}
+            </div>}
           </div>
         )}
 

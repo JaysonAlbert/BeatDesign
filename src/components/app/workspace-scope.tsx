@@ -1,4 +1,5 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, type ReactNode, type Dispatch, type SetStateAction } from 'react';
+import type { CanvasShotOutlineEntry } from '@/core/beatcanvas/draft-shape';
 import type { getNarrative } from '@/core/series/narrative';
 import { useRouter } from '@/core/i18n/navigation';
 import { toast } from 'sonner';
@@ -13,6 +14,12 @@ export type WorkspaceScope = {
   narrative: Awaited<ReturnType<typeof getNarrative>>;
 };
 const ScopeContext = createContext<WorkspaceScope | null>(null);
+type CanvasOutline = { canvasId: string; entries: CanvasShotOutlineEntry[]; selectedId?: string };
+const OutlineContext = createContext<{
+  outline: CanvasOutline | null;
+  setOutline: Dispatch<SetStateAction<CanvasOutline | null>>;
+} | null>(null);
+export const useCanvasOutline = () => useContext(OutlineContext);
 export const useWorkspaceScope = () => useContext(ScopeContext);
 export function WorkspaceScopeProvider({
   value,
@@ -21,6 +28,8 @@ export function WorkspaceScopeProvider({
   value: WorkspaceScope;
   children: ReactNode;
 }) {
+  const [outline, setOutline] = useState<CanvasOutline | null>(null);
+  const outlineValue = useMemo(() => ({ outline, setOutline }), [outline]);
   const narrative = useQuery({
     queryKey: ['narrative', value.projectId],
     queryFn: () => fetchNarrative(value.projectId),
@@ -46,7 +55,7 @@ export function WorkspaceScopeProvider({
   });
   return (
     <ScopeContext.Provider value={{ ...value, narrative: narrative.data }}>
-      {children}
+      <OutlineContext.Provider value={outlineValue}>{children}</OutlineContext.Provider>
     </ScopeContext.Provider>
   );
 }

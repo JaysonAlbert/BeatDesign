@@ -1208,5 +1208,11 @@
     "assetActions": "素材の操作",
     "audioTools": "音声ツール",
     "filters": "フィルター"
+  },
+  "CanvasShots": {
+    "outline": "このキャンバスのショット",
+    "candidate": "候補",
+    "notGenerated": "候補なし",
+    "take": "テイク {number}"
   }
 }
