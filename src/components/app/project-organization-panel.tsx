@@ -31,6 +31,7 @@ export type ProjectOrganizationPanelProps = {
   embedded?: boolean;
   initialTab?: 'folders' | 'elements';
   initialElementId?: string;
+  onElementSelect?: (elementId: string) => void;
   document: ProjectOrganizationDocument;
   revision: number;
   assets: OrganizationPanelAsset[];
@@ -60,6 +61,7 @@ export function ProjectOrganizationPanel({
   embedded = false,
   initialTab = 'folders',
   initialElementId = '',
+  onElementSelect,
   document,
   revision,
   assets,
@@ -109,6 +111,10 @@ export function ProjectOrganizationPanel({
     (element) => element.deletedAt
   );
   const currentElement = elementId ? document.elements[elementId] : undefined;
+  const currentElementAsset = assets.find(
+    (asset) =>
+      asset.id === currentElement?.versions[currentElement.currentVersionId]?.assetId
+  );
   const stale = editRevision !== null && editRevision !== revision;
   const markEdit = () => setEditRevision((current) => current ?? revision);
 
@@ -213,6 +219,7 @@ export function ProjectOrganizationPanel({
     setAssetId('');
     setEditRevision(null);
     setError('');
+    onElementSelect?.(id);
   }
   const visibleAssets =
     queried ??
@@ -597,6 +604,25 @@ export function ProjectOrganizationPanel({
               ))}
             </select>
           </label>
+          {currentElement && currentElementAsset?.publicUrl && (
+            <div className="overflow-hidden rounded-lg border border-white/10 bg-black/20">
+              {currentElementAsset.type === 'image' ? (
+                <img
+                  src={currentElementAsset.publicUrl}
+                  alt={currentElement.name}
+                  className="max-h-[50vh] w-full object-contain"
+                />
+              ) : currentElementAsset.type === 'audio' ? (
+                <audio
+                  src={currentElementAsset.publicUrl}
+                  controls
+                  preload="none"
+                  aria-label={currentElement.name}
+                  className="w-full"
+                />
+              ) : null}
+            </div>
+          )}
           <form
             className="grid gap-3 sm:grid-cols-2"
             onSubmit={(event) => {
@@ -661,7 +687,7 @@ export function ProjectOrganizationPanel({
             <label className="grid gap-1 text-xs sm:col-span-2">
               {t('description')}
               <textarea
-                className={`${control} py-2`}
+                className={`${control} min-h-32 resize-y py-2`}
                 maxLength={2000}
                 value={description}
                 onChange={(event) => {
