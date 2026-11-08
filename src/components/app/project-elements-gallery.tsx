@@ -128,7 +128,7 @@ export function ProjectElementsGallery({ projectId }: { projectId: string }) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {elements.map((element) => {
             const asset = assets.data?.assets.find(
               (a) =>
@@ -138,7 +138,7 @@ export function ProjectElementsGallery({ projectId }: { projectId: string }) {
               <button
                 key={element.id}
                 onClick={() => setEditId(element.id)}
-                className="overflow-hidden rounded-xl border border-white/10 bg-[#17181b] text-left transition hover:border-white/25"
+                className="min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#17181b] text-left transition hover:border-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
               >
                 <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-white/[0.025]">
                   {asset?.publicUrl && asset.type === 'image' ? (
@@ -146,7 +146,7 @@ export function ProjectElementsGallery({ projectId }: { projectId: string }) {
                       src={asset.publicUrl}
                       alt={element.name}
                       loading="lazy"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                   ) : element.kind === 'voice' ? (
                     <AudioLines size={30} className="text-white/25" />
@@ -155,11 +155,16 @@ export function ProjectElementsGallery({ projectId }: { projectId: string }) {
                   )}
                 </div>
                 <div className="p-3">
-                  <p className="truncate text-sm font-medium">{element.name}</p>
+                  <p className="break-words text-sm font-medium">{element.name}</p>
                   <p className="mt-1 text-xs text-white/40">
                     {t(`kind_${element.kind}`)} ·{' '}
                     {Object.keys(element.versions).length} {t('versions')}
                   </p>
+                  {element.description && (
+                    <p className="mt-2 line-clamp-2 break-words text-xs leading-5 text-white/60">
+                      {element.description}
+                    </p>
+                  )}
                 </div>
               </button>
             );
@@ -172,7 +177,7 @@ export function ProjectElementsGallery({ projectId }: { projectId: string }) {
           if (!open && !organization.busy) setEditId(null);
         }}
       >
-        <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-[#17181b] text-white sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-[#17181b] text-white sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {editId
@@ -191,6 +196,7 @@ export function ProjectElementsGallery({ projectId }: { projectId: string }) {
               embedded
               initialTab="elements"
               initialElementId={editId}
+              onElementSelect={setEditId}
               document={organization.data.document}
               revision={organization.data.revision}
               assets={assets.data?.assets ?? []}
