@@ -60,7 +60,7 @@ test('canvas external polling rebases pending local edits instead of blocking Ag
   assert.match(source, /const currentSnapshot = buildSnapshotRef\.current\(\)/);
   assert.match(source, /local: pendingSnapshot,/);
   assert.match(source, /remote: payload\.document,/);
-  assert.match(source, /restoreProjectSnapshot\(snapshotToRestore\)/);
+  assert.match(source, /restoreProjectSnapshot\(snapshotToRestore, \{ preserveViewport: true \}\)/);
 });
 
 test('snapshot persistence flushes incremental commands when the page exits or becomes hidden', () => {

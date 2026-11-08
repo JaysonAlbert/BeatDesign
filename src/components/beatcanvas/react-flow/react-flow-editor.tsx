@@ -115,6 +115,7 @@ interface BeatCanvasReactFlowEditorProps {
   ) => void;
   onMount?: (editor: unknown) => void;
   onDocumentChange?: () => void;
+  onViewportInteraction?: () => void;
   onHistoryCheckpoint?: () => void;
   onShapeIdsRemoved?: (shapeIds: string[]) => void;
   onReferenceEdgesRemoved?: (
@@ -420,6 +421,7 @@ function BeatCanvasReactFlowCanvas({
   onOrganizationChange,
   onMount,
   onDocumentChange,
+  onViewportInteraction,
   onHistoryCheckpoint,
   onShapeIdsRemoved,
   onReferenceEdgesRemoved,
@@ -1612,6 +1614,9 @@ function BeatCanvasReactFlowCanvas({
           onEdgesChange={onEdgesChange}
           onNodeDragStart={handleNodeDragStart}
           onNodeDragStop={handleNodeDragStop}
+          onMoveStart={(event) => {
+            if (event) onViewportInteraction?.();
+          }}
           onMove={(_event, viewport) => editor.setViewportState(viewport)}
           onMoveEnd={handleMoveEnd}
           minZoom={0.1}

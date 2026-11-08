@@ -189,7 +189,10 @@ export function useProjectSnapshotLifecycle({
   snapshotChangeSignal: unknown;
   allowEmptyProjectSnapshot: boolean;
   buildProjectSnapshotDocument: () => ProjectSnapshotDocument;
-  restoreProjectSnapshot: (document: ProjectSnapshotDocument) => void;
+  restoreProjectSnapshot: (
+    document: ProjectSnapshotDocument,
+    options?: { preserveViewport: boolean }
+  ) => void;
   createDraftCard: (input: {
     taskType: CanvasCardMediaType;
     prompt: string;
@@ -323,7 +326,7 @@ export function useProjectSnapshotLifecycle({
           });
           pendingProjectSnapshotRef.current =
             JSON.stringify(rebasedLocalSnapshot);
-          restoreProjectSnapshot(rebasedLocalSnapshot);
+          restoreProjectSnapshot(rebasedLocalSnapshot, { preserveViewport: true });
           restoredRebasedSnapshot = true;
         } else if (
           pendingProjectSnapshotRef.current === targetSerializedSnapshot
@@ -331,7 +334,7 @@ export function useProjectSnapshotLifecycle({
           pendingProjectSnapshotRef.current = null;
         }
         if (needsReconcile && !restoredRebasedSnapshot) {
-          restoreProjectSnapshot(snapshotToSave);
+          restoreProjectSnapshot(snapshotToSave, { preserveViewport: true });
         }
         if (allowEmpty && snapshotToSave.cards.length === 0) {
           onEmptyProjectSnapshotSaved?.();
@@ -417,7 +420,7 @@ export function useProjectSnapshotLifecycle({
       const serialized = JSON.stringify(restored);
       pendingProjectSnapshotRef.current =
         serialized === lastSavedProjectSnapshotRef.current ? null : serialized;
-      restoreProjectSnapshot(restored);
+      restoreProjectSnapshot(restored, { preserveViewport: true });
     },
     [restoreProjectSnapshot]
   );
@@ -602,7 +605,7 @@ export function useProjectSnapshotLifecycle({
         pendingProjectSnapshotRef.current = pendingSnapshot
           ? JSON.stringify(snapshotToRestore)
           : null;
-        restoreProjectSnapshot(snapshotToRestore);
+        restoreProjectSnapshot(snapshotToRestore, { preserveViewport: true });
       } catch (error) {
         if (error instanceof Error && error.message.startsWith('Canvas '))
           onProjectSnapshotConflict?.();
