@@ -1208,5 +1208,11 @@
     "assetActions": "素材操作",
     "audioTools": "配音工具",
     "filters": "筛选"
+  },
+  "CanvasShots": {
+    "outline": "本场镜头",
+    "candidate": "候选",
+    "notGenerated": "尚无候选",
+    "take": "第 {number} 版"
   }
 }

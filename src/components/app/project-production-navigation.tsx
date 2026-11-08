@@ -21,6 +21,7 @@ import { useProjectOrganization } from './use-project-organization';
 import {
   useWorkspaceScope,
   useScopeNavigation,
+  useCanvasOutline,
 } from './workspace-scope';
 import { canvasDirectoryHref, canvasDocumentHref, sceneAssetsHref, sceneCanvasHref } from './canvas-directory-model';
 import { ProjectSettingsDialog } from './project-settings-dialog';
@@ -46,6 +47,8 @@ export function ProjectProductionNavigation({
 }) {
   const t = useTranslations('Production');
   const s = useTranslations('Series');
+  const shots = useTranslations('CanvasShots');
+  const outline = useCanvasOutline()?.outline;
   const scope = useWorkspaceScope();
   const navigate = useScopeNavigation();
   const search = useSearch({ strict: false }) as Record<
@@ -205,6 +208,25 @@ export function ProjectProductionNavigation({
             )}
           </div>
         </details>
+        {mode === 'canvas' && scope?.canvasId === outline?.canvasId && Boolean(outline?.entries.length) && (
+          <section className="mt-5" aria-label={shots('outline')}>
+            <p className="mb-2 px-3 text-xs text-white/40">{shots('outline')}</p>
+            {outline?.entries.map((entry) => (
+              <button key={entry.id} title={entry.label}
+                aria-current={outline.selectedId === entry.id ? 'true' : undefined}
+                className={`${row} !gap-2 ${outline.selectedId === entry.id ? 'bg-white/10 !text-white' : ''}`}
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('beatcanvas:focus-card', {
+                    detail: { projectId, canvasId: outline.canvasId, cardId: entry.id },
+                  }));
+                  if (window.matchMedia('(max-width: 1023px)').matches) onCollapse();
+                }}>
+                {entry.shotCode && <span className="shrink-0 font-mono text-xs">{entry.shotCode}</span>}
+                <span className="truncate">{entry.displayTitle || entry.label}</span>
+              </button>
+            ))}
+          </section>
+        )}
         <div className="mb-2 mt-6 flex items-center justify-between px-3 text-xs text-white/40">
           <span>{t('folders')}</span>
           <button

@@ -34,7 +34,7 @@ import {
   isCanvasOutputCard,
 } from '@/core/beatcanvas/canvas-types';
 import { getDraftDefaultsFromModel } from '@/core/beatcanvas/draft-defaults';
-import { buildDraftShapeText } from '@/core/beatcanvas/draft-shape';
+import { buildDraftShapeText, buildGenerationNodeCaption } from '@/core/beatcanvas/draft-shape';
 import { getSelectableModel } from '@/core/beatcanvas/generation-controller';
 import {
   resolveReferenceDrivenDraftAspectRatio,
@@ -236,6 +236,7 @@ export const buildGenerationCardPresentation = ({
 
   return {
     status: latestOutput?.status ?? card.status,
+    ...buildGenerationNodeCaption(card, outputs),
     isAnalysis,
     latestOutputUrl: isAnalysis
       ? null
@@ -945,7 +946,6 @@ export function useBeatCanvasReactFlowAdapter({
           w: size.w,
           h: size.h,
           cardMediaType: card.type,
-          label: buildDraftShapeText(card),
           ...presentation,
         },
       });

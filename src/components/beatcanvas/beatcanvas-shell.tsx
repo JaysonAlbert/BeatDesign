@@ -1,4 +1,6 @@
 import { workspaceRow } from '@/components/app/workspace-popover';
+import { useCanvasOutline } from '@/components/app/workspace-scope';
+import { buildCanvasShotOutline } from '@/core/beatcanvas/draft-shape';
 import type { ProjectReferenceAsset } from './organization-actions';
 import { planGroupRun, groupRunFingerprint } from '@/core/beatcanvas/group-run';
 import { VIDEO_ANALYSIS_MODEL_ID } from '@/core/effects/video-analysis';
@@ -1497,6 +1499,24 @@ export function BeatCanvasShell({
     onProjectSnapshotConflict: handleProjectSnapshotConflict,
   });
   snapshotFlushRef.current = snapshotLifecycle.flush;
+  const setOutline = useCanvasOutline()?.setOutline;
+  const shotOutline = useMemo(() => buildCanvasShotOutline(canvasCards), [canvasCards]);
+  useEffect(() => {
+    if (isCanvasReady && canvasId) setOutline?.({ canvasId, entries: shotOutline, selectedId: selectedShapeIds[0] });
+  }, [canvasId, shotOutline, selectedShapeIds, isCanvasReady, setOutline]);
+  useEffect(() => () => setOutline?.(null), [setOutline]);
+  useEffect(() => {
+    const focusCard = (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId: string; canvasId: string; cardId: string }>).detail;
+      if (!isCanvasReady || detail?.projectId !== projectId || detail.canvasId !== canvasId ||
+        canvasCards[detail.cardId]?.kind !== 'generation') return;
+      handleSelectShape(detail.cardId);
+      focusShape(detail.cardId);
+      setActiveComposerCardId(detail.cardId);
+    };
+    window.addEventListener('beatcanvas:focus-card', focusCard);
+    return () => window.removeEventListener('beatcanvas:focus-card', focusCard);
+  }, [canvasId, projectId, canvasCards, isCanvasReady, focusShape, handleSelectShape, setActiveComposerCardId]);
 
   useEffect(() => {
     const focusCardId = initialFocusCardId?.trim();

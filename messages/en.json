@@ -1208,5 +1208,11 @@
     "assetActions": "Asset actions",
     "audioTools": "Voice tools",
     "filters": "Filters"
+  },
+  "CanvasShots": {
+    "outline": "Shots on this canvas",
+    "candidate": "Candidate",
+    "notGenerated": "No candidate yet",
+    "take": "Take {number}"
   }
 }
