@@ -29,6 +29,7 @@ export async function loadWorkspaceProjectRoute({
   return {
     locale,
     panel: search.panel ?? null,
+    canvasDirectory: workspaceMode === 'canvas' && search.view === 'directory',
     project: projectState.project,
     snapshot: projectState.snapshot,
     snapshotVersion: projectState.snapshotVersion,

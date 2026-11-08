@@ -118,6 +118,13 @@ export const stopComposerKeyboardEvent = <
   event.nativeEvent?.stopImmediatePropagation?.();
 };
 
+export function resolveNodeComposerWidth(frameWidth: number | undefined, viewportWidth: number, edgeInset = 16) {
+  const preferred = Math.max(360, frameWidth ?? 400);
+  return viewportWidth > 0
+    ? Math.min(preferred, Math.max(0, viewportWidth - edgeInset * 2))
+    : preferred;
+}
+
 export const resolveAnchoredComposerPosition = ({
   frame,
   viewportWidth,

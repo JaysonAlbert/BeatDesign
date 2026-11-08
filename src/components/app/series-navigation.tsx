@@ -78,6 +78,8 @@ export function SeriesNavigation({ embedded = false }: { embedded?: boolean }) {
   if (!scope || !query.data) return null;
   const state = query.data;
   const currentScene = state.scenes.find((s) => s.id === scope.sceneId);
+  const currentCanvas = state.canvases.find((canvas) => canvas.id === scope.canvasId);
+  const currentLabel = [currentScene?.name, currentCanvas?.name === 'Project canvas' ? t('projectCanvas') : currentCanvas?.name].filter(Boolean).join(' / ') || t('projectCanvas');
   async function run(
     command: Parameters<typeof narrativeCommand>[2],
     expectedRevision = state.revision
@@ -195,8 +197,8 @@ export function SeriesNavigation({ embedded = false }: { embedded?: boolean }) {
         trigger={
           <>
             <ListTree size={16} />
-            <span className="max-w-48 truncate">
-              {currentScene?.name || t('projectCanvas')}
+            <span className="max-w-64 truncate" title={currentLabel}>
+              {currentLabel}
             </span>
             <ChevronDown size={14} />
           </>

@@ -59,6 +59,7 @@ import {
   isDraftCard,
   normalizeComposerToken,
   resolveAnchoredComposerPosition,
+  resolveNodeComposerWidth,
   resolveComposerPopoverStateOnPointerDown,
 } from './beatcanvas-composer-utils';
 import { useCanvasFrontLayer } from './beatcanvas-front-layer-context';
@@ -242,6 +243,10 @@ export function BeatCanvasFrontLayer() {
   }, [editor]);
   const canvasViewportWidth = canvasViewport.width,
     canvasViewportHeight = canvasViewport.height;
+  const activeDraftComposerWidth = resolveNodeComposerWidth(
+    activeDraftFrame ? frameToViewportRect(activeDraftFrame).width : undefined,
+    canvasViewportWidth
+  );
   const activeDraftComposerPosition = useMemo(() => {
     if (
       !activeDraftFrame ||
@@ -256,14 +261,12 @@ export function BeatCanvasFrontLayer() {
       viewportWidth: canvasViewportWidth,
       viewportHeight: canvasViewportHeight,
       composerHeight,
-      preferredWidth: Math.min(
-        480,
-        Math.max(360, frameToViewportRect(activeDraftFrame).width)
-      ),
+      preferredWidth: activeDraftComposerWidth,
       gap: 0,
     });
   }, [
     activeDraftFrame,
+    activeDraftComposerWidth,
     camera,
     canvasViewportHeight,
     canvasViewportWidth,
@@ -857,19 +860,7 @@ export function BeatCanvasFrontLayer() {
           }}
           expandedSettings={settingsOpen}
           settingsTitle={organizationT('generationSettings')}
-          width={
-            settingsOpen
-              ? 320
-              : Math.min(
-                  480,
-                  Math.max(
-                    360,
-                    activeDraftFrame
-                      ? frameToViewportRect(activeDraftFrame).width
-                      : 400
-                  )
-                )
-          }
+          width={settingsOpen ? 320 : activeDraftComposerWidth}
           onGenerateDraft={onGenerateDraft}
           onPromptChange={handlePromptValueChange}
           onPromptCommit={handlePromptCommit}
