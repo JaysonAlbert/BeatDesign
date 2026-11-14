@@ -47,7 +47,16 @@ class WorkerLoopTests(unittest.TestCase):
             if count==2 and not late:create(2)
             state={'resident':False,'ensure':0,'releases':0,'executed':0,'leases':0,'clock':0,'injected':False}
             @contextmanager
-            def lease(_):state['leases']+=1;yield
+            def lease(_):
+                state['leases']+=1
+                try:
+                    yield
+                finally:
+                    # A later client can enqueue after the previous model
+                    # batch has cleaned up and released its execution lease.
+                    if late and not state['injected']:
+                        self.assertFalse(state['resident'])
+                        create(2);state['injected']=True
             def write(path,value):path.parent.mkdir(parents=True,exist_ok=True);path.write_text(json.dumps(value))
             def ensure(_):state['ensure']+=1;state['resident']=True
             def release():
@@ -58,7 +67,6 @@ class WorkerLoopTests(unittest.TestCase):
             def execute(inputs,output):state['executed']+=1;output.write_bytes(b'fake');return SimpleNamespace(success=not inputs.get('fail'),data={},error='Deliberate failed take' if inputs.get('fail') else None)
             def sleep(seconds):
                 state['clock']+=seconds
-                if late and not state['injected']:create(2);state['injected']=True
             original=schedule.next_group
             def next_group(model,pending,idle,on_idle):return original(model,pending,idle,on_idle,clock=lambda:state['clock'],sleep=sleep)
             def module(name,**values):m=ModuleType(name);m.__dict__.update(values);return m
@@ -77,16 +85,18 @@ class WorkerLoopTests(unittest.TestCase):
             rows=[json.loads(p.read_text()) for p in sorted(jobs.glob('*/job.json'))]
             return state,rows
 
-    def test_two_tts_jobs_share_one_preparation_and_cold_release(self):
+    def test_two_tts_jobs_release_model_and_requeue_between_jobs(self):
         state,rows=self.run_worker()
         self.assertEqual([r['status'] for r in rows],['succeeded','succeeded'])
-        self.assertEqual((state['ensure'],state['releases'],state['executed']),(1,1,2))
-        self.assertFalse(rows[0]['timings']['model_reused']);self.assertTrue(rows[1]['timings']['model_reused'])
+        self.assertEqual((state['ensure'],state['releases'],state['executed'],state['leases']),(2,2,2,2))
+        self.assertTrue(all(not row['timings']['model_reused'] for row in rows))
 
-    def test_late_client_submission_keeps_model_and_same_gpu_lease(self):
+    def test_late_client_submission_after_release_gets_a_fresh_lease(self):
         state,rows=self.run_worker(late=True)
         self.assertEqual(len(rows),2);self.assertTrue(all(r['status']=='succeeded' for r in rows))
-        self.assertEqual((state['ensure'],state['leases']),(1,1))
+        self.assertEqual((state['ensure'],state['releases'],state['leases']),(2,2,2))
+        self.assertTrue(state['injected'])
+        self.assertTrue(all(not row['timings']['model_reused'] for row in rows))
 
     def test_interrupted_tts_is_never_resubmitted(self):
         state,rows=self.run_worker(count=1,interrupted=True)

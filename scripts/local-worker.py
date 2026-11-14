@@ -150,6 +150,10 @@ def _run(resources):
                             job.update(status='failed', phase='failed', error=str(exc), traceback=traceback.format_exc())
                         write_json(path, job)
                     run_group(selected, execute_one, policy.tts_concurrency if lease == 'drama3' else 1)
+                    # GPU_QUEUE_TTS_FAIRNESS_BEGIN
+                    if lease == 'drama3':
+                        break
+                    # GPU_QUEUE_TTS_FAIRNESS_END
                 if lease == 'h3':
                     release_comfy()
                 elif lease == 'flux3':
